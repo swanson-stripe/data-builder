@@ -79,3 +79,29 @@ export function shortDate(date: string): string {
     day: 'numeric',
   }).format(d);
 }
+
+/**
+ * Format a delta value with sign and currency
+ */
+export function deltaCurrency(value: number): string {
+  const formatted = currency(Math.abs(value));
+  if (value > 0) {
+    return `+${formatted}`;
+  } else if (value < 0) {
+    return `-${formatted}`;
+  }
+  return formatted;
+}
+
+/**
+ * Format a delta value with sign and number
+ */
+export function deltaNumber(value: number, decimals: number = 0): string {
+  const formatted = number(Math.abs(value), { decimals });
+  if (value > 0) {
+    return `+${formatted}`;
+  } else if (value < 0) {
+    return `-${formatted}`;
+  }
+  return formatted;
+}

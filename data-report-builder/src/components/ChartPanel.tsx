@@ -23,6 +23,7 @@ import {
   ResponsiveContainer,
   Dot,
 } from 'recharts';
+import { MetricHeader } from './MetricHeader';
 
 type RangePreset = {
   label: string;
@@ -239,8 +240,11 @@ export function ChartPanel() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Metric Header */}
+      <MetricHeader />
+
       {/* Controls */}
-      <div className="flex items-center justify-between mb-3 gap-3">
+      <div className="flex items-center justify-between mb-3 mt-3 gap-3">
         {/* Range presets */}
         <div className="flex gap-1" role="group" aria-label="Date range presets">
           {rangePresets.map((preset) => (
@@ -281,9 +285,8 @@ export function ChartPanel() {
         </div>
       </div>
 
-      {/* Chart title */}
+      {/* Date range info and warnings */}
       <div className="mb-2">
-        <h3 className="text-sm font-semibold">{series.label}</h3>
         <p className="text-xs text-gray-500 dark:text-gray-400">
           {state.start} to {state.end} • {validation.bucketCount} data points
         </p>
