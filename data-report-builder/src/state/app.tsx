@@ -20,6 +20,7 @@ export type AppState = {
   activeTab: 'data' | 'metric' | 'chart';
   selectedObjects: string[];
   selectedFields: { object: string; field: string }[];
+  fieldOrder: string[]; // Qualified field names: "object.field"
   report: ReportKey;
   start: string;
   end: string;
@@ -121,6 +122,11 @@ type SetMetricNameAction = {
   payload: string;
 };
 
+type ReorderFieldsAction = {
+  type: 'REORDER_FIELDS';
+  payload: string[]; // New fieldOrder array
+};
+
 type AppAction =
   | SetTabAction
   | ToggleObjectAction
@@ -138,13 +144,15 @@ type AppAction =
   | SetMetricSourceAction
   | SetMetricOpAction
   | SetMetricScopeAction
-  | SetMetricNameAction;
+  | SetMetricNameAction
+  | ReorderFieldsAction;
 
 // Initial state
 const initialState: AppState = {
   activeTab: 'data',
   selectedObjects: [],
   selectedFields: [],
+  fieldOrder: [],
   report: 'mrr',
   start: new Date(new Date().getFullYear() - 1, 0, 1).toISOString().split('T')[0], // Jan 1 last year
   end: new Date().toISOString().split('T')[0], // Today
@@ -180,12 +188,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
         const shouldClearMetricSource =
           state.metric.source?.object === objectName;
 
+        // Remove fields from fieldOrder
+        const newFieldOrder = state.fieldOrder.filter(
+          qualifiedField => !qualifiedField.startsWith(`${objectName}.`)
+        );
+
         return {
           ...state,
           selectedObjects: state.selectedObjects.filter(obj => obj !== objectName),
           selectedFields: state.selectedFields.filter(
             field => field.object !== objectName
           ),
+          fieldOrder: newFieldOrder,
           metric: shouldClearMetricSource
             ? { ...state.metric, source: undefined }
             : state.metric,
@@ -201,6 +215,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'TOGGLE_FIELD': {
       const { object, field } = action.payload;
+      const qualifiedField = `${object}.${field}`;
       const existingIndex = state.selectedFields.findIndex(
         f => f.object === object && f.field === field
       );
@@ -212,11 +227,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
           state.metric.source?.object === object &&
           state.metric.source?.field === field;
 
+        // Remove from fieldOrder
+        const newFieldOrder = state.fieldOrder.filter(f => f !== qualifiedField);
+
         return {
           ...state,
           selectedFields: state.selectedFields.filter(
             (_, index) => index !== existingIndex
           ),
+          fieldOrder: newFieldOrder,
           metric: shouldClearMetricSource
             ? { ...state.metric, source: undefined }
             : state.metric,
@@ -227,10 +246,16 @@ function appReducer(state: AppState, action: AppAction): AppState {
           ? state.selectedObjects
           : [...state.selectedObjects, object];
 
+        // Add to fieldOrder if not already present
+        const newFieldOrder = state.fieldOrder.includes(qualifiedField)
+          ? state.fieldOrder
+          : [...state.fieldOrder, qualifiedField];
+
         return {
           ...state,
           selectedObjects,
           selectedFields: [...state.selectedFields, { object, field }],
+          fieldOrder: newFieldOrder,
         };
       }
     }
@@ -259,6 +284,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         selectedObjects: [],
         selectedFields: [],
+        fieldOrder: [],
       };
 
     case 'SET_SELECTED_BUCKET':
@@ -343,6 +369,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
           ...state.metric,
           name: action.payload,
         },
+      };
+
+    case 'REORDER_FIELDS':
+      return {
+        ...state,
+        fieldOrder: action.payload,
       };
 
     default:
@@ -469,5 +501,10 @@ export const actions = {
   setMetricName: (name: string): SetMetricNameAction => ({
     type: 'SET_METRIC_NAME',
     payload: name,
+  }),
+
+  reorderFields: (fieldOrder: string[]): ReorderFieldsAction => ({
+    type: 'REORDER_FIELDS',
+    payload: fieldOrder,
   }),
 };

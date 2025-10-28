@@ -44,25 +44,43 @@ export function DataList() {
     column: null,
     direction: null,
   });
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
 
-  // Derive columns from selectedFields with qualified names
+  // Derive columns from selectedFields with qualified names, ordered by fieldOrder
   const columns = useMemo(() => {
     if (state.selectedFields.length === 0) {
       return [];
     }
 
-    return state.selectedFields.map((field) => {
-      const obj = getObject(field.object);
-      const fieldDef = obj?.fields.find((f) => f.name === field.field);
-      const qualifiedName = `${field.object}.${field.field}`;
+    // Create a map of qualified names to column info
+    const columnMap = new Map(
+      state.selectedFields.map((field) => {
+        const obj = getObject(field.object);
+        const fieldDef = obj?.fields.find((f) => f.name === field.field);
+        const qualifiedName = `${field.object}.${field.field}`;
 
-      return {
-        key: qualifiedName,
-        label: qualifiedName, // Use qualified name as label
-        type: fieldDef?.type || 'string',
-      };
-    });
-  }, [state.selectedFields]);
+        return [
+          qualifiedName,
+          {
+            key: qualifiedName,
+            label: qualifiedName,
+            type: fieldDef?.type || 'string',
+            object: field.object,
+            field: field.field,
+          },
+        ];
+      })
+    );
+
+    // Order columns according to fieldOrder, fallback to selectedFields order
+    if (state.fieldOrder.length > 0) {
+      return state.fieldOrder
+        .map((qualifiedName) => columnMap.get(qualifiedName))
+        .filter((col) => col !== undefined);
+    }
+
+    return Array.from(columnMap.values());
+  }, [state.selectedFields, state.fieldOrder]);
 
   // Generate mock data rows
   const rawRows = useMemo(() => {
@@ -148,6 +166,56 @@ export function DataList() {
       return '⇅';
     }
     return sortState.direction === 'asc' ? '↑' : '↓';
+  };
+
+  // Drag-and-drop handlers
+  const handleDragStart = (e: React.DragEvent, columnKey: string) => {
+    setDraggedColumn(columnKey);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, targetColumnKey: string) => {
+    e.preventDefault();
+
+    if (!draggedColumn || draggedColumn === targetColumnKey) {
+      setDraggedColumn(null);
+      return;
+    }
+
+    // Use current fieldOrder or create one from columns
+    const currentOrder = state.fieldOrder.length > 0
+      ? [...state.fieldOrder]
+      : columns.map(col => col.key);
+
+    const draggedIndex = currentOrder.indexOf(draggedColumn);
+    const targetIndex = currentOrder.indexOf(targetColumnKey);
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedColumn(null);
+      return;
+    }
+
+    // Reorder the array
+    const newOrder = [...currentOrder];
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(targetIndex, 0, draggedColumn);
+
+    dispatch(actions.reorderFields(newOrder));
+    setDraggedColumn(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedColumn(null);
+  };
+
+  // Handle column removal
+  const handleRemoveColumn = (object: string, field: string) => {
+    dispatch(actions.toggleField(object, field));
   };
 
   // Format cell value for display
@@ -248,36 +316,63 @@ export function DataList() {
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300 select-none whitespace-nowrap"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, column.key)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, column.key)}
+                  onDragEnd={handleDragEnd}
+                  className={`text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300 select-none whitespace-nowrap cursor-move ${
+                    draggedColumn === column.key ? 'opacity-50' : ''
+                  }`}
                 >
-                  <button
-                    onClick={() => handleSort(column.key)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleSort(column.key);
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => handleSort(column.key)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleSort(column.key);
+                        }
+                      }}
+                      className="flex-1 text-left cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1 -mx-1"
+                      aria-label={`Sort by ${column.label}`}
+                      aria-sort={
+                        sortState.column === column.key
+                          ? sortState.direction === 'asc'
+                            ? 'ascending'
+                            : 'descending'
+                          : 'none'
                       }
-                    }}
-                    className="w-full text-left cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1 -mx-1"
-                    aria-label={`Sort by ${column.label}`}
-                    aria-sort={
-                      sortState.column === column.key
-                        ? sortState.direction === 'asc'
-                          ? 'ascending'
-                          : 'descending'
-                        : 'none'
-                    }
-                  >
-                    <div className="flex items-center gap-1">
-                      <span className="font-mono text-[11px]">{column.label}</span>
-                      <span className="text-gray-400 dark:text-gray-500 text-xs" aria-hidden="true">
-                        {getSortIndicator(column.key)}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-gray-400 dark:text-gray-500 font-normal">
-                      {column.type}
-                    </div>
-                  </button>
+                    >
+                      <div className="flex items-center gap-1">
+                        <span className="font-mono text-[11px]">{column.label}</span>
+                        <span className="text-gray-400 dark:text-gray-500 text-xs" aria-hidden="true">
+                          {getSortIndicator(column.key)}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-gray-400 dark:text-gray-500 font-normal">
+                        {column.type}
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveColumn(column.object, column.field);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleRemoveColumn(column.object, column.field);
+                        }
+                      }}
+                      className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                      aria-label={`Remove column ${column.label}`}
+                      title="Remove column"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </th>
               ))}
             </tr>
@@ -309,7 +404,7 @@ export function DataList() {
 
       {/* Footer info */}
       <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-        Click column headers to sort • Showing sample data
+        Click headers to sort • Drag headers to reorder • Click ✕ to remove • Showing sample data
       </div>
     </div>
   );
