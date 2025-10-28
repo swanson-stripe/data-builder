@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { useApp } from '@/state/app';
+import { useApp, actions } from '@/state/app';
 import { mockRowsForDataList } from '@/data/mock';
 import { getObject } from '@/data/schema';
 
@@ -11,14 +11,41 @@ type SortState = {
   direction: SortDirection;
 };
 
+// Helper to extract a date from a row by checking common date fields
+function getRowDate(row: Record<string, string | number | boolean>): Date | null {
+  // Check common date field patterns
+  const dateFieldPatterns = [
+    'created',
+    'date',
+    'timestamp',
+    'current_period_start',
+    'current_period_end',
+  ];
+
+  for (const [key, value] of Object.entries(row)) {
+    // Check if field name contains any date pattern
+    const fieldName = key.split('.')[1]?.toLowerCase() || '';
+    if (dateFieldPatterns.some((pattern) => fieldName.includes(pattern))) {
+      if (typeof value === 'string') {
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+          return date;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 export function DataList() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const [sortState, setSortState] = useState<SortState>({
     column: null,
     direction: null,
   });
 
-  // Derive columns from selectedFields
+  // Derive columns from selectedFields with qualified names
   const columns = useMemo(() => {
     if (state.selectedFields.length === 0) {
       return [];
@@ -27,10 +54,11 @@ export function DataList() {
     return state.selectedFields.map((field) => {
       const obj = getObject(field.object);
       const fieldDef = obj?.fields.find((f) => f.name === field.field);
+      const qualifiedName = `${field.object}.${field.field}`;
 
       return {
-        key: `${field.object}.${field.field}`,
-        label: fieldDef?.label || field.field,
+        key: qualifiedName,
+        label: qualifiedName, // Use qualified name as label
         type: fieldDef?.type || 'string',
       };
     });
@@ -48,13 +76,30 @@ export function DataList() {
     });
   }, [state.selectedObjects]);
 
-  // Sort rows based on current sort state
-  const sortedRows = useMemo(() => {
-    if (!sortState.column || !sortState.direction) {
+  // Filter rows by selected bucket
+  const filteredRows = useMemo(() => {
+    if (!state.selectedBucket) {
       return rawRows;
     }
 
-    const sorted = [...rawRows].sort((a, b) => {
+    const bucketStart = new Date(state.selectedBucket.start);
+    const bucketEnd = new Date(state.selectedBucket.end);
+
+    return rawRows.filter((row) => {
+      const rowDate = getRowDate(row);
+      if (!rowDate) return false;
+
+      return rowDate >= bucketStart && rowDate < bucketEnd;
+    });
+  }, [rawRows, state.selectedBucket]);
+
+  // Sort rows based on current sort state
+  const sortedRows = useMemo(() => {
+    if (!sortState.column || !sortState.direction) {
+      return filteredRows;
+    }
+
+    const sorted = [...filteredRows].sort((a, b) => {
       const aVal = a[sortState.column!];
       const bVal = b[sortState.column!];
 
@@ -77,7 +122,7 @@ export function DataList() {
     });
 
     return sortState.direction === 'desc' ? sorted.reverse() : sorted;
-  }, [rawRows, sortState]);
+  }, [filteredRows, sortState]);
 
   // Handle column header click for sorting
   const handleSort = (columnKey: string) => {
@@ -126,11 +171,11 @@ export function DataList() {
   if (state.selectedObjects.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <div className="text-gray-400 text-4xl mb-3">📊</div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-1">
+        <div className="text-gray-400 dark:text-gray-500 text-4xl mb-3">📊</div>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
           No Data Selected
         </h3>
-        <p className="text-xs text-gray-500 max-w-xs">
+        <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs">
           Select objects and fields from the Data tab to see sample data here.
         </p>
       </div>
@@ -140,11 +185,11 @@ export function DataList() {
   if (columns.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <div className="text-gray-400 text-4xl mb-3">📋</div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-1">
+        <div className="text-gray-400 dark:text-gray-500 text-4xl mb-3">📋</div>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
           No Fields Selected
         </h3>
-        <p className="text-xs text-gray-500 max-w-xs">
+        <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs">
           Expand objects in the Data tab and select specific fields to display.
         </p>
       </div>
@@ -155,8 +200,31 @@ export function DataList() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="mb-2">
-        <h3 className="text-sm font-semibold">Data Preview</h3>
-        <p className="text-xs text-gray-500" role="status" aria-live="polite">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold">Data Preview</h3>
+          {/* Filter chip */}
+          {state.selectedBucket && (
+            <div className="inline-flex items-center gap-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+              <span className="font-medium">
+                Period: {state.selectedBucket.label}
+              </span>
+              <button
+                onClick={() => dispatch(actions.clearSelectedBucket())}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    dispatch(actions.clearSelectedBucket());
+                  }
+                }}
+                className="hover:bg-blue-200 rounded p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Clear period filter"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400" role="status" aria-live="polite">
           {sortedRows.length} rows • {columns.length} columns
           {sortState.column && (
             <span className="ml-2">
@@ -169,18 +237,18 @@ export function DataList() {
       </div>
 
       {/* Table container with scroll */}
-      <div className="flex-1 overflow-auto border rounded">
+      <div className="flex-1 overflow-auto border border-gray-200 dark:border-gray-700 rounded">
         <table className="w-full text-xs border-collapse" role="table" aria-label="Data preview table">
           {/* Sticky header */}
-          <thead className="bg-gray-50 sticky top-0 z-10">
-            <tr className="border-b">
-              <th className="text-left py-2 px-3 font-medium text-gray-500 w-12 border-r">
+          <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
+            <tr className="border-b border-gray-200 dark:border-gray-700">
+              <th className="text-left py-2 px-3 font-medium text-gray-500 dark:text-gray-400 w-12 border-r border-gray-200 dark:border-gray-700">
                 #
               </th>
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="text-left py-2 px-3 font-semibold text-gray-700 select-none whitespace-nowrap"
+                  className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300 select-none whitespace-nowrap"
                 >
                   <button
                     onClick={() => handleSort(column.key)}
@@ -190,7 +258,7 @@ export function DataList() {
                         handleSort(column.key);
                       }
                     }}
-                    className="w-full text-left cursor-pointer hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1 -mx-1"
+                    className="w-full text-left cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1 -mx-1"
                     aria-label={`Sort by ${column.label}`}
                     aria-sort={
                       sortState.column === column.key
@@ -201,12 +269,12 @@ export function DataList() {
                     }
                   >
                     <div className="flex items-center gap-1">
-                      <span>{column.label}</span>
-                      <span className="text-gray-400 text-xs" aria-hidden="true">
+                      <span className="font-mono text-[11px]">{column.label}</span>
+                      <span className="text-gray-400 dark:text-gray-500 text-xs" aria-hidden="true">
                         {getSortIndicator(column.key)}
                       </span>
                     </div>
-                    <div className="text-[10px] text-gray-400 font-normal">
+                    <div className="text-[10px] text-gray-400 dark:text-gray-500 font-normal">
                       {column.type}
                     </div>
                   </button>
@@ -220,9 +288,9 @@ export function DataList() {
             {sortedRows.map((row, rowIndex) => (
               <tr
                 key={rowIndex}
-                className="border-b hover:bg-blue-50 transition-colors"
+                className="border-b border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
               >
-                <td className="py-2 px-3 text-gray-400 border-r font-mono">
+                <td className="py-2 px-3 text-gray-400 dark:text-gray-500 border-r border-gray-200 dark:border-gray-700 font-mono">
                   {rowIndex + 1}
                 </td>
                 {columns.map((column) => (
@@ -240,7 +308,7 @@ export function DataList() {
       </div>
 
       {/* Footer info */}
-      <div className="mt-2 text-xs text-gray-500">
+      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
         Click column headers to sort • Showing sample data
       </div>
     </div>

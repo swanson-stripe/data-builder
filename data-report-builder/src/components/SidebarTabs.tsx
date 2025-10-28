@@ -21,8 +21,8 @@ export function SidebarTabs() {
           aria-controls={`${tab.id}-panel`}
           className={`px-2 py-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             state.activeTab === tab.id
-              ? 'bg-gray-900 text-white'
-              : 'text-gray-700 hover:bg-gray-100'
+              ? 'bg-gray-900 dark:bg-gray-600 text-white'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
         >
           {tab.label}

@@ -3,6 +3,18 @@ import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { Granularity } from '@/lib/time';
 import { ReportKey } from '@/types';
 
+// Chart types
+export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year' | 'benchmark';
+export type ChartType = 'line' | 'area' | 'bar';
+export type YScale = 'linear' | 'log';
+
+export type ChartSettings = {
+  type: ChartType;
+  yScale: YScale;
+  comparison: Comparison;
+  benchmark?: number;
+};
+
 // State type
 export type AppState = {
   activeTab: 'data' | 'metric' | 'chart';
@@ -12,6 +24,12 @@ export type AppState = {
   start: string;
   end: string;
   granularity: Granularity;
+  selectedBucket?: {
+    start: string;
+    end: string;
+    label: string;
+  };
+  chart: ChartSettings;
 };
 
 // Action types
@@ -45,13 +63,57 @@ type SetGranularityAction = {
   payload: Granularity;
 };
 
+type ResetSelectionsAction = {
+  type: 'RESET_SELECTIONS';
+};
+
+type SetSelectedBucketAction = {
+  type: 'SET_SELECTED_BUCKET';
+  payload: {
+    start: string;
+    end: string;
+    label: string;
+  };
+};
+
+type ClearSelectedBucketAction = {
+  type: 'CLEAR_SELECTED_BUCKET';
+};
+
+type SetChartTypeAction = {
+  type: 'SET_CHART_TYPE';
+  payload: ChartType;
+};
+
+type SetYScaleAction = {
+  type: 'SET_Y_SCALE';
+  payload: YScale;
+};
+
+type SetComparisonAction = {
+  type: 'SET_COMPARISON';
+  payload: Comparison;
+};
+
+type SetBenchmarkAction = {
+  type: 'SET_BENCHMARK';
+  payload: number;
+};
+
 type AppAction =
   | SetTabAction
   | ToggleObjectAction
   | ToggleFieldAction
   | SetReportAction
   | SetRangeAction
-  | SetGranularityAction;
+  | SetGranularityAction
+  | ResetSelectionsAction
+  | SetSelectedBucketAction
+  | ClearSelectedBucketAction
+  | SetChartTypeAction
+  | SetYScaleAction
+  | SetComparisonAction
+  | SetBenchmarkAction;
 
 // Initial state
 const initialState: AppState = {
@@ -62,6 +124,11 @@ const initialState: AppState = {
   start: new Date(new Date().getFullYear() - 1, 0, 1).toISOString().split('T')[0], // Jan 1 last year
   end: new Date().toISOString().split('T')[0], // Today
   granularity: 'month',
+  chart: {
+    type: 'line',
+    yScale: 'linear',
+    comparison: 'none',
+  },
 };
 
 // Reducer
@@ -142,6 +209,61 @@ function appReducer(state: AppState, action: AppAction): AppState {
         granularity: action.payload,
       };
 
+    case 'RESET_SELECTIONS':
+      return {
+        ...state,
+        selectedObjects: [],
+        selectedFields: [],
+      };
+
+    case 'SET_SELECTED_BUCKET':
+      return {
+        ...state,
+        selectedBucket: action.payload,
+      };
+
+    case 'CLEAR_SELECTED_BUCKET':
+      return {
+        ...state,
+        selectedBucket: undefined,
+      };
+
+    case 'SET_CHART_TYPE':
+      return {
+        ...state,
+        chart: {
+          ...state.chart,
+          type: action.payload,
+        },
+      };
+
+    case 'SET_Y_SCALE':
+      return {
+        ...state,
+        chart: {
+          ...state.chart,
+          yScale: action.payload,
+        },
+      };
+
+    case 'SET_COMPARISON':
+      return {
+        ...state,
+        chart: {
+          ...state.chart,
+          comparison: action.payload,
+        },
+      };
+
+    case 'SET_BENCHMARK':
+      return {
+        ...state,
+        chart: {
+          ...state.chart,
+          benchmark: action.payload,
+        },
+      };
+
     default:
       // Exhaustive check
       const _exhaustiveCheck: never = action;
@@ -207,5 +329,42 @@ export const actions = {
   setGranularity: (granularity: Granularity): SetGranularityAction => ({
     type: 'SET_GRANULARITY',
     payload: granularity,
+  }),
+
+  resetSelections: (): ResetSelectionsAction => ({
+    type: 'RESET_SELECTIONS',
+  }),
+
+  setSelectedBucket: (
+    start: string,
+    end: string,
+    label: string
+  ): SetSelectedBucketAction => ({
+    type: 'SET_SELECTED_BUCKET',
+    payload: { start, end, label },
+  }),
+
+  clearSelectedBucket: (): ClearSelectedBucketAction => ({
+    type: 'CLEAR_SELECTED_BUCKET',
+  }),
+
+  setChartType: (chartType: ChartType): SetChartTypeAction => ({
+    type: 'SET_CHART_TYPE',
+    payload: chartType,
+  }),
+
+  setYScale: (yScale: YScale): SetYScaleAction => ({
+    type: 'SET_Y_SCALE',
+    payload: yScale,
+  }),
+
+  setComparison: (comparison: Comparison): SetComparisonAction => ({
+    type: 'SET_COMPARISON',
+    payload: comparison,
+  }),
+
+  setBenchmark: (benchmark: number): SetBenchmarkAction => ({
+    type: 'SET_BENCHMARK',
+    payload: benchmark,
   }),
 };

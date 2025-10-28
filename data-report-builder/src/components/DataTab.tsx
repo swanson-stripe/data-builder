@@ -18,31 +18,31 @@ function ObjectCard({ object }: { object: SchemaObject }) {
 
   // Generate relationship summary
   const relationshipSummary = relationships.length > 0 ? (
-    <div className="text-xs text-gray-500 mt-2 space-y-1">
+    <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 space-y-1">
       {relationships.slice(0, 3).map((rel, idx) => {
         const isFrom = rel.from === object.name;
         const otherObject = isFrom ? rel.to : rel.from;
         const direction = isFrom ? '→' : '←';
         return (
           <div key={idx} className="flex items-center gap-1">
-            <span className="text-gray-400">{direction}</span>
-            <span className="font-medium">{otherObject}</span>
-            <span className="text-gray-400 text-[10px]">
+            <span className="text-gray-400 dark:text-gray-500">{direction}</span>
+            <span className="font-medium text-gray-800 dark:text-gray-200">{otherObject}</span>
+            <span className="text-gray-400 dark:text-gray-500 text-[10px]">
               ({rel.type})
             </span>
           </div>
         );
       })}
       {relationships.length > 3 && (
-        <div className="text-gray-400">+{relationships.length - 3} more</div>
+        <div className="text-gray-400 dark:text-gray-500">+{relationships.length - 3} more</div>
       )}
     </div>
   ) : (
-    <div className="text-xs text-gray-400 mt-2 italic">No relationships</div>
+    <div className="text-xs text-gray-400 dark:text-gray-500 mt-2 italic">No relationships</div>
   );
 
   return (
-    <div className="border rounded p-3 mb-2 bg-white hover:border-gray-400 transition-colors">
+    <div className="border border-gray-200 dark:border-gray-600 rounded p-3 mb-2 bg-white dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
       {/* Object header */}
       <div className="flex items-start gap-2">
         <input
@@ -55,14 +55,19 @@ function ObjectCard({ object }: { object: SchemaObject }) {
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <label htmlFor={`object-${object.name}`} className="font-medium text-sm truncate cursor-pointer">
+            <div className="flex-1 min-w-0 flex items-center gap-2">
+              <label htmlFor={`object-${object.name}`} className="font-medium text-sm text-gray-800 dark:text-gray-100 truncate cursor-pointer">
                 {object.label}
               </label>
-              <div className="text-xs text-gray-500">
+              {isObjectSelected && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                  Selected
+                </span>
+              )}
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 {object.fields.length} fields
                 {selectedFieldCount > 0 && (
-                  <span className="ml-1 text-blue-600">
+                  <span className="ml-1 text-blue-600 dark:text-blue-400">
                     ({selectedFieldCount} selected)
                   </span>
                 )}
@@ -76,7 +81,7 @@ function ObjectCard({ object }: { object: SchemaObject }) {
                   setExpanded(!expanded);
                 }
               }}
-              className="text-gray-400 hover:text-gray-600 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
               disabled={!isObjectSelected}
               aria-label={`${expanded ? 'Collapse' : 'Expand'} ${object.label} fields`}
               aria-expanded={expanded}
@@ -90,17 +95,18 @@ function ObjectCard({ object }: { object: SchemaObject }) {
 
           {/* Expandable field list */}
           {expanded && isObjectSelected && (
-            <div className="mt-3 pt-3 border-t space-y-2" role="group" aria-label={`${object.label} fields`}>
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600 space-y-2" role="group" aria-label={`${object.label} fields`}>
               {object.fields.map((field) => {
                 const isFieldSelected = state.selectedFields.some(
                   (f) => f.object === object.name && f.field === field.name
                 );
                 const fieldId = `field-${object.name}-${field.name}`;
+                const qualifiedName = `${object.name}.${field.name}`;
                 return (
                   <label
                     key={field.name}
                     htmlFor={fieldId}
-                    className="flex items-center gap-2 text-xs hover:bg-gray-50 p-1 rounded cursor-pointer"
+                    className="flex items-center gap-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded cursor-pointer"
                   >
                     <input
                       type="checkbox"
@@ -110,12 +116,12 @@ function ObjectCard({ object }: { object: SchemaObject }) {
                         dispatch(actions.toggleField(object.name, field.name))
                       }
                       className="text-xs"
-                      aria-label={`${field.label} (${field.type})`}
+                      aria-label={`${qualifiedName} (${field.type})`}
                     />
                     <div className="flex-1 min-w-0">
-                      <span className="font-medium">{field.label}</span>
-                      <span className="text-gray-400 ml-2">
-                        ({field.type})
+                      <span className="font-mono text-[11px] text-gray-600 dark:text-gray-300">{qualifiedName}</span>
+                      <span className="text-gray-400 dark:text-gray-500 ml-2">
+                        · {field.type}
                       </span>
                     </div>
                   </label>
@@ -131,6 +137,7 @@ function ObjectCard({ object }: { object: SchemaObject }) {
 
 export function DataTab() {
   const [searchQuery, setSearchQuery] = useState('');
+  const { state } = useApp();
 
   // Filter objects based on search
   const filteredObjects = schema.objects.filter((obj) => {
@@ -146,6 +153,19 @@ export function DataTab() {
     );
   });
 
+  // Sort objects: selected first, then alphabetically by label
+  const sortedObjects = [...filteredObjects].sort((a, b) => {
+    const aSelected = state.selectedObjects.includes(a.name);
+    const bSelected = state.selectedObjects.includes(b.name);
+
+    // Selected objects come first
+    if (aSelected && !bSelected) return -1;
+    if (!aSelected && bSelected) return 1;
+
+    // Within same selection state, sort alphabetically
+    return a.label.localeCompare(b.label);
+  });
+
   return (
     <div className="flex flex-col h-full">
       {/* Search input */}
@@ -159,24 +179,24 @@ export function DataTab() {
           placeholder="Search objects and fields..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           aria-describedby="search-results-count"
         />
       </div>
 
       {/* Results count */}
       {searchQuery && (
-        <div id="search-results-count" className="text-xs text-gray-500 mb-2" role="status" aria-live="polite">
+        <div id="search-results-count" className="text-xs text-gray-500 dark:text-gray-400 mb-2" role="status" aria-live="polite">
           {filteredObjects.length} object(s) found
         </div>
       )}
 
       {/* Object list */}
       <div className="flex-1 overflow-y-auto space-y-0" role="list" aria-label="Data objects">
-        {filteredObjects.length > 0 ? (
-          filteredObjects.map((obj) => <ObjectCard key={obj.name} object={obj} />)
+        {sortedObjects.length > 0 ? (
+          sortedObjects.map((obj) => <ObjectCard key={obj.name} object={obj} />)
         ) : (
-          <div className="text-sm text-gray-400 text-center py-8" role="status">
+          <div className="text-sm text-gray-400 dark:text-gray-500 text-center py-8" role="status">
             No objects found matching "{searchQuery}"
           </div>
         )}

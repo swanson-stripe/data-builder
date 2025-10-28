@@ -273,3 +273,77 @@ export function mockRowsForDataList({
  * Export a consistent default seed
  */
 export const DEFAULT_SEED = 12345;
+
+/**
+ * Shift series dates by a specified time period
+ */
+export function shiftSeriesByPeriod(
+  series: ReportSeries,
+  bucketCount: number,
+  granularity: Granularity
+): ReportSeries {
+  return {
+    ...series,
+    points: series.points.map((point) => {
+      const date = new Date(point.date);
+
+      switch (granularity) {
+        case 'day':
+          date.setDate(date.getDate() - bucketCount);
+          break;
+        case 'week':
+          date.setDate(date.getDate() - (bucketCount * 7));
+          break;
+        case 'month':
+          date.setMonth(date.getMonth() - bucketCount);
+          break;
+        case 'quarter':
+          date.setMonth(date.getMonth() - (bucketCount * 3));
+          break;
+        case 'year':
+          date.setFullYear(date.getFullYear() - bucketCount);
+          break;
+      }
+
+      return {
+        ...point,
+        date: bucketLabel(date, granularity),
+      };
+    }),
+  };
+}
+
+/**
+ * Create a baseline series relative to the first point
+ */
+export function createPeriodStartSeries(series: ReportSeries): ReportSeries {
+  if (series.points.length === 0) return series;
+
+  const baseline = series.points[0].value;
+
+  return {
+    ...series,
+    label: `${series.label} (vs. Start)`,
+    points: series.points.map((point) => ({
+      ...point,
+      value: point.value - baseline,
+    })),
+  };
+}
+
+/**
+ * Create a benchmark series with a constant value
+ */
+export function createBenchmarkSeries(
+  series: ReportSeries,
+  benchmark: number
+): ReportSeries {
+  return {
+    ...series,
+    label: 'Benchmark',
+    points: series.points.map((point) => ({
+      ...point,
+      value: benchmark,
+    })),
+  };
+}

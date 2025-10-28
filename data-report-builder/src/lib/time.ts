@@ -104,3 +104,54 @@ export function suggestGranularity(start: Date, end: Date): Granularity {
   if (diffDays <= 1825) return 'quarter'; // ~5 years
   return 'year';
 }
+
+/**
+ * Calculate the date range (start and end) for a given bucket date and granularity
+ * Returns ISO date strings in format YYYY-MM-DD
+ */
+export function getBucketRange(
+  bucketDate: Date,
+  granularity: Granularity
+): { start: string; end: string } {
+  const start = new Date(bucketDate);
+  const end = new Date(bucketDate);
+
+  switch (granularity) {
+    case 'day':
+      // Same day, end at 23:59:59
+      end.setDate(end.getDate() + 1);
+      break;
+    case 'week':
+      // Start on Sunday of that week
+      start.setDate(start.getDate() - start.getDay());
+      end.setDate(start.getDate() + 7);
+      break;
+    case 'month':
+      // First day of month to first day of next month
+      start.setDate(1);
+      end.setMonth(end.getMonth() + 1);
+      end.setDate(1);
+      break;
+    case 'quarter':
+      // First day of quarter to first day of next quarter
+      const quarterStartMonth = Math.floor(start.getMonth() / 3) * 3;
+      start.setMonth(quarterStartMonth);
+      start.setDate(1);
+      end.setMonth(quarterStartMonth + 3);
+      end.setDate(1);
+      break;
+    case 'year':
+      // First day of year to first day of next year
+      start.setMonth(0);
+      start.setDate(1);
+      end.setFullYear(end.getFullYear() + 1);
+      end.setMonth(0);
+      end.setDate(1);
+      break;
+  }
+
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0],
+  };
+}
