@@ -457,6 +457,22 @@ export function ChartPanel() {
                 stroke="#3b82f6"
                 strokeWidth={2}
                 onClick={handlePointClick}
+                dot={(props: any) => {
+                  const isSelected = state.selectedBucket?.label === props.payload.date;
+                  const { key, ...dotProps } = props;
+                  return (
+                    <Dot
+                      key={key}
+                      {...dotProps}
+                      r={isSelected ? 6 : 3}
+                      fill={isSelected ? '#1d4ed8' : '#3b82f6'}
+                      stroke={isSelected ? '#fff' : 'none'}
+                      strokeWidth={isSelected ? 2 : 0}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  );
+                }}
+                activeDot={{ r: 5, style: { cursor: 'pointer' } }}
               />
             </AreaChart>
           )}
@@ -499,6 +515,22 @@ export function ChartPanel() {
                 name={series.label}
                 fill="#3b82f6"
                 onClick={handlePointClick}
+                shape={(props: any) => {
+                  const { x, y, width, height, payload } = props;
+                  const isSelected = state.selectedBucket?.label === payload.date;
+                  return (
+                    <rect
+                      x={x}
+                      y={y}
+                      width={width}
+                      height={height}
+                      fill={isSelected ? '#1d4ed8' : '#3b82f6'}
+                      stroke={isSelected ? '#fff' : 'none'}
+                      strokeWidth={isSelected ? 2 : 0}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  );
+                }}
               />
               {comparisonSeries && (
                 <Bar
