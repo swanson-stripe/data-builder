@@ -56,7 +56,7 @@ export function computeMetric({
     return {
       value: null,
       series: null,
-      note: 'No metric source selected',
+      note: 'Metric source removed. Choose a new source in the Metric tab.',
     };
   }
 

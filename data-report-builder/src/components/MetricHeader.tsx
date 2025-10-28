@@ -70,7 +70,7 @@ export function MetricHeader() {
           <div className="text-4xl mb-2">📊</div>
           <p className="text-sm font-medium">No metric configured</p>
           <p className="text-xs mt-1">
-            Select a source field in the Metric tab.
+            {metricResult.note || 'Select a source field in the Metric tab.'}
           </p>
         </div>
       </div>

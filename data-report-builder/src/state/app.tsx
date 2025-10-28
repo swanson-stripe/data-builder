@@ -176,12 +176,19 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
       if (isSelected) {
         // Remove object and all its fields
+        // If the metric source is from this object, clear it
+        const shouldClearMetricSource =
+          state.metric.source?.object === objectName;
+
         return {
           ...state,
           selectedObjects: state.selectedObjects.filter(obj => obj !== objectName),
           selectedFields: state.selectedFields.filter(
             field => field.object !== objectName
           ),
+          metric: shouldClearMetricSource
+            ? { ...state.metric, source: undefined }
+            : state.metric,
         };
       } else {
         // Add object
@@ -200,11 +207,19 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
       if (existingIndex >= 0) {
         // Remove field
+        // If this field is the metric source, clear it
+        const shouldClearMetricSource =
+          state.metric.source?.object === object &&
+          state.metric.source?.field === field;
+
         return {
           ...state,
           selectedFields: state.selectedFields.filter(
             (_, index) => index !== existingIndex
           ),
+          metric: shouldClearMetricSource
+            ? { ...state.metric, source: undefined }
+            : state.metric,
         };
       } else {
         // Add field (ensure object is selected first)

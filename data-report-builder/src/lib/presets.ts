@@ -1,4 +1,4 @@
-import { ReportKey } from '@/types';
+import { ReportKey, MetricDef, MetricOp, MetricScope } from '@/types';
 import { actions } from '@/state/app';
 import { Granularity } from '@/lib/time';
 
@@ -23,6 +23,7 @@ export type PresetConfig = {
   objects: string[];
   fields: { object: string; field: string }[];
   range?: { start: string; end: string; granularity: Granularity };
+  metric?: Partial<MetricDef> & { source?: { object: string; field: string } };
 };
 
 /**
@@ -44,6 +45,12 @@ export const PRESET_CONFIGS: Record<ReportKey, PresetConfig> = {
       { object: 'price', field: 'currency' },
       { object: 'price', field: 'recurring_interval' },
     ],
+    metric: {
+      name: 'Monthly Recurring Revenue (MRR)',
+      source: { object: 'subscription', field: 'id' },
+      op: 'sum' as MetricOp,
+      scope: 'per_bucket' as MetricScope,
+    },
   },
   gross_volume: {
     key: 'gross_volume',
@@ -58,6 +65,12 @@ export const PRESET_CONFIGS: Record<ReportKey, PresetConfig> = {
       { object: 'customer', field: 'email' },
       { object: 'product', field: 'name' },
     ],
+    metric: {
+      name: 'Gross Volume',
+      source: { object: 'payment', field: 'amount' },
+      op: 'sum' as MetricOp,
+      scope: 'per_bucket' as MetricScope,
+    },
   },
   active_subscribers: {
     key: 'active_subscribers',
@@ -71,6 +84,12 @@ export const PRESET_CONFIGS: Record<ReportKey, PresetConfig> = {
       { object: 'customer', field: 'email' },
       { object: 'customer', field: 'name' },
     ],
+    metric: {
+      name: 'Active Subscribers',
+      source: { object: 'subscription', field: 'id' },
+      op: 'sum' as MetricOp,
+      scope: 'per_bucket' as MetricScope,
+    },
   },
   refund_count: {
     key: 'refund_count',
@@ -86,6 +105,12 @@ export const PRESET_CONFIGS: Record<ReportKey, PresetConfig> = {
       { object: 'customer', field: 'id' },
       { object: 'customer', field: 'email' },
     ],
+    metric: {
+      name: 'Refund Count',
+      source: { object: 'refund', field: 'id' },
+      op: 'sum' as MetricOp,
+      scope: 'per_bucket' as MetricScope,
+    },
   },
   subscriber_ltv: {
     key: 'subscriber_ltv',
@@ -100,6 +125,12 @@ export const PRESET_CONFIGS: Record<ReportKey, PresetConfig> = {
       { object: 'invoice', field: 'amount_paid' },
       { object: 'invoice', field: 'created' },
     ],
+    metric: {
+      name: 'Subscriber Lifetime Value',
+      source: { object: 'invoice', field: 'amount_paid' },
+      op: 'avg' as MetricOp,
+      scope: 'entire_period' as MetricScope,
+    },
   },
 };
 
@@ -165,12 +196,29 @@ export function applyPreset(
     dispatch(actions.toggleField(object, field));
   });
 
+  // 6. Apply metric configuration if present
+  if (config.metric) {
+    if (config.metric.name) {
+      dispatch(actions.setMetricName(config.metric.name));
+    }
+    if (config.metric.source) {
+      dispatch(actions.setMetricSource(config.metric.source));
+    }
+    if (config.metric.op) {
+      dispatch(actions.setMetricOp(config.metric.op));
+    }
+    if (config.metric.scope) {
+      dispatch(actions.setMetricScope(config.metric.scope));
+    }
+  }
+
   console.log(
     `[Preset] Applied "${key}" preset:`,
     {
       dateRange: `${start} to ${end}`,
       objects: config.objects,
-      fields: config.fields.length
+      fields: config.fields.length,
+      metric: config.metric ? config.metric.name : 'none',
     }
   );
 }
