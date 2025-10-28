@@ -5,6 +5,7 @@ import { useTheme, ThemeProvider } from '@/state/theme';
 import { SidebarTabs } from '@/components/SidebarTabs';
 import { DataTab } from '@/components/DataTab';
 import { ChartTab } from '@/components/ChartTab';
+import { MetricTab } from '@/components/MetricTab';
 import { ChartPanel } from '@/components/ChartPanel';
 import { ValueTable } from '@/components/ValueTable';
 import { DataList } from '@/components/DataList';
@@ -92,11 +93,7 @@ function PageContent() {
           <div className="flex-1 overflow-hidden">
             {state.activeTab === 'data' && <DataTab />}
             {state.activeTab === 'chart' && <ChartTab />}
-            {state.activeTab === 'metric' && (
-              <div className="text-sm text-gray-500 dark:text-gray-400 p-4" role="status">
-                Metric configuration coming soon...
-              </div>
-            )}
+            {state.activeTab === 'metric' && <MetricTab />}
           </div>
         </aside>
 
