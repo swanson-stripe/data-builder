@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const nextConfig: NextConfig = {
   output: 'export',
-  basePath: '/data-builder',
+  basePath: isProd ? '/data-builder' : '',
   images: {
     unoptimized: true,
   },
