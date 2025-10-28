@@ -7,6 +7,7 @@ import {
   createPeriodStartSeries,
   createBenchmarkSeries,
 } from '@/data/mock';
+import { computeMetric } from '@/lib/metrics';
 import { Granularity, validateGranularityRange, getBucketRange } from '@/lib/time';
 import {
   LineChart,
@@ -126,15 +127,36 @@ export function ChartPanel() {
     );
   }, [state.start, state.end, state.granularity]);
 
-  // Generate primary series data based on current state
-  const series = useMemo(() => {
-    return generateSeries({
-      key: state.report,
-      start: new Date(state.start),
-      end: new Date(state.end),
+  // Compute metric result (includes series)
+  const metricResult = useMemo(() => {
+    return computeMetric({
+      def: state.metric,
+      start: state.start,
+      end: state.end,
       granularity: state.granularity,
+      generateSeries: () => {
+        const series = generateSeries({
+          key: state.report,
+          start: new Date(state.start),
+          end: new Date(state.end),
+          granularity: state.granularity,
+        });
+        return { points: series.points };
+      },
     });
-  }, [state.report, state.start, state.end, state.granularity]);
+  }, [state.metric, state.report, state.start, state.end, state.granularity]);
+
+  // Extract series from metric result (for compatibility with existing code)
+  const series = useMemo(() => {
+    if (!metricResult.series) {
+      return { key: state.report, label: state.metric.name, points: [] };
+    }
+    return {
+      key: state.report,
+      label: state.metric.name,
+      points: metricResult.series,
+    };
+  }, [metricResult, state.report, state.metric.name]);
 
   // Generate comparison series based on comparison mode
   const comparisonSeries = useMemo(() => {
@@ -299,7 +321,18 @@ export function ChartPanel() {
 
       {/* Chart */}
       <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
+        {metricResult.series === null || !state.metric.source ? (
+          <div className="flex flex-col items-center justify-center h-full">
+            <div className="text-gray-400 dark:text-gray-500 text-center">
+              <div className="text-4xl mb-2">📊</div>
+              <p className="text-sm font-medium">No metric configured</p>
+              <p className="text-xs mt-1">
+                Select a source field in the Metric tab.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
           {state.chart.type === 'line' && (
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-600" />
@@ -477,6 +510,7 @@ export function ChartPanel() {
             </BarChart>
           )}
         </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

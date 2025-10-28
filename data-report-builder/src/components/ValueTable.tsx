@@ -6,6 +6,7 @@ import {
   createPeriodStartSeries,
   createBenchmarkSeries,
 } from '@/data/mock';
+import { computeMetric } from '@/lib/metrics';
 import { currency, percentageChange, shortDate } from '@/lib/format';
 import { getBucketRange } from '@/lib/time';
 
@@ -19,15 +20,36 @@ export function ValueTable() {
     dispatch(actions.setSelectedBucket(start, end, date));
   };
 
-  // Generate current period data
-  const currentSeries = useMemo(() => {
-    return generateSeries({
-      key: state.report,
-      start: new Date(state.start),
-      end: new Date(state.end),
+  // Compute metric result (includes series)
+  const metricResult = useMemo(() => {
+    return computeMetric({
+      def: state.metric,
+      start: state.start,
+      end: state.end,
       granularity: state.granularity,
+      generateSeries: () => {
+        const series = generateSeries({
+          key: state.report,
+          start: new Date(state.start),
+          end: new Date(state.end),
+          granularity: state.granularity,
+        });
+        return { points: series.points };
+      },
     });
-  }, [state.report, state.start, state.end, state.granularity]);
+  }, [state.metric, state.report, state.start, state.end, state.granularity]);
+
+  // Generate current period data (from metric result)
+  const currentSeries = useMemo(() => {
+    if (!metricResult.series) {
+      return { key: state.report, label: state.metric.name, points: [] };
+    }
+    return {
+      key: state.report,
+      label: state.metric.name,
+      points: metricResult.series,
+    };
+  }, [metricResult, state.report, state.metric.name]);
 
   // Generate comparison data based on comparison mode
   const comparisonSeries = useMemo(() => {
@@ -120,6 +142,21 @@ export function ValueTable() {
         return '';
     }
   };
+
+  // Show placeholder if metric not configured
+  if (metricResult.series === null || !state.metric.source) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <div className="text-gray-400 dark:text-gray-500 text-center">
+          <div className="text-4xl mb-2">📊</div>
+          <p className="text-sm font-medium">No metric configured</p>
+          <p className="text-xs mt-1">
+            Select a source field in the Metric tab.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
