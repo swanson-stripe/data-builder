@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { Granularity } from '@/lib/time';
-import { ReportKey } from '@/types';
+import { ReportKey, MetricDef, MetricOp, MetricScope } from '@/types';
 
 // Chart types
 export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year' | 'benchmark';
@@ -30,6 +30,7 @@ export type AppState = {
     label: string;
   };
   chart: ChartSettings;
+  metric: MetricDef;
 };
 
 // Action types
@@ -100,6 +101,26 @@ type SetBenchmarkAction = {
   payload: number;
 };
 
+type SetMetricSourceAction = {
+  type: 'SET_METRIC_SOURCE';
+  payload: { object: string; field: string } | undefined;
+};
+
+type SetMetricOpAction = {
+  type: 'SET_METRIC_OP';
+  payload: MetricOp;
+};
+
+type SetMetricScopeAction = {
+  type: 'SET_METRIC_SCOPE';
+  payload: MetricScope;
+};
+
+type SetMetricNameAction = {
+  type: 'SET_METRIC_NAME';
+  payload: string;
+};
+
 type AppAction =
   | SetTabAction
   | ToggleObjectAction
@@ -113,7 +134,11 @@ type AppAction =
   | SetChartTypeAction
   | SetYScaleAction
   | SetComparisonAction
-  | SetBenchmarkAction;
+  | SetBenchmarkAction
+  | SetMetricSourceAction
+  | SetMetricOpAction
+  | SetMetricScopeAction
+  | SetMetricNameAction;
 
 // Initial state
 const initialState: AppState = {
@@ -128,6 +153,11 @@ const initialState: AppState = {
     type: 'line',
     yScale: 'linear',
     comparison: 'none',
+  },
+  metric: {
+    name: 'Metric',
+    op: 'sum',
+    scope: 'per_bucket',
   },
 };
 
@@ -264,6 +294,42 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
       };
 
+    case 'SET_METRIC_SOURCE':
+      return {
+        ...state,
+        metric: {
+          ...state.metric,
+          source: action.payload,
+        },
+      };
+
+    case 'SET_METRIC_OP':
+      return {
+        ...state,
+        metric: {
+          ...state.metric,
+          op: action.payload,
+        },
+      };
+
+    case 'SET_METRIC_SCOPE':
+      return {
+        ...state,
+        metric: {
+          ...state.metric,
+          scope: action.payload,
+        },
+      };
+
+    case 'SET_METRIC_NAME':
+      return {
+        ...state,
+        metric: {
+          ...state.metric,
+          name: action.payload,
+        },
+      };
+
     default:
       // Exhaustive check
       const _exhaustiveCheck: never = action;
@@ -366,5 +432,27 @@ export const actions = {
   setBenchmark: (benchmark: number): SetBenchmarkAction => ({
     type: 'SET_BENCHMARK',
     payload: benchmark,
+  }),
+
+  setMetricSource: (
+    source: { object: string; field: string } | undefined
+  ): SetMetricSourceAction => ({
+    type: 'SET_METRIC_SOURCE',
+    payload: source,
+  }),
+
+  setMetricOp: (op: MetricOp): SetMetricOpAction => ({
+    type: 'SET_METRIC_OP',
+    payload: op,
+  }),
+
+  setMetricScope: (scope: MetricScope): SetMetricScopeAction => ({
+    type: 'SET_METRIC_SCOPE',
+    payload: scope,
+  }),
+
+  setMetricName: (name: string): SetMetricNameAction => ({
+    type: 'SET_METRIC_NAME',
+    payload: name,
   }),
 };

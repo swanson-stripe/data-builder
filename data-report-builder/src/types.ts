@@ -42,3 +42,23 @@ export type ReportSeries = {
   label: string;
   points: SeriesPoint[];
 };
+
+export type MetricOp = 'sum' | 'avg' | 'latest' | 'first';
+
+export type MetricScope = 'per_bucket' | 'entire_period';
+
+export type MetricDef = {
+  name: string;
+  source?: {
+    object: string;
+    field: string;
+  };
+  op: MetricOp;
+  scope: MetricScope;
+};
+
+export type MetricResult = {
+  value: number | null;
+  series: SeriesPoint[] | null;
+  note?: string;
+};
