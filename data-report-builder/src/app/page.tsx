@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { useApp, AppProvider } from '@/state/app';
+import { useApp, AppProvider, actions } from '@/state/app';
 import { useTheme, ThemeProvider } from '@/state/theme';
 import { SidebarTabs } from '@/components/SidebarTabs';
 import { DataTab } from '@/components/DataTab';
@@ -81,9 +81,18 @@ function PageContent() {
             </button>
           </div>
         </div>
-        <button className="text-sm text-gray-800 dark:text-gray-200 hover:text-gray-600 dark:hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1" aria-label="Save report">
-          Save
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => dispatch(actions.resetAll())}
+            className="text-sm text-gray-800 dark:text-gray-200 hover:text-gray-600 dark:hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1"
+            aria-label="Start new report"
+          >
+            New
+          </button>
+          <button className="text-sm text-gray-800 dark:text-gray-200 hover:text-gray-600 dark:hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1" aria-label="Save report">
+            Save
+          </button>
+        </div>
       </header>
 
       <main className="flex flex-1 overflow-hidden" role="main">

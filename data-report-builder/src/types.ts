@@ -75,3 +75,30 @@ export type MetricResult = {
   note?: string;
   kind?: ValueKind;
 };
+
+/**
+ * Data catalog types
+ */
+export type Catalog = {
+  customers: any[];
+  payment_methods: any[];
+  products: any[];
+  prices: any[];
+  subscriptions: any[];
+  invoices: any[];
+  payments: any[];
+  refunds: any[];
+  payouts: any[];
+};
+
+export type RowKey = string; // `${object}:${id}`
+
+export type RowMeta = {
+  object: string;
+  id: string;
+  rowKey: RowKey;
+};
+
+export type DisplayRow = Record<string, any> & {
+  __meta: RowMeta;
+};

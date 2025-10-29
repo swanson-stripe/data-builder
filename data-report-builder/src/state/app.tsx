@@ -17,6 +17,13 @@ export type ChartSettings = {
   yField?: { object: string; field: string }; // only used when ySourceMode='field'
 };
 
+export type GridSelection = {
+  rowIds: { object: string; id: string }[]; // PKs instead of string rowKeys
+  columns: string[];            // qualified field names (e.g., "payment.amount")
+  cells: { rowId: { object: string; id: string }; col: string }[]; // cells with PKs
+  isRectangular: boolean;
+};
+
 // State type
 export type AppState = {
   activeTab: 'data' | 'metric' | 'chart';
@@ -32,6 +39,7 @@ export type AppState = {
     end: string;
     label: string;
   };
+  selectedGrid?: GridSelection;
   chart: ChartSettings;
   metric: MetricDef;
 };
@@ -139,6 +147,19 @@ type ReorderFieldsAction = {
   payload: string[]; // New fieldOrder array
 };
 
+type SetGridSelectionAction = {
+  type: 'SET_GRID_SELECTION';
+  payload: GridSelection;
+};
+
+type ClearGridSelectionAction = {
+  type: 'CLEAR_GRID_SELECTION';
+};
+
+type ResetAllAction = {
+  type: 'RESET_ALL';
+};
+
 export type AppAction =
   | SetTabAction
   | ToggleObjectAction
@@ -159,7 +180,10 @@ export type AppAction =
   | SetMetricOpAction
   | SetMetricTypeAction
   | SetMetricNameAction
-  | ReorderFieldsAction;
+  | ReorderFieldsAction
+  | SetGridSelectionAction
+  | ClearGridSelectionAction
+  | ResetAllAction;
 
 // Initial state
 const initialState: AppState = {
@@ -411,6 +435,25 @@ function appReducer(state: AppState, action: AppAction): AppState {
         fieldOrder: action.payload,
       };
 
+    case 'SET_GRID_SELECTION':
+      return {
+        ...state,
+        selectedGrid: action.payload,
+      };
+
+    case 'CLEAR_GRID_SELECTION':
+      return {
+        ...state,
+        selectedGrid: undefined,
+      };
+
+    case 'RESET_ALL':
+      // Reset to initial state, keeping activeTab to avoid jarring tab switch
+      return {
+        ...initialState,
+        activeTab: state.activeTab,
+      };
+
     default:
       // Exhaustive check
       const _exhaustiveCheck: never = action;
@@ -550,5 +593,18 @@ export const actions = {
   reorderFields: (fieldOrder: string[]): ReorderFieldsAction => ({
     type: 'REORDER_FIELDS',
     payload: fieldOrder,
+  }),
+
+  setGridSelection: (selection: GridSelection): SetGridSelectionAction => ({
+    type: 'SET_GRID_SELECTION',
+    payload: selection,
+  }),
+
+  clearGridSelection: (): ClearGridSelectionAction => ({
+    type: 'CLEAR_GRID_SELECTION',
+  }),
+
+  resetAll: (): ResetAllAction => ({
+    type: 'RESET_ALL',
   }),
 };

@@ -2,9 +2,10 @@
 import { useMemo } from 'react';
 import { useApp } from '@/state/app';
 import { computeMetric } from '@/lib/metrics';
-import { generateSeries } from '@/data/mock';
 import { formatMetricValue, deltaCurrency, deltaNumber } from '@/lib/format';
 import { ReportKey } from '@/types';
+import { warehouse } from '@/data/warehouse';
+import schema from '@/data/schema';
 
 // Map report keys to their full labels
 const REPORT_LABELS: Record<ReportKey, string> = {
@@ -18,6 +19,17 @@ const REPORT_LABELS: Record<ReportKey, string> = {
 export function MetricHeader() {
   const { state } = useApp();
 
+  // Build PK include set from grid selection
+  const includeSet = useMemo(() => {
+    if (!state.selectedGrid || state.selectedGrid.rowIds.length === 0) {
+      return undefined;
+    }
+    // Build a Set of encoded PKs like "${object}:${id}"
+    return new Set(
+      state.selectedGrid.rowIds.map(pk => `${pk.object}:${pk.id}`)
+    );
+  }, [state.selectedGrid?.rowIds]);
+
   // Compute the metric result
   const metricResult = useMemo(() => {
     return computeMetric({
@@ -25,17 +37,21 @@ export function MetricHeader() {
       start: state.start,
       end: state.end,
       granularity: state.granularity,
-      generateSeries: () => {
-        const series = generateSeries({
-          key: state.report,
-          start: new Date(state.start),
-          end: new Date(state.end),
-          granularity: state.granularity,
-        });
-        return { points: series.points };
-      },
+      store: warehouse,
+      include: includeSet,
+      schema,
     });
-  }, [state.metric, state.report, state.start, state.end, state.granularity]);
+  }, [
+    state.metric.name,
+    state.metric.op,
+    state.metric.type,
+    state.metric.source?.object,
+    state.metric.source?.field,
+    state.start,
+    state.end,
+    state.granularity,
+    includeSet,
+  ]);
 
   // Calculate delta (current vs previous bucket)
   const delta = useMemo(() => {

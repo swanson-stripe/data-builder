@@ -9,6 +9,8 @@ import {
 } from '@/data/mock';
 import { computeMetric } from '@/lib/metrics';
 import { Granularity, validateGranularityRange, getBucketRange } from '@/lib/time';
+import { warehouse } from '@/data/warehouse';
+import schema from '@/data/schema';
 import {
   LineChart,
   Line,
@@ -25,6 +27,7 @@ import {
   Dot,
 } from 'recharts';
 import { MetricHeader } from './MetricHeader';
+import { currency, number as formatNumber } from '@/lib/format';
 
 type RangePreset = {
   label: string;
@@ -134,6 +137,17 @@ export function ChartPanel() {
     );
   }, [state.start, state.end, state.granularity]);
 
+  // Build PK include set from grid selection
+  const includeSet = useMemo(() => {
+    if (!state.selectedGrid || state.selectedGrid.rowIds.length === 0) {
+      return undefined;
+    }
+    // Build a Set of encoded PKs like "${object}:${id}"
+    return new Set(
+      state.selectedGrid.rowIds.map(pk => `${pk.object}:${pk.id}`)
+    );
+  }, [state.selectedGrid?.rowIds]);
+
   // Compute metric result (includes series)
   const metricResult = useMemo(() => {
     return computeMetric({
@@ -141,17 +155,21 @@ export function ChartPanel() {
       start: state.start,
       end: state.end,
       granularity: state.granularity,
-      generateSeries: () => {
-        const series = generateSeries({
-          key: state.report,
-          start: new Date(state.start),
-          end: new Date(state.end),
-          granularity: state.granularity,
-        });
-        return { points: series.points };
-      },
+      store: warehouse,
+      include: includeSet,
+      schema,
     });
-  }, [state.metric, state.report, state.start, state.end, state.granularity]);
+  }, [
+    state.metric.name,
+    state.metric.op,
+    state.metric.type,
+    state.metric.source?.object,
+    state.metric.source?.field,
+    state.start,
+    state.end,
+    state.granularity,
+    includeSet,
+  ]);
 
   // Extract series from metric result (for compatibility with existing code)
   const series = useMemo(() => {
@@ -260,23 +278,18 @@ export function ChartPanel() {
   // Get value kind from metric result
   const valueKind = metricResult.kind || 'number';
 
-  // Format number for display based on value kind
+  // Format number for display based on value kind (compact for chart axes)
   const formatValue = (value: number) => {
     if (valueKind === 'currency') {
-      if (value >= 1000000) {
-        return `$${(value / 1000000).toFixed(2)}M`;
-      } else if (value >= 1000) {
-        return `$${(value / 1000).toFixed(1)}K`;
-      }
-      return `$${value.toFixed(0)}`;
+      return currency(value, { compact: true });
     } else {
-      // For number/string, no currency symbol
+      // For number/string, format with compact notation
       if (value >= 1000000) {
         return `${(value / 1000000).toFixed(2)}M`;
       } else if (value >= 1000) {
         return `${(value / 1000).toFixed(1)}K`;
       }
-      return `${value.toFixed(0)}`;
+      return formatNumber(value);
     }
   };
 

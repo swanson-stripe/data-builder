@@ -9,6 +9,8 @@ import {
 import { computeMetric } from '@/lib/metrics';
 import { currency, number, percentageChange, shortDate } from '@/lib/format';
 import { getBucketRange } from '@/lib/time';
+import { warehouse } from '@/data/warehouse';
+import schema from '@/data/schema';
 
 export function ValueTable() {
   const { state, dispatch } = useApp();
@@ -20,6 +22,17 @@ export function ValueTable() {
     dispatch(actions.setSelectedBucket(start, end, date));
   };
 
+  // Build PK include set from grid selection
+  const includeSet = useMemo(() => {
+    if (!state.selectedGrid || state.selectedGrid.rowIds.length === 0) {
+      return undefined;
+    }
+    // Build a Set of encoded PKs like "${object}:${id}"
+    return new Set(
+      state.selectedGrid.rowIds.map(pk => `${pk.object}:${pk.id}`)
+    );
+  }, [state.selectedGrid?.rowIds]);
+
   // Compute metric result (includes series)
   const metricResult = useMemo(() => {
     return computeMetric({
@@ -27,17 +40,21 @@ export function ValueTable() {
       start: state.start,
       end: state.end,
       granularity: state.granularity,
-      generateSeries: () => {
-        const series = generateSeries({
-          key: state.report,
-          start: new Date(state.start),
-          end: new Date(state.end),
-          granularity: state.granularity,
-        });
-        return { points: series.points };
-      },
+      store: warehouse,
+      include: includeSet,
+      schema,
     });
-  }, [state.metric, state.report, state.start, state.end, state.granularity]);
+  }, [
+    state.metric.name,
+    state.metric.op,
+    state.metric.type,
+    state.metric.source?.object,
+    state.metric.source?.field,
+    state.start,
+    state.end,
+    state.granularity,
+    includeSet,
+  ]);
 
   // Generate current period data (from metric result)
   const currentSeries = useMemo(() => {

@@ -1,7 +1,6 @@
 import { ReportKey, ReportSeries, SeriesPoint, SchemaObject, FieldType } from '@/types';
 import { rangeByGranularity, bucketLabel, Granularity } from '@/lib/time';
 import { getObject } from './schema';
-import seedData from './seed.json';
 
 /**
  * Simple deterministic PRNG using a seeded Linear Congruential Generator
@@ -132,6 +131,110 @@ export function generateSeries({
 }
 
 /**
+ * Generate realistic Stripe ID with proper prefix
+ * Note: This function accepts both qualified (object.field) and unqualified (field) names.
+ * It's primarily used by expandSeed which works with unqualified catalog data.
+ */
+function generateStripeId(fieldName: string, rng: SeededRandom): string {
+  // Map field names to correct Stripe ID prefixes
+  // Supports both qualified (object.id) and unqualified (field_id) patterns
+  let prefix = '';
+
+  if (fieldName.includes('customer')) {
+    prefix = 'cus';
+  } else if (fieldName.includes('subscription')) {
+    prefix = 'sub';
+  } else if (fieldName.includes('invoice')) {
+    prefix = 'in';
+  } else if (fieldName.includes('payment')) {
+    prefix = 'pi';
+  } else if (fieldName.includes('charge')) {
+    prefix = 'ch';
+  } else if (fieldName.includes('refund')) {
+    prefix = 're';
+  } else if (fieldName.includes('price')) {
+    prefix = 'price';
+  } else if (fieldName.includes('product')) {
+    prefix = 'prod';
+  } else if (fieldName.includes('method')) {
+    prefix = 'pm';
+  } else if (fieldName.includes('item')) {
+    prefix = 'si';
+  } else {
+    // Fallback: try to extract from field name
+    prefix = 'obj';
+  }
+
+  // Generate a random alphanumeric string (10-14 chars) similar to real Stripe IDs
+  const idLength = rng.nextInt(10, 14);
+  let randomId = '';
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (let i = 0; i < idLength; i++) {
+    randomId += chars[rng.nextInt(0, chars.length - 1)];
+  }
+  return `${prefix}_${randomId}`;
+}
+
+/**
+ * Generate realistic customer name
+ */
+function generateCustomerName(rng: SeededRandom): string {
+  const firstNames = [
+    'James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda',
+    'William', 'Barbara', 'David', 'Elizabeth', 'Richard', 'Susan', 'Joseph', 'Jessica',
+    'Thomas', 'Sarah', 'Christopher', 'Karen', 'Charles', 'Nancy', 'Daniel', 'Lisa',
+    'Matthew', 'Betty', 'Anthony', 'Margaret', 'Mark', 'Sandra', 'Donald', 'Ashley',
+    'Steven', 'Kimberly', 'Paul', 'Emily', 'Andrew', 'Donna', 'Joshua', 'Michelle',
+    'Kenneth', 'Carol', 'Kevin', 'Amanda', 'Brian', 'Dorothy', 'George', 'Melissa',
+    'Timothy', 'Deborah', 'Ronald', 'Stephanie', 'Edward', 'Rebecca', 'Jason', 'Sharon',
+    'Jeffrey', 'Laura', 'Ryan', 'Cynthia', 'Jacob', 'Kathleen', 'Gary', 'Amy',
+    'Nicholas', 'Angela', 'Eric', 'Shirley', 'Jonathan', 'Anna', 'Stephen', 'Brenda',
+    'Larry', 'Pamela', 'Justin', 'Emma', 'Scott', 'Nicole', 'Brandon', 'Helen',
+    'Benjamin', 'Samantha', 'Samuel', 'Katherine', 'Raymond', 'Christine', 'Patrick', 'Debra'
+  ];
+
+  const lastNames = [
+    'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
+    'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas',
+    'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson', 'White',
+    'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson', 'Walker', 'Young',
+    'Allen', 'King', 'Wright', 'Scott', 'Torres', 'Nguyen', 'Hill', 'Flores',
+    'Green', 'Adams', 'Nelson', 'Baker', 'Hall', 'Rivera', 'Campbell', 'Mitchell',
+    'Carter', 'Roberts', 'Gomez', 'Phillips', 'Evans', 'Turner', 'Diaz', 'Parker',
+    'Cruz', 'Edwards', 'Collins', 'Reyes', 'Stewart', 'Morris', 'Morales', 'Murphy',
+    'Cook', 'Rogers', 'Gutierrez', 'Ortiz', 'Morgan', 'Cooper', 'Peterson', 'Bailey',
+    'Reed', 'Kelly', 'Howard', 'Ramos', 'Kim', 'Cox', 'Ward', 'Richardson'
+  ];
+
+  const firstName = firstNames[rng.nextInt(0, firstNames.length - 1)];
+  const lastName = lastNames[rng.nextInt(0, lastNames.length - 1)];
+  return `${firstName} ${lastName}`;
+}
+
+/**
+ * Generate realistic email from name
+ */
+function generateEmailFromName(name: string, rng: SeededRandom): string {
+  const [firstName, lastName] = name.toLowerCase().split(' ');
+  const domains = [
+    'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com',
+    'protonmail.com', 'aol.com', 'mail.com', 'zoho.com', 'fastmail.com'
+  ];
+  const domain = domains[rng.nextInt(0, domains.length - 1)];
+
+  // Various email formats
+  const formats = [
+    `${firstName}${lastName}@${domain}`,
+    `${firstName}.${lastName}@${domain}`,
+    `${firstName}${lastName[0]}@${domain}`,
+    `${firstName[0]}${lastName}@${domain}`,
+    `${firstName}${rng.nextInt(0, 999)}@${domain}`,
+  ];
+
+  return formats[rng.nextInt(0, formats.length - 1)];
+}
+
+/**
  * Generate mock field value based on field type
  */
 function generateFieldValue(
@@ -142,19 +245,17 @@ function generateFieldValue(
 ): string | number | boolean {
   switch (fieldType) {
     case 'id':
-      // Generate ID based on field name prefix
-      const prefix = fieldName.split('_')[0].substring(0, 3);
-      return `${prefix}_${String(index + 1).padStart(8, '0')}`;
+      return generateStripeId(fieldName, rng);
 
     case 'string':
       // Generate contextual string values
       if (fieldName.includes('email')) {
-        return `user${index + 1}@example.com`;
+        // Generate realistic email
+        const name = generateCustomerName(rng);
+        return generateEmailFromName(name, rng);
       }
       if (fieldName.includes('name')) {
-        const firstNames = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Henry'];
-        const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis'];
-        return `${firstNames[rng.nextInt(0, firstNames.length - 1)]} ${lastNames[rng.nextInt(0, lastNames.length - 1)]}`;
+        return generateCustomerName(rng);
       }
       if (fieldName.includes('status')) {
         const statuses = ['active', 'inactive', 'pending', 'canceled', 'past_due'];
@@ -214,6 +315,8 @@ function generateFieldValue(
 
 /**
  * Generate mock rows for data list based on selected objects
+ * @deprecated This function generates qualified keys and is not used anymore.
+ * Use store.joinForDisplay() instead, which is the single source of qualified key generation.
  */
 export function mockRowsForDataList({
   objectsSelected,
@@ -224,50 +327,7 @@ export function mockRowsForDataList({
   count?: number;
   seed?: number;
 }): Record<string, string | number | boolean>[] {
-  if (objectsSelected.length === 0) {
-    return [];
-  }
-
-  const rng = new SeededRandom(seed);
-  const rows: Record<string, string | number | boolean>[] = [];
-
-  // Get the primary object (first selected)
-  const primaryObjectName = objectsSelected[0];
-  const primaryObject = getObject(primaryObjectName);
-
-  if (!primaryObject) {
-    return [];
-  }
-
-  // Collect all fields from selected objects
-  const allFields: Array<{ field: string; type: FieldType; objectName: string }> = [];
-
-  objectsSelected.forEach((objName) => {
-    const obj = getObject(objName);
-    if (obj) {
-      obj.fields.forEach((field) => {
-        allFields.push({
-          field: `${objName}.${field.name}`,
-          type: field.type,
-          objectName: objName,
-        });
-      });
-    }
-  });
-
-  // Generate rows
-  for (let i = 0; i < count; i++) {
-    const row: Record<string, string | number | boolean> = {};
-
-    allFields.forEach(({ field, type }) => {
-      const fieldName = field.split('.')[1];
-      row[field] = generateFieldValue(fieldName, type, rng, i);
-    });
-
-    rows.push(row);
-  }
-
-  return rows;
+  throw new Error('mockRowsForDataList is deprecated. Use store.joinForDisplay() instead.');
 }
 
 /**
@@ -277,9 +337,12 @@ export const DEFAULT_SEED = 12345;
 
 /**
  * Load seed data from JSON
+ * @deprecated Use warehouse from warehouse.ts instead. This function is kept for backwards compatibility with expandSeed.
  */
 export function loadSeed(): Record<string, any[]> {
-  return seedData as Record<string, any[]>;
+  // Import warehouse dynamically to avoid circular dependencies
+  const { warehouse } = require('./warehouse');
+  return warehouse as Record<string, any[]>;
 }
 
 /**
@@ -322,13 +385,8 @@ export function expandSeed({
         const sourceRow = baseRows[rng.nextInt(0, baseRows.length - 1)];
         const newRow = { ...sourceRow };
 
-        // Generate unique ID
-        const idField = Object.keys(newRow).find(key => key === 'id');
-        if (idField) {
-          const prefix = String(newRow[idField]).split('_')[0];
-          const uniqueNum = bucketIndex * rowsPerBucket + i + 1;
-          newRow[idField] = `${prefix}_${String(uniqueNum).padStart(3, '0')}`;
-        }
+        // Keep the original ID from seed data (already sequential like pi_001, pi_002)
+        // No need to regenerate IDs
 
         // Update all date fields to bucket date with small variance
         Object.keys(newRow).forEach((key) => {

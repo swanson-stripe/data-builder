@@ -1,8 +1,9 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useApp, actions } from '@/state/app';
-import { mockRowsForDataList } from '@/data/mock';
+import { warehouse } from '@/data/warehouse';
 import { getObject } from '@/data/schema';
+import { buildDataListView, filterRowsByDate, getRowKey, sortRowsByField, type RowView } from '@/lib/views';
 
 type SortDirection = 'asc' | 'desc' | null;
 
@@ -11,32 +12,7 @@ type SortState = {
   direction: SortDirection;
 };
 
-// Helper to extract a date from a row by checking common date fields
-function getRowDate(row: Record<string, string | number | boolean>): Date | null {
-  // Check common date field patterns
-  const dateFieldPatterns = [
-    'created',
-    'date',
-    'timestamp',
-    'current_period_start',
-    'current_period_end',
-  ];
-
-  for (const [key, value] of Object.entries(row)) {
-    // Check if field name contains any date pattern
-    const fieldName = key.split('.')[1]?.toLowerCase() || '';
-    if (dateFieldPatterns.some((pattern) => fieldName.includes(pattern))) {
-      if (typeof value === 'string') {
-        const date = new Date(value);
-        if (!isNaN(date.getTime())) {
-          return date;
-        }
-      }
-    }
-  }
-
-  return null;
-}
+type SelectionMode = 'cell' | 'row' | 'column' | 'multi-cell';
 
 export function DataList() {
   const { state, dispatch } = useApp();
@@ -45,6 +21,12 @@ export function DataList() {
     direction: null,
   });
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+
+  // Selection state
+  const [selectionMode, setSelectionMode] = useState<SelectionMode>('cell');
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [anchorCell, setAnchorCell] = useState<{ rowIndex: number; colKey: string } | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   // Derive columns from selectedFields with qualified names, ordered by fieldOrder
   const columns = useMemo(() => {
@@ -82,65 +64,61 @@ export function DataList() {
     return Array.from(columnMap.values());
   }, [state.selectedFields, state.fieldOrder]);
 
-  // Generate mock data rows
-  const rawRows = useMemo(() => {
-    if (state.selectedObjects.length === 0) {
+  // Generate data rows using buildDataListView with RowView[]
+  const rawRows: RowView[] = useMemo(() => {
+    if (state.selectedObjects.length === 0 || state.selectedFields.length === 0) {
       return [];
     }
 
-    return mockRowsForDataList({
-      objectsSelected: state.selectedObjects,
-      count: 50,
+    return buildDataListView({
+      store: warehouse,
+      selectedObjects: state.selectedObjects,
+      selectedFields: state.selectedFields,
     });
-  }, [state.selectedObjects]);
+  }, [state.selectedObjects, state.selectedFields]);
 
-  // Filter rows by selected bucket
+  // Filter rows by selected bucket using filterRowsByDate
   const filteredRows = useMemo(() => {
     if (!state.selectedBucket) {
       return rawRows;
     }
 
-    const bucketStart = new Date(state.selectedBucket.start);
-    const bucketEnd = new Date(state.selectedBucket.end);
-
-    return rawRows.filter((row) => {
-      const rowDate = getRowDate(row);
-      if (!rowDate) return false;
-
-      return rowDate >= bucketStart && rowDate < bucketEnd;
-    });
+    return filterRowsByDate(rawRows, state.selectedBucket.start, state.selectedBucket.end);
   }, [rawRows, state.selectedBucket]);
 
-  // Sort rows based on current sort state
+  // Sort rows based on current sort state using sortRowsByField
   const sortedRows = useMemo(() => {
     if (!sortState.column || !sortState.direction) {
       return filteredRows;
     }
 
-    const sorted = [...filteredRows].sort((a, b) => {
-      const aVal = a[sortState.column!];
-      const bVal = b[sortState.column!];
-
-      // Handle null/undefined
-      if (aVal == null && bVal == null) return 0;
-      if (aVal == null) return 1;
-      if (bVal == null) return -1;
-
-      // Compare based on type
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return aVal - bVal;
-      }
-
-      if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
-        return aVal === bVal ? 0 : aVal ? 1 : -1;
-      }
-
-      // Default string comparison
-      return String(aVal).localeCompare(String(bVal));
-    });
-
-    return sortState.direction === 'desc' ? sorted.reverse() : sorted;
+    return sortRowsByField(filteredRows, sortState.column, sortState.direction);
   }, [filteredRows, sortState]);
+
+  // Check if cell is selected
+  const isCellSelected = useCallback((rowIndex: number, colKey: string): boolean => {
+    if (!state.selectedGrid) return false;
+    const row = sortedRows[rowIndex];
+    const rowKey = getRowKey(row);
+    return state.selectedGrid.cells.some(c => {
+      const cellRowKey = `${c.rowId.object}:${c.rowId.id}`;
+      return cellRowKey === rowKey && c.col === colKey;
+    });
+  }, [state.selectedGrid, sortedRows]);
+
+  // Check if row is selected
+  const isRowSelected = useCallback((rowIndex: number): boolean => {
+    if (!state.selectedGrid) return false;
+    const row = sortedRows[rowIndex];
+    const rowKey = getRowKey(row);
+    return state.selectedGrid.rowIds.some(pk => `${pk.object}:${pk.id}` === rowKey);
+  }, [state.selectedGrid, sortedRows]);
+
+  // Check if column is selected
+  const isColumnSelected = useCallback((colKey: string): boolean => {
+    if (!state.selectedGrid) return false;
+    return state.selectedGrid.columns.includes(colKey);
+  }, [state.selectedGrid]);
 
   // Handle column header click for sorting
   const handleSort = (columnKey: string) => {
@@ -218,8 +196,186 @@ export function DataList() {
     dispatch(actions.toggleField(object, field));
   };
 
+  // Selection handlers using PKs
+  const handleCellMouseDown = useCallback((e: React.MouseEvent, rowIndex: number, colKey: string) => {
+    // Don't interfere with drag-and-drop on headers
+    if ((e.target as HTMLElement).closest('th')) return;
+
+    e.preventDefault();
+    setIsSelecting(true);
+    setAnchorCell({ rowIndex, colKey });
+    setSelectionMode('cell');
+
+    const row = sortedRows[rowIndex];
+    dispatch(actions.setGridSelection({
+      rowIds: [row.pk],
+      columns: [colKey],
+      cells: [{ rowId: row.pk, col: colKey }],
+      isRectangular: false,
+    }));
+  }, [dispatch, sortedRows]);
+
+  const handleCellMouseEnter = useCallback((rowIndex: number, colKey: string) => {
+    if (!isSelecting || !anchorCell || selectionMode !== 'cell') return;
+
+    // Compute rectangular selection
+    const minRow = Math.min(anchorCell.rowIndex, rowIndex);
+    const maxRow = Math.max(anchorCell.rowIndex, rowIndex);
+    const colIndices = columns.map(c => c.key);
+    const minCol = Math.min(colIndices.indexOf(anchorCell.colKey), colIndices.indexOf(colKey));
+    const maxCol = Math.max(colIndices.indexOf(anchorCell.colKey), colIndices.indexOf(colKey));
+
+    const selectedRowIds: { object: string; id: string }[] = [];
+    const selectedColumns: string[] = [];
+    const selectedCells: { rowId: { object: string; id: string }; col: string }[] = [];
+
+    for (let r = minRow; r <= maxRow; r++) {
+      const row = sortedRows[r];
+      selectedRowIds.push(row.pk);
+      for (let c = minCol; c <= maxCol; c++) {
+        const cKey = columns[c].key;
+        if (!selectedColumns.includes(cKey)) {
+          selectedColumns.push(cKey);
+        }
+        selectedCells.push({ rowId: row.pk, col: cKey });
+      }
+    }
+
+    dispatch(actions.setGridSelection({
+      rowIds: selectedRowIds,
+      columns: selectedColumns,
+      cells: selectedCells,
+      isRectangular: true,
+    }));
+  }, [isSelecting, anchorCell, selectionMode, dispatch, sortedRows, columns]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsSelecting(false);
+  }, []);
+
+  const handleColumnHeaderClick = useCallback((e: React.MouseEvent, colKey: string) => {
+    // If this is the sort button, don't handle selection
+    if ((e.target as HTMLElement).closest('button')) return;
+
+    e.stopPropagation();
+    setSelectionMode('column');
+
+    const selectedRowIds: { object: string; id: string }[] = [];
+    const selectedCells: { rowId: { object: string; id: string }; col: string }[] = [];
+
+    sortedRows.forEach((row) => {
+      selectedRowIds.push(row.pk);
+      selectedCells.push({ rowId: row.pk, col: colKey });
+    });
+
+    dispatch(actions.setGridSelection({
+      rowIds: selectedRowIds,
+      columns: [colKey],
+      cells: selectedCells,
+      isRectangular: false,
+    }));
+  }, [dispatch, sortedRows]);
+
+  const handleRowClick = useCallback((e: React.MouseEvent, rowIndex: number) => {
+    e.stopPropagation();
+    setSelectionMode('row');
+
+    const row = sortedRows[rowIndex];
+    const selectedCells: { rowId: { object: string; id: string }; col: string }[] = [];
+
+    columns.forEach(col => {
+      selectedCells.push({ rowId: row.pk, col: col.key });
+    });
+
+    dispatch(actions.setGridSelection({
+      rowIds: [row.pk],
+      columns: columns.map(c => c.key),
+      cells: selectedCells,
+      isRectangular: false,
+    }));
+  }, [dispatch, sortedRows, columns]);
+
+  // Copy to clipboard (Cmd/Ctrl+C) using row.display
+  const handleCopy = useCallback((e: KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'c' && state.selectedGrid) {
+      e.preventDefault();
+
+      const { cells, isRectangular } = state.selectedGrid;
+      if (cells.length === 0) return;
+
+      if (isRectangular) {
+        // Build rectangular grid for TSV export
+        const cellMap = new Map<string, Map<string, string>>();
+
+        cells.forEach(({ rowId, col }) => {
+          const rowKey = `${rowId.object}:${rowId.id}`;
+          if (!cellMap.has(rowKey)) {
+            cellMap.set(rowKey, new Map());
+          }
+          const row = sortedRows.find(r => getRowKey(r) === rowKey);
+          if (row) {
+            cellMap.get(rowKey)!.set(col, formatValue(row.display[col]));
+          }
+        });
+
+        // Get unique rows and columns in order
+        const uniqueRowKeys = Array.from(new Set(cells.map(c => `${c.rowId.object}:${c.rowId.id}`)));
+        const uniqueColKeys = Array.from(new Set(cells.map(c => c.col)));
+
+        // Sort by original order
+        uniqueRowKeys.sort((a, b) => {
+          const aIdx = sortedRows.findIndex(r => getRowKey(r) === a);
+          const bIdx = sortedRows.findIndex(r => getRowKey(r) === b);
+          return aIdx - bIdx;
+        });
+
+        uniqueColKeys.sort((a, b) => {
+          const aIdx = columns.findIndex(c => c.key === a);
+          const bIdx = columns.findIndex(c => c.key === b);
+          return aIdx - bIdx;
+        });
+
+        // Build TSV
+        const tsvRows = uniqueRowKeys.map(rowKey => {
+          return uniqueColKeys.map(colKey => {
+            return cellMap.get(rowKey)?.get(colKey) || '';
+          }).join('\t');
+        });
+
+        const tsv = tsvRows.join('\n');
+        navigator.clipboard.writeText(tsv);
+      } else {
+        // Single cell or non-rectangular: copy values separated by newlines
+        const values = cells.map(({ rowId, col }) => {
+          const rowKey = `${rowId.object}:${rowId.id}`;
+          const row = sortedRows.find(r => getRowKey(r) === rowKey);
+          return row ? formatValue(row.display[col]) : '';
+        });
+        navigator.clipboard.writeText(values.join('\n'));
+      }
+    }
+  }, [state.selectedGrid, sortedRows, columns]);
+
+  // Add keyboard event listener
+  useEffect(() => {
+    document.addEventListener('keydown', handleCopy);
+    return () => {
+      document.removeEventListener('keydown', handleCopy);
+    };
+  }, [handleCopy]);
+
+  // Add mouseup listener for drag selection
+  useEffect(() => {
+    if (isSelecting) {
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isSelecting, handleMouseUp]);
+
   // Format cell value for display
-  const formatValue = (value: string | number | boolean) => {
+  const formatValue = (value: string | number | boolean | null | undefined) => {
     if (value === null || value === undefined) {
       return '-';
     }
@@ -270,27 +426,50 @@ export function DataList() {
       <div className="mb-2">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold">Data Preview</h3>
-          {/* Filter chip */}
-          {state.selectedBucket && (
-            <div className="inline-flex items-center gap-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-              <span className="font-medium">
-                Period: {state.selectedBucket.label}
-              </span>
-              <button
-                onClick={() => dispatch(actions.clearSelectedBucket())}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    dispatch(actions.clearSelectedBucket());
-                  }
-                }}
-                className="hover:bg-blue-200 rounded p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="Clear period filter"
-              >
-                ✕
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Selection chip */}
+            {state.selectedGrid && state.selectedGrid.cells.length > 0 && (
+              <div className="inline-flex items-center gap-2 px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                <span className="font-medium">
+                  Selection: {state.selectedGrid.rowIds.length}R × {state.selectedGrid.columns.length}C
+                </span>
+                <button
+                  onClick={() => dispatch(actions.clearGridSelection())}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      dispatch(actions.clearGridSelection());
+                    }
+                  }}
+                  className="hover:bg-green-200 rounded p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
+                  aria-label="Clear selection"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            {/* Filter chip */}
+            {state.selectedBucket && (
+              <div className="inline-flex items-center gap-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                <span className="font-medium">
+                  Period: {state.selectedBucket.label}
+                </span>
+                <button
+                  onClick={() => dispatch(actions.clearSelectedBucket())}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      dispatch(actions.clearSelectedBucket());
+                    }
+                  }}
+                  className="hover:bg-blue-200 rounded p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label="Clear period filter"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400" role="status" aria-live="polite">
           {sortedRows.length} rows • {columns.length} columns
@@ -321,9 +500,10 @@ export function DataList() {
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, column.key)}
                   onDragEnd={handleDragEnd}
+                  onClick={(e) => handleColumnHeaderClick(e, column.key)}
                   className={`text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300 select-none whitespace-nowrap cursor-move ${
                     draggedColumn === column.key ? 'opacity-50' : ''
-                  }`}
+                  } ${isColumnSelected(column.key) ? 'ring-1 ring-blue-500 bg-blue-50 dark:bg-blue-900/30' : ''}`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <button
@@ -382,18 +562,29 @@ export function DataList() {
           <tbody>
             {sortedRows.map((row, rowIndex) => (
               <tr
-                key={rowIndex}
-                className="border-b border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+                key={getRowKey(row)}
+                className={`border-b border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors ${
+                  isRowSelected(rowIndex) ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                }`}
               >
-                <td className="py-2 px-3 text-gray-400 dark:text-gray-500 border-r border-gray-200 dark:border-gray-700 font-mono">
+                <td
+                  className={`py-2 px-3 text-gray-400 dark:text-gray-500 border-r border-gray-200 dark:border-gray-700 font-mono cursor-pointer ${
+                    isRowSelected(rowIndex) ? 'ring-1 ring-blue-500' : ''
+                  }`}
+                  onClick={(e) => handleRowClick(e, rowIndex)}
+                >
                   {rowIndex + 1}
                 </td>
                 {columns.map((column) => (
                   <td
                     key={column.key}
-                    className="py-2 px-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs"
+                    className={`py-2 px-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs cursor-cell ${
+                      isCellSelected(rowIndex, column.key) ? 'ring-1 ring-blue-500 bg-blue-100 dark:bg-blue-900/50' : ''
+                    }`}
+                    onMouseDown={(e) => handleCellMouseDown(e, rowIndex, column.key)}
+                    onMouseEnter={() => handleCellMouseEnter(rowIndex, column.key)}
                   >
-                    {formatValue(row[column.key])}
+                    {formatValue(row.display[column.key])}
                   </td>
                 ))}
               </tr>
@@ -404,7 +595,7 @@ export function DataList() {
 
       {/* Footer info */}
       <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-        Click headers to sort • Drag headers to reorder • Click ✕ to remove • Showing sample data
+        Click headers to sort • Drag headers to reorder • Click ✕ to remove • Click/drag cells to select • Cmd/Ctrl+C to copy • Showing sample data
       </div>
     </div>
   );

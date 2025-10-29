@@ -1,5 +1,7 @@
 import { MetricDef, MetricResult, SeriesPoint, SchemaCatalog, ValueKind, MetricOp } from '@/types';
 import { Granularity, rangeByGranularity, bucketLabel } from '@/lib/time';
+import { pickTimestamp } from '@/lib/fields';
+import { Warehouse } from '@/data/warehouse';
 
 /**
  * Parameters for computing a metric
@@ -9,25 +11,9 @@ export type ComputeMetricParams = {
   start: string;
   end: string;
   granularity: Granularity;
-  generateSeries: () => { points: SeriesPoint[] };
-  rows?: any[];
+  store: Warehouse;
+  include?: Set<string>; // Set of "${object}:${id}" for PK-based filtering
   schema?: SchemaCatalog;
-};
-
-/**
- * Timestamp field lookup map for each object type
- */
-const TIMESTAMP_FIELDS: Record<string, string[]> = {
-  subscription: ['current_period_start', 'created'],
-  customer: ['created'],
-  invoice: ['created'],
-  payment: ['created'],
-  charge: ['created'],
-  refund: ['created'],
-  price: ['created'],
-  product: ['created'],
-  subscription_item: ['created'],
-  payment_method: ['created'],
 };
 
 /**
@@ -57,14 +43,10 @@ export function inferValueKind(object: string, field: string, schema?: SchemaCat
 }
 
 /**
- * Get best timestamp field for an object
+ * Get best timestamp field for an object using pickTimestamp
  */
 function getTimestampField(object: string, row: any): string | null {
-  const candidates = TIMESTAMP_FIELDS[object] || ['created'];
-  for (const field of candidates) {
-    if (row[field]) return field;
-  }
-  return null;
+  return pickTimestamp(object, row);
 }
 
 /**
@@ -168,15 +150,15 @@ function applyOperation(
 }
 
 /**
- * Compute a metric based on the metric definition and data
+ * Compute a metric based on the metric definition and data from warehouse
  */
 export function computeMetric({
   def,
   start,
   end,
   granularity,
-  generateSeries,
-  rows,
+  store,
+  include,
   schema,
 }: ComputeMetricParams): MetricResult {
   // Check if source is defined
@@ -191,36 +173,44 @@ export function computeMetric({
   const { object, field } = def.source;
   const kind = inferValueKind(object, field, schema);
 
-  // If no rows provided, fall back to mock data
-  if (!rows || rows.length === 0) {
-    const reportSeries = generateSeries();
-    const bucketValues = reportSeries.points.map(p => p.value);
+  // Get rows from warehouse for this object type
+  // @ts-ignore - dynamic property access on Warehouse
+  let allRows = store[object];
 
-    // Apply metric type
-    let value: number | null = null;
-    let series = reportSeries.points;
-
-    switch (def.type) {
-      case 'sum_over_period':
-        value = bucketValues.reduce((acc, v) => acc + v, 0);
-        break;
-      case 'average_over_period':
-        value = bucketValues.length > 0
-          ? bucketValues.reduce((acc, v) => acc + v, 0) / bucketValues.length
-          : null;
-        break;
-      case 'latest':
-        value = bucketValues.length > 0 ? bucketValues[bucketValues.length - 1] : null;
-        break;
-      case 'first':
-        value = bucketValues.length > 0 ? bucketValues[0] : null;
-        break;
-    }
-
-    return { value, series, kind };
+  // If singular form doesn't work, try plural form
+  if (!allRows) {
+    const pluralKey = object + 's' as keyof Warehouse;
+    allRows = store[pluralKey];
   }
 
-  // Bucket the rows
+  // If still no rows found, return empty result
+  if (!allRows || !Array.isArray(allRows)) {
+    return {
+      value: null,
+      series: null,
+      note: `No data found for ${object}`,
+    };
+  }
+
+  // Filter rows by PK allowlist (if provided)
+  let rows = allRows;
+  if (include && include.size > 0) {
+    rows = allRows.filter(row => {
+      const rowKey = `${object}:${row.id}`;
+      return include.has(rowKey);
+    });
+  }
+
+  // If no rows after filtering, return zero/null
+  if (rows.length === 0) {
+    return {
+      value: null,
+      series: null,
+      note: 'No data in selection',
+    };
+  }
+
+  // Bucket the rows by timestamp using pickTimestamp
   const buckets = bucketRows(rows, object, start, end, granularity);
   const bucketEntries = Array.from(buckets.entries()).sort((a, b) =>
     a[0].localeCompare(b[0])
