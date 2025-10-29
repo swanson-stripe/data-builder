@@ -105,3 +105,25 @@ export function deltaNumber(value: number, decimals: number = 0): string {
   }
   return formatted;
 }
+
+/**
+ * Format a metric value based on its kind
+ */
+export function formatMetricValue(
+  value: number | null,
+  kind: 'number' | 'currency' | 'string' = 'number'
+): string {
+  if (value === null) return 'N/A';
+
+  switch (kind) {
+    case 'currency':
+      return currency(value);
+    case 'number':
+      return number(value);
+    case 'string':
+      // For string counts, show as plain number without currency
+      return number(value);
+    default:
+      return number(value);
+  }
+}

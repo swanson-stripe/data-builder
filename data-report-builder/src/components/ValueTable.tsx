@@ -7,7 +7,7 @@ import {
   createBenchmarkSeries,
 } from '@/data/mock';
 import { computeMetric } from '@/lib/metrics';
-import { currency, percentageChange, shortDate } from '@/lib/format';
+import { currency, number, percentageChange, shortDate } from '@/lib/format';
 import { getBucketRange } from '@/lib/time';
 
 export function ValueTable() {
@@ -143,6 +143,18 @@ export function ValueTable() {
     }
   };
 
+  // Get value kind from metric result
+  const valueKind = metricResult.kind || 'number';
+
+  // Format value based on kind
+  const formatValue = (val: number) => {
+    if (valueKind === 'currency') {
+      return currency(val, { compact: true });
+    } else {
+      return number(val, { decimals: 0 });
+    }
+  };
+
   // Show placeholder if metric not configured
   if (metricResult.series === null || !state.metric.source) {
     return (
@@ -214,7 +226,7 @@ export function ValueTable() {
                     role="button"
                     aria-label={`Select period ${shortDate(point.date)}`}
                   >
-                    {currency(point.value, { compact: true })}
+                    {formatValue(point.value)}
                   </td>
                 );
               })}
@@ -232,7 +244,7 @@ export function ValueTable() {
                     className="text-right py-2 px-2 font-mono tabular-nums text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:bg-gray-100 dark:focus:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
                     tabIndex={0}
                   >
-                    {currency(point.value, { compact: true })}
+                    {formatValue(point.value)}
                   </td>
                 ))}
               </tr>

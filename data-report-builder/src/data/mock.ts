@@ -1,6 +1,7 @@
 import { ReportKey, ReportSeries, SeriesPoint, SchemaObject, FieldType } from '@/types';
 import { rangeByGranularity, bucketLabel, Granularity } from '@/lib/time';
 import { getObject } from './schema';
+import seedData from './seed.json';
 
 /**
  * Simple deterministic PRNG using a seeded Linear Congruential Generator
@@ -273,6 +274,120 @@ export function mockRowsForDataList({
  * Export a consistent default seed
  */
 export const DEFAULT_SEED = 12345;
+
+/**
+ * Load seed data from JSON
+ */
+export function loadSeed(): Record<string, any[]> {
+  return seedData as Record<string, any[]>;
+}
+
+/**
+ * Expand seed data by sampling and perturbing to fill date range
+ * Generates additional rows with date shifting and variance
+ */
+export function expandSeed({
+  start,
+  end,
+  granularity = 'month',
+  seed = 12345,
+}: {
+  start: Date;
+  end: Date;
+  granularity?: Granularity;
+  seed?: number;
+}): Record<string, any[]> {
+  const rng = new SeededRandom(seed);
+  const dates = rangeByGranularity(start, end, granularity);
+  const baseSeed = loadSeed();
+  const expanded: Record<string, any[]> = {};
+
+  // For each entity type in seed data
+  Object.keys(baseSeed).forEach((entityType) => {
+    const baseRows = baseSeed[entityType];
+    if (baseRows.length === 0) {
+      expanded[entityType] = [];
+      return;
+    }
+
+    const expandedRows: any[] = [];
+    const rowsPerBucket = Math.ceil(baseRows.length / dates.length);
+
+    // Generate rows for each date bucket
+    dates.forEach((bucketDate, bucketIndex) => {
+      const bucketDateStr = bucketLabel(bucketDate, granularity);
+
+      // Sample rows from seed data for this bucket
+      for (let i = 0; i < rowsPerBucket; i++) {
+        const sourceRow = baseRows[rng.nextInt(0, baseRows.length - 1)];
+        const newRow = { ...sourceRow };
+
+        // Generate unique ID
+        const idField = Object.keys(newRow).find(key => key === 'id');
+        if (idField) {
+          const prefix = String(newRow[idField]).split('_')[0];
+          const uniqueNum = bucketIndex * rowsPerBucket + i + 1;
+          newRow[idField] = `${prefix}_${String(uniqueNum).padStart(3, '0')}`;
+        }
+
+        // Update all date fields to bucket date with small variance
+        Object.keys(newRow).forEach((key) => {
+          if (
+            key.includes('created') ||
+            key.includes('date') ||
+            key === 'current_period_start' ||
+            key === 'current_period_end' ||
+            key === 'canceled_at'
+          ) {
+            // Add random days variance (-7 to +7 days)
+            const variance = rng.nextInt(-7, 7);
+            const variedDate = new Date(bucketDate);
+            variedDate.setDate(variedDate.getDate() + variance);
+            newRow[key] = variedDate.toISOString().split('T')[0];
+          }
+
+          // Vary amount fields by ±20%
+          if (
+            key.includes('amount') ||
+            key.includes('balance') ||
+            key === 'unit_amount'
+          ) {
+            const originalValue = typeof newRow[key] === 'number' ? newRow[key] : 0;
+            const varianceFactor = 1 + (rng.next() - 0.5) * 0.4; // ±20%
+            newRow[key] = Math.round(originalValue * varianceFactor);
+          }
+        });
+
+        // Vary status distributions
+        if (newRow.status) {
+          const statusRoll = rng.next();
+          if (entityType === 'subscriptions') {
+            if (statusRoll < 0.7) newRow.status = 'active';
+            else if (statusRoll < 0.85) newRow.status = 'canceled';
+            else if (statusRoll < 0.95) newRow.status = 'past_due';
+            else newRow.status = 'trialing';
+          } else if (entityType === 'invoices') {
+            if (statusRoll < 0.85) newRow.status = 'paid';
+            else if (statusRoll < 0.95) newRow.status = 'open';
+            else newRow.status = 'draft';
+          } else if (entityType === 'payments') {
+            if (statusRoll < 0.9) newRow.status = 'succeeded';
+            else newRow.status = 'requires_payment_method';
+          } else if (entityType === 'refunds') {
+            if (statusRoll < 0.9) newRow.status = 'succeeded';
+            else newRow.status = 'pending';
+          }
+        }
+
+        expandedRows.push(newRow);
+      }
+    });
+
+    expanded[entityType] = expandedRows;
+  });
+
+  return expanded;
+}
 
 /**
  * Shift series dates by a specified time period

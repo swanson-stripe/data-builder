@@ -3,17 +3,8 @@ import { useMemo } from 'react';
 import { useApp } from '@/state/app';
 import { computeMetric } from '@/lib/metrics';
 import { generateSeries } from '@/data/mock';
-import { currency, number, deltaCurrency, deltaNumber } from '@/lib/format';
+import { formatMetricValue, deltaCurrency, deltaNumber } from '@/lib/format';
 import { ReportKey } from '@/types';
-
-// Map report keys to whether they should use currency formatting
-const CURRENCY_REPORTS: Record<ReportKey, boolean> = {
-  mrr: true,
-  gross_volume: true,
-  subscriber_ltv: true,
-  active_subscribers: false,
-  refund_count: false,
-};
 
 // Map report keys to their full labels
 const REPORT_LABELS: Record<ReportKey, string> = {
@@ -56,11 +47,11 @@ export function MetricHeader() {
     return current - previous;
   }, [metricResult]);
 
-  // Determine if we should use currency formatting
-  const isCurrency = CURRENCY_REPORTS[state.report];
-
   // Get the display title
   const title = state.metric.name || REPORT_LABELS[state.report];
+
+  // Get value kind from metric result
+  const valueKind = metricResult.kind || 'number';
 
   // Handle no metric configured
   if (metricResult.value === null || !state.metric.source) {
@@ -77,15 +68,13 @@ export function MetricHeader() {
     );
   }
 
-  // Format the main value
-  const formattedValue = isCurrency
-    ? currency(metricResult.value)
-    : number(metricResult.value, { decimals: 0 });
+  // Format the main value using the kind
+  const formattedValue = formatMetricValue(metricResult.value, valueKind);
 
-  // Format the delta
+  // Format the delta based on kind
   const formattedDelta =
     delta !== null
-      ? isCurrency
+      ? valueKind === 'currency'
         ? deltaCurrency(delta)
         : deltaNumber(delta)
       : null;
@@ -119,13 +108,14 @@ export function MetricHeader() {
 
       {/* Metadata */}
       <div className="text-xs text-gray-500 dark:text-gray-400">
-        {state.metric.scope === 'per_bucket' ? (
+        {state.metric.type === 'latest' ? (
           <>Latest value • {metricResult.series?.length || 0} data points</>
+        ) : state.metric.type === 'first' ? (
+          <>First value • {metricResult.series?.length || 0} data points</>
+        ) : state.metric.type === 'sum_over_period' ? (
+          <>Sum over period • {metricResult.series?.length || 0} data points</>
         ) : (
-          <>
-            {state.metric.op.toUpperCase()} across entire period •{' '}
-            {metricResult.series?.length || 0} data points
-          </>
+          <>Average over period • {metricResult.series?.length || 0} data points</>
         )}
       </div>
     </div>

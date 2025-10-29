@@ -112,10 +112,17 @@ export function ChartPanel() {
 
   // Handle point click
   const handlePointClick = (data: any) => {
-    const date = data.date as string;
-    const bucketDate = new Date(date);
+    // Extract date - Recharts passes it in payload.date when clicking dots/bars
+    const dateStr = (data.payload?.date || data.date || data) as string;
+
+    const bucketDate = new Date(dateStr);
+    if (isNaN(bucketDate.getTime())) {
+      console.error('[ChartPanel] Invalid date:', dateStr);
+      return;
+    }
+
     const { start, end } = getBucketRange(bucketDate, state.granularity);
-    dispatch(actions.setSelectedBucket(start, end, date));
+    dispatch(actions.setSelectedBucket(start, end, dateStr));
   };
 
   // Validate granularity-range combination
@@ -250,14 +257,27 @@ export function ChartPanel() {
     return data;
   }, [series, comparisonSeries]);
 
-  // Format number for display
+  // Get value kind from metric result
+  const valueKind = metricResult.kind || 'number';
+
+  // Format number for display based on value kind
   const formatValue = (value: number) => {
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(2)}M`;
-    } else if (value >= 1000) {
-      return `$${(value / 1000).toFixed(1)}K`;
+    if (valueKind === 'currency') {
+      if (value >= 1000000) {
+        return `$${(value / 1000000).toFixed(2)}M`;
+      } else if (value >= 1000) {
+        return `$${(value / 1000).toFixed(1)}K`;
+      }
+      return `$${value.toFixed(0)}`;
+    } else {
+      // For number/string, no currency symbol
+      if (value >= 1000000) {
+        return `${(value / 1000000).toFixed(2)}M`;
+      } else if (value >= 1000) {
+        return `${(value / 1000).toFixed(1)}K`;
+      }
+      return `${value.toFixed(0)}`;
     }
-    return `$${value.toFixed(0)}`;
   };
 
   return (
@@ -350,7 +370,6 @@ export function ChartPanel() {
                 }}
               />
               <YAxis
-                scale={state.chart.yScale}
                 tick={{ fontSize: 11 }}
                 stroke="#6b7280"
                 className="dark:stroke-gray-400"
@@ -384,11 +403,15 @@ export function ChartPanel() {
                       stroke={isSelected ? '#fff' : 'none'}
                       strokeWidth={isSelected ? 2 : 0}
                       style={{ cursor: 'pointer' }}
+                      onClick={() => handlePointClick(props.payload)}
                     />
                   );
                 }}
-                activeDot={{ r: 5, style: { cursor: 'pointer' } }}
-                onClick={handlePointClick}
+                activeDot={{
+                  r: 5,
+                  style: { cursor: 'pointer' },
+                  onClick: (e: any, payload: any) => handlePointClick(payload)
+                }}
               />
               {comparisonSeries && (
                 <Line
@@ -421,7 +444,6 @@ export function ChartPanel() {
                 }}
               />
               <YAxis
-                scale={state.chart.yScale}
                 tick={{ fontSize: 11 }}
                 stroke="#6b7280"
                 className="dark:stroke-gray-400"
@@ -456,7 +478,6 @@ export function ChartPanel() {
                 fillOpacity={0.4}
                 stroke="#3b82f6"
                 strokeWidth={2}
-                onClick={handlePointClick}
                 dot={(props: any) => {
                   const isSelected = state.selectedBucket?.label === props.payload.date;
                   const { key, ...dotProps } = props;
@@ -469,10 +490,15 @@ export function ChartPanel() {
                       stroke={isSelected ? '#fff' : 'none'}
                       strokeWidth={isSelected ? 2 : 0}
                       style={{ cursor: 'pointer' }}
+                      onClick={() => handlePointClick(props.payload)}
                     />
                   );
                 }}
-                activeDot={{ r: 5, style: { cursor: 'pointer' } }}
+                activeDot={{
+                  r: 5,
+                  style: { cursor: 'pointer' },
+                  onClick: (e: any, payload: any) => handlePointClick(payload)
+                }}
               />
             </AreaChart>
           )}
@@ -494,7 +520,6 @@ export function ChartPanel() {
                 }}
               />
               <YAxis
-                scale={state.chart.yScale}
                 tick={{ fontSize: 11 }}
                 stroke="#6b7280"
                 className="dark:stroke-gray-400"
@@ -514,7 +539,6 @@ export function ChartPanel() {
                 dataKey="current"
                 name={series.label}
                 fill="#3b82f6"
-                onClick={handlePointClick}
                 shape={(props: any) => {
                   const { x, y, width, height, payload } = props;
                   const isSelected = state.selectedBucket?.label === payload.date;
@@ -528,6 +552,7 @@ export function ChartPanel() {
                       stroke={isSelected ? '#fff' : 'none'}
                       strokeWidth={isSelected ? 2 : 0}
                       style={{ cursor: 'pointer' }}
+                      onClick={() => handlePointClick(payload)}
                     />
                   );
                 }}

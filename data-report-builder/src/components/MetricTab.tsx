@@ -1,27 +1,39 @@
 'use client';
 import { useApp, actions } from '@/state/app';
-import { MetricOp, MetricScope } from '@/types';
+import { MetricOp, MetricType } from '@/types';
 
 export function MetricTab() {
   const { state, dispatch } = useApp();
 
-  const metricOps: { value: MetricOp; label: string }[] = [
-    { value: 'sum', label: 'Sum' },
-    { value: 'avg', label: 'Average' },
-    { value: 'latest', label: 'Latest' },
-    { value: 'first', label: 'First' },
+  const metricOps: { value: MetricOp; label: string; description: string }[] = [
+    { value: 'sum', label: 'Sum', description: 'Total of all values' },
+    { value: 'avg', label: 'Average', description: 'Mean of all values' },
+    { value: 'median', label: 'Median', description: 'Middle value when sorted' },
+    { value: 'mode', label: 'Mode', description: 'Most frequent value' },
+    { value: 'count', label: 'Count', description: 'Number of records' },
+    { value: 'distinct_count', label: 'Distinct Count', description: 'Number of unique values' },
   ];
 
-  const metricScopes: { value: MetricScope; label: string; description: string }[] = [
+  const metricTypes: { value: MetricType; label: string; description: string }[] = [
     {
-      value: 'per_bucket',
-      label: 'Per Bucket',
-      description: 'Flow: Measure value at each time period'
+      value: 'sum_over_period',
+      label: 'Sum over period',
+      description: 'Sum values within each bucket, total across all buckets'
     },
     {
-      value: 'entire_period',
-      label: 'Entire Period',
-      description: 'Snapshot: Single aggregate across all periods'
+      value: 'average_over_period',
+      label: 'Average over period',
+      description: 'Average values within each bucket, mean across all buckets'
+    },
+    {
+      value: 'latest',
+      label: 'Latest value',
+      description: 'Snapshot at end of each bucket/range'
+    },
+    {
+      value: 'first',
+      label: 'First value',
+      description: 'Snapshot at start of each bucket/range'
     },
   ];
 
@@ -113,25 +125,28 @@ export function MetricTab() {
             </option>
           ))}
         </select>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          {metricOps.find(op => op.value === state.metric.op)?.description}
+        </p>
       </div>
 
-      {/* Scope */}
+      {/* Type (Aggregation Basis) */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Scope
+          Type (Aggregation Basis)
         </label>
         <div className="space-y-2">
-          {metricScopes.map((option) => (
+          {metricTypes.map((option) => (
             <label
               key={option.value}
               className="flex items-start gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <input
                 type="radio"
-                name="metric-scope"
+                name="metric-type"
                 value={option.value}
-                checked={state.metric.scope === option.value}
-                onChange={(e) => dispatch(actions.setMetricScope(e.target.value as MetricScope))}
+                checked={state.metric.type === option.value}
+                onChange={(e) => dispatch(actions.setMetricType(e.target.value as MetricType))}
                 className="mt-0.5 text-blue-600 focus:ring-blue-500 focus:ring-2"
               />
               <div className="flex-1">
@@ -150,8 +165,8 @@ export function MetricTab() {
       {/* Helper Text */}
       <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
         <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-          <strong>Per Bucket</strong> measures values at each time period (flow metrics like revenue, events).
-          <strong className="ml-1">Entire Period</strong> aggregates all periods into a single value (snapshot metrics like total, average).
+          <strong>Operation</strong> determines how values are computed within each bucket.
+          <strong className="ml-1">Type</strong> determines how bucket values are aggregated over time.
         </p>
       </div>
     </div>

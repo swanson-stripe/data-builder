@@ -1,42 +1,43 @@
-import { ReportKey, MetricDef, MetricOp, MetricScope } from '@/types';
-import { actions } from '@/state/app';
+// src/lib/presets.ts
 import { Granularity } from '@/lib/time';
+import { MetricDef } from '@/types';
+import { AppAction } from '@/state/app';
 
-export type PresetOption = {
-  key: ReportKey;
+export type PresetKey =
+  | 'mrr'
+  | 'gross_volume'
+  | 'active_subscribers'
+  | 'refund_count'
+  | 'subscriber_ltv';
+
+type QualifiedField = { object: string; field: string };
+
+type PresetConfig = {
+  key: PresetKey;
   label: string;
-};
-
-export const PRESET_OPTIONS: PresetOption[] = [
-  { key: 'mrr', label: 'MRR' },
-  { key: 'gross_volume', label: 'Gross Volume' },
-  { key: 'active_subscribers', label: 'Active Subscribers' },
-  { key: 'refund_count', label: 'Refund Count' },
-  { key: 'subscriber_ltv', label: 'Subscriber LTV' },
-];
-
-/**
- * Configuration for each preset including objects and field selections
- */
-export type PresetConfig = {
-  key: ReportKey;
+  // Objects to auto-select in the Data tab
   objects: string[];
-  fields: { object: string; field: string }[];
+  // Qualified fields to auto-select in the Data List
+  fields: QualifiedField[];
+  // Metric driving the value/chart/summary
+  metric: Pick<MetricDef, 'name' | 'op' | 'type'> & {
+    source: QualifiedField | undefined;
+  };
+  // Optional default time settings
   range?: { start: string; end: string; granularity: Granularity };
-  metric?: Partial<MetricDef> & { source?: { object: string; field: string } };
 };
 
-/**
- * Preset configurations with objects and fields
- */
-export const PRESET_CONFIGS: Record<ReportKey, PresetConfig> = {
+// convenience generator for ISO "today"
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   mrr: {
     key: 'mrr',
+    label: 'MRR',
     objects: ['subscription', 'customer', 'price'],
     fields: [
       { object: 'subscription', field: 'id' },
       { object: 'subscription', field: 'status' },
-      { object: 'subscription', field: 'created' },
       { object: 'subscription', field: 'current_period_start' },
       { object: 'subscription', field: 'current_period_end' },
       { object: 'customer', field: 'id' },
@@ -45,15 +46,19 @@ export const PRESET_CONFIGS: Record<ReportKey, PresetConfig> = {
       { object: 'price', field: 'currency' },
       { object: 'price', field: 'recurring_interval' },
     ],
+    // Snapshot metric — if you later add a synthetic `subscription.mrr`, update `source` to that.
     metric: {
       name: 'Monthly Recurring Revenue (MRR)',
-      source: { object: 'subscription', field: 'id' },
-      op: 'sum' as MetricOp,
-      scope: 'per_bucket' as MetricScope,
+      source: { object: 'subscription', field: 'id' }, // proxy for active subs → latest snapshot
+      op: 'count',
+      type: 'latest',
     },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
   },
+
   gross_volume: {
     key: 'gross_volume',
+    label: 'Gross Volume',
     objects: ['payment', 'customer', 'product'],
     fields: [
       { object: 'payment', field: 'id' },
@@ -63,162 +68,138 @@ export const PRESET_CONFIGS: Record<ReportKey, PresetConfig> = {
       { object: 'payment', field: 'status' },
       { object: 'customer', field: 'id' },
       { object: 'customer', field: 'email' },
+      { object: 'product', field: 'id' },
       { object: 'product', field: 'name' },
     ],
+    // Flow metric — sum amounts per bucket
     metric: {
       name: 'Gross Volume',
       source: { object: 'payment', field: 'amount' },
-      op: 'sum' as MetricOp,
-      scope: 'per_bucket' as MetricScope,
+      op: 'sum',
+      type: 'sum_over_period',
     },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
   },
+
   active_subscribers: {
     key: 'active_subscribers',
-    objects: ['subscription', 'customer'],
+    label: 'Active Subscribers',
+    objects: ['subscription', 'customer', 'invoice'],
     fields: [
       { object: 'subscription', field: 'id' },
       { object: 'subscription', field: 'status' },
       { object: 'subscription', field: 'current_period_end' },
-      { object: 'subscription', field: 'created' },
+      { object: 'subscription', field: 'cancel_at_period_end' },
       { object: 'customer', field: 'id' },
       { object: 'customer', field: 'email' },
-      { object: 'customer', field: 'name' },
+      { object: 'invoice', field: 'id' },
+      { object: 'invoice', field: 'amount_paid' },
+      { object: 'invoice', field: 'created' },
     ],
+    // Snapshot metric — latest value per bucket (proxy via subscription count)
     metric: {
       name: 'Active Subscribers',
-      source: { object: 'subscription', field: 'id' },
-      op: 'sum' as MetricOp,
-      scope: 'per_bucket' as MetricScope,
+      source: { object: 'subscription', field: 'id' }, // treat as count proxy
+      op: 'count',
+      type: 'latest',
     },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
   },
+
   refund_count: {
     key: 'refund_count',
+    label: 'Refund Count',
     objects: ['refund', 'payment', 'customer'],
     fields: [
       { object: 'refund', field: 'id' },
-      { object: 'refund', field: 'amount' },
       { object: 'refund', field: 'created' },
+      { object: 'refund', field: 'amount' },
       { object: 'refund', field: 'status' },
-      { object: 'refund', field: 'reason' },
       { object: 'payment', field: 'id' },
-      { object: 'payment', field: 'amount' },
+      { object: 'payment', field: 'created' },
       { object: 'customer', field: 'id' },
       { object: 'customer', field: 'email' },
     ],
+    // Count-like flow — use per-bucket sum (series generator already models counts)
     metric: {
       name: 'Refund Count',
-      source: { object: 'refund', field: 'id' },
-      op: 'sum' as MetricOp,
-      scope: 'per_bucket' as MetricScope,
+      source: { object: 'refund', field: 'id' }, // proxy for counting refunds
+      op: 'count',
+      type: 'sum_over_period',
     },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
   },
+
   subscriber_ltv: {
     key: 'subscriber_ltv',
-    objects: ['subscription', 'customer', 'invoice'],
+    label: 'Subscriber LTV',
+    objects: ['customer', 'subscription', 'invoice'],
     fields: [
       { object: 'customer', field: 'id' },
       { object: 'customer', field: 'email' },
-      { object: 'customer', field: 'created' },
       { object: 'subscription', field: 'id' },
       { object: 'subscription', field: 'status' },
       { object: 'invoice', field: 'id' },
       { object: 'invoice', field: 'amount_paid' },
       { object: 'invoice', field: 'created' },
     ],
+    // Hybrid metric — average over the period
     metric: {
       name: 'Subscriber Lifetime Value',
-      source: { object: 'invoice', field: 'amount_paid' },
-      op: 'avg' as MetricOp,
-      scope: 'entire_period' as MetricScope,
+      source: { object: 'invoice', field: 'amount_paid' }, // average invoice total across window
+      op: 'avg',
+      type: 'average_over_period',
     },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
   },
 };
 
-/**
- * Get date range based on preset key
- */
-function getDateRange(key: ReportKey): { start: string; end: string } {
-  const end = new Date();
-  const start = new Date();
+export const PRESET_OPTIONS = Object.values(PRESET_CONFIGS).map(p => ({
+  key: p.key,
+  label: p.label,
+}));
 
-  switch (key) {
-    case 'mrr':
-      // Year to date for MRR
-      start.setMonth(0); // January 1st
-      start.setDate(1);
-      break;
-
-    case 'gross_volume':
-    case 'active_subscribers':
-    case 'subscriber_ltv':
-      // Last 1 year
-      start.setFullYear(start.getFullYear() - 1);
-      break;
-
-    case 'refund_count':
-      // Last 6 months
-      start.setMonth(start.getMonth() - 6);
-      break;
-  }
-
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
-}
-
-/**
- * Apply a preset configuration to the app state
- */
 export function applyPreset(
-  key: ReportKey,
-  dispatch: React.Dispatch<any>
-): void {
-  const config = PRESET_CONFIGS[key];
+  key: PresetKey,
+  dispatch: (a: AppAction) => void
+) {
+  const p = PRESET_CONFIGS[key];
+  if (!p) return;
 
-  // 1. Set the report type
-  dispatch(actions.setReport(key));
+  // Reset selections and clear any active bucket filter
+  dispatch({ type: 'RESET_SELECTIONS' });
+  dispatch({ type: 'CLEAR_SELECTED_BUCKET' });
 
-  // 2. Set appropriate date range
-  const { start, end } = getDateRange(key);
-  dispatch(actions.setRange(start, end));
-
-  // 3. Reset existing selections to ensure clean state
-  dispatch(actions.resetSelections());
-
-  // 4. Select preset objects (in order)
-  config.objects.forEach((objectName) => {
-    dispatch(actions.toggleObject(objectName));
-  });
-
-  // 5. Select preset fields
-  config.fields.forEach(({ object, field }) => {
-    dispatch(actions.toggleField(object, field));
-  });
-
-  // 6. Apply metric configuration if present
-  if (config.metric) {
-    if (config.metric.name) {
-      dispatch(actions.setMetricName(config.metric.name));
-    }
-    if (config.metric.source) {
-      dispatch(actions.setMetricSource(config.metric.source));
-    }
-    if (config.metric.op) {
-      dispatch(actions.setMetricOp(config.metric.op));
-    }
-    if (config.metric.scope) {
-      dispatch(actions.setMetricScope(config.metric.scope));
-    }
+  // Apply optional time range
+  if (p.range) {
+    dispatch({
+      type: 'SET_RANGE',
+      payload: {
+        start: p.range.start,
+        end: p.range.end,
+      },
+    });
+    dispatch({
+      type: 'SET_GRANULARITY',
+      payload: p.range.granularity,
+    });
   }
 
-  console.log(
-    `[Preset] Applied "${key}" preset:`,
-    {
-      dateRange: `${start} to ${end}`,
-      objects: config.objects,
-      fields: config.fields.length,
-      metric: config.metric ? config.metric.name : 'none',
-    }
-  );
+  // Select objects first (idempotent in reducer)
+  for (const obj of p.objects) {
+    dispatch({ type: 'TOGGLE_OBJECT', payload: obj });
+  }
+
+  // Then select qualified fields
+  for (const f of p.fields) {
+    dispatch({ type: 'TOGGLE_FIELD', payload: { object: f.object, field: f.field } });
+  }
+
+  // Configure Metric (Phase 3)
+  if (p.metric) {
+    dispatch({ type: 'SET_METRIC_NAME', payload: p.metric.name });
+    dispatch({ type: 'SET_METRIC_OP', payload: p.metric.op });
+    dispatch({ type: 'SET_METRIC_TYPE', payload: p.metric.type });
+    dispatch({ type: 'SET_METRIC_SOURCE', payload: p.metric.source });
+  }
 }

@@ -43,9 +43,21 @@ export type ReportSeries = {
   points: SeriesPoint[];
 };
 
-export type MetricOp = 'sum' | 'avg' | 'latest' | 'first';
+export type MetricOp =
+  | 'sum'
+  | 'avg'
+  | 'median'
+  | 'mode'
+  | 'count'
+  | 'distinct_count';
 
-export type MetricScope = 'per_bucket' | 'entire_period';
+export type MetricType =
+  | 'sum_over_period'      // totals within each bucket or the entire range
+  | 'average_over_period'  // mean within each bucket or over entire range
+  | 'latest'               // snapshot at end of bucket/range
+  | 'first';               // snapshot at start of bucket/range
+
+export type ValueKind = 'number' | 'currency' | 'string';
 
 export type MetricDef = {
   name: string;
@@ -54,11 +66,12 @@ export type MetricDef = {
     field: string;
   };
   op: MetricOp;
-  scope: MetricScope;
+  type: MetricType; // replaces "scope"
 };
 
 export type MetricResult = {
   value: number | null;
   series: SeriesPoint[] | null;
   note?: string;
+  kind?: ValueKind;
 };

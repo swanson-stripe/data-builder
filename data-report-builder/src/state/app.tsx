@@ -1,18 +1,20 @@
 'use client';
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { Granularity } from '@/lib/time';
-import { ReportKey, MetricDef, MetricOp, MetricScope } from '@/types';
+import { ReportKey, MetricDef, MetricOp, MetricType } from '@/types';
 
 // Chart types
 export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year' | 'benchmark';
 export type ChartType = 'line' | 'area' | 'bar';
-export type YScale = 'linear' | 'log';
+export type YSourceMode = 'metric' | 'field';
 
 export type ChartSettings = {
   type: ChartType;
-  yScale: YScale;
   comparison: Comparison;
   benchmark?: number;
+  xSource?: { object: string; field: string }; // optional override (timestamp-like)
+  ySourceMode: YSourceMode;
+  yField?: { object: string; field: string }; // only used when ySourceMode='field'
 };
 
 // State type
@@ -87,9 +89,19 @@ type SetChartTypeAction = {
   payload: ChartType;
 };
 
-type SetYScaleAction = {
-  type: 'SET_Y_SCALE';
-  payload: YScale;
+type SetXSourceAction = {
+  type: 'SET_X_SOURCE';
+  payload: { object: string; field: string } | undefined;
+};
+
+type SetYSourceModeAction = {
+  type: 'SET_Y_SOURCE_MODE';
+  payload: YSourceMode;
+};
+
+type SetYFieldAction = {
+  type: 'SET_Y_FIELD';
+  payload: { object: string; field: string } | undefined;
 };
 
 type SetComparisonAction = {
@@ -112,9 +124,9 @@ type SetMetricOpAction = {
   payload: MetricOp;
 };
 
-type SetMetricScopeAction = {
-  type: 'SET_METRIC_SCOPE';
-  payload: MetricScope;
+type SetMetricTypeAction = {
+  type: 'SET_METRIC_TYPE';
+  payload: MetricType;
 };
 
 type SetMetricNameAction = {
@@ -127,7 +139,7 @@ type ReorderFieldsAction = {
   payload: string[]; // New fieldOrder array
 };
 
-type AppAction =
+export type AppAction =
   | SetTabAction
   | ToggleObjectAction
   | ToggleFieldAction
@@ -138,12 +150,14 @@ type AppAction =
   | SetSelectedBucketAction
   | ClearSelectedBucketAction
   | SetChartTypeAction
-  | SetYScaleAction
+  | SetXSourceAction
+  | SetYSourceModeAction
+  | SetYFieldAction
   | SetComparisonAction
   | SetBenchmarkAction
   | SetMetricSourceAction
   | SetMetricOpAction
-  | SetMetricScopeAction
+  | SetMetricTypeAction
   | SetMetricNameAction
   | ReorderFieldsAction;
 
@@ -159,13 +173,13 @@ const initialState: AppState = {
   granularity: 'month',
   chart: {
     type: 'line',
-    yScale: 'linear',
     comparison: 'none',
+    ySourceMode: 'metric',
   },
   metric: {
     name: 'Metric',
     op: 'sum',
-    scope: 'per_bucket',
+    type: 'sum_over_period',
   },
 };
 
@@ -308,12 +322,32 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
       };
 
-    case 'SET_Y_SCALE':
+    case 'SET_X_SOURCE':
       return {
         ...state,
         chart: {
           ...state.chart,
-          yScale: action.payload,
+          xSource: action.payload,
+        },
+      };
+
+    case 'SET_Y_SOURCE_MODE':
+      return {
+        ...state,
+        chart: {
+          ...state.chart,
+          ySourceMode: action.payload,
+          // Clear yField when switching to metric mode
+          yField: action.payload === 'metric' ? undefined : state.chart.yField,
+        },
+      };
+
+    case 'SET_Y_FIELD':
+      return {
+        ...state,
+        chart: {
+          ...state.chart,
+          yField: action.payload,
         },
       };
 
@@ -353,12 +387,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
       };
 
-    case 'SET_METRIC_SCOPE':
+    case 'SET_METRIC_TYPE':
       return {
         ...state,
         metric: {
           ...state.metric,
-          scope: action.payload,
+          type: action.payload,
         },
       };
 
@@ -466,9 +500,19 @@ export const actions = {
     payload: chartType,
   }),
 
-  setYScale: (yScale: YScale): SetYScaleAction => ({
-    type: 'SET_Y_SCALE',
-    payload: yScale,
+  setXSource: (source: { object: string; field: string } | undefined): SetXSourceAction => ({
+    type: 'SET_X_SOURCE',
+    payload: source,
+  }),
+
+  setYSourceMode: (mode: YSourceMode): SetYSourceModeAction => ({
+    type: 'SET_Y_SOURCE_MODE',
+    payload: mode,
+  }),
+
+  setYField: (field: { object: string; field: string } | undefined): SetYFieldAction => ({
+    type: 'SET_Y_FIELD',
+    payload: field,
   }),
 
   setComparison: (comparison: Comparison): SetComparisonAction => ({
@@ -493,9 +537,9 @@ export const actions = {
     payload: op,
   }),
 
-  setMetricScope: (scope: MetricScope): SetMetricScopeAction => ({
-    type: 'SET_METRIC_SCOPE',
-    payload: scope,
+  setMetricType: (type: MetricType): SetMetricTypeAction => ({
+    type: 'SET_METRIC_TYPE',
+    payload: type,
   }),
 
   setMetricName: (name: string): SetMetricNameAction => ({

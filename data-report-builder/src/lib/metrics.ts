@@ -1,5 +1,5 @@
-import { MetricDef, MetricResult, SeriesPoint } from '@/types';
-import { Granularity } from '@/lib/time';
+import { MetricDef, MetricResult, SeriesPoint, SchemaCatalog, ValueKind, MetricOp } from '@/types';
+import { Granularity, rangeByGranularity, bucketLabel } from '@/lib/time';
 
 /**
  * Parameters for computing a metric
@@ -11,12 +11,126 @@ export type ComputeMetricParams = {
   granularity: Granularity;
   generateSeries: () => { points: SeriesPoint[] };
   rows?: any[];
+  schema?: SchemaCatalog;
 };
 
 /**
- * Apply a metric operation to an array of values
+ * Timestamp field lookup map for each object type
  */
-function applyOp(values: number[], op: MetricDef['op']): number | null {
+const TIMESTAMP_FIELDS: Record<string, string[]> = {
+  subscription: ['current_period_start', 'created'],
+  customer: ['created'],
+  invoice: ['created'],
+  payment: ['created'],
+  charge: ['created'],
+  refund: ['created'],
+  price: ['created'],
+  product: ['created'],
+  subscription_item: ['created'],
+  payment_method: ['created'],
+};
+
+/**
+ * Infer value kind (currency, number, or string) from schema field
+ */
+export function inferValueKind(object: string, field: string, schema?: SchemaCatalog): ValueKind {
+  if (!schema) return 'number';
+
+  // Currency-like field names
+  const currencyFields = ['amount', 'price', 'unit_amount', 'balance', 'total', 'amount_paid', 'amount_due'];
+  if (currencyFields.some(cf => field.toLowerCase().includes(cf))) {
+    return 'currency';
+  }
+
+  // Find the field in schema
+  const schemaObj = schema.objects.find(o => o.name === object);
+  if (!schemaObj) return 'number';
+
+  const schemaField = schemaObj.fields.find(f => f.name === field);
+  if (!schemaField) return 'number';
+
+  // Type-based inference
+  if (schemaField.type === 'number') return 'number';
+  if (schemaField.type === 'string') return 'string';
+
+  return 'number';
+}
+
+/**
+ * Get best timestamp field for an object
+ */
+function getTimestampField(object: string, row: any): string | null {
+  const candidates = TIMESTAMP_FIELDS[object] || ['created'];
+  for (const field of candidates) {
+    if (row[field]) return field;
+  }
+  return null;
+}
+
+/**
+ * Bucket rows by granularity
+ */
+export function bucketRows(
+  rows: any[],
+  object: string,
+  start: string,
+  end: string,
+  granularity: Granularity
+): Map<string, any[]> {
+  const buckets = new Map<string, any[]>();
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+
+  // Initialize all buckets
+  const bucketDates = rangeByGranularity(startDate, endDate, granularity);
+  for (const date of bucketDates) {
+    const label = bucketLabel(date, granularity);
+    buckets.set(label, []);
+  }
+
+  // Place rows into buckets
+  for (const row of rows) {
+    const tsField = getTimestampField(object, row);
+    if (!tsField || !row[tsField]) continue;
+
+    const rowDate = new Date(row[tsField]);
+    if (rowDate < startDate || rowDate > endDate) continue;
+
+    const label = bucketLabel(rowDate, granularity);
+    const bucket = buckets.get(label);
+    if (bucket) {
+      bucket.push(row);
+    }
+  }
+
+  return buckets;
+}
+
+/**
+ * Apply a metric operation to bucket data
+ */
+function applyOperation(
+  bucketRows: any[],
+  sourceField: string,
+  op: MetricOp
+): number | null {
+  if (op === 'count') {
+    return bucketRows.length;
+  }
+
+  if (op === 'distinct_count') {
+    const values = bucketRows.map(row => row[sourceField]).filter(v => v != null);
+    return new Set(values).size;
+  }
+
+  // Extract numeric values
+  const values = bucketRows
+    .map(row => {
+      const val = row[sourceField];
+      return typeof val === 'number' ? val : parseFloat(val);
+    })
+    .filter(v => !isNaN(v));
+
   if (values.length === 0) return null;
 
   switch (op) {
@@ -26,11 +140,27 @@ function applyOp(values: number[], op: MetricDef['op']): number | null {
     case 'avg':
       return values.reduce((acc, val) => acc + val, 0) / values.length;
 
-    case 'latest':
-      return values[values.length - 1];
+    case 'median': {
+      const sorted = [...values].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 === 0
+        ? (sorted[mid - 1] + sorted[mid]) / 2
+        : sorted[mid];
+    }
 
-    case 'first':
-      return values[0];
+    case 'mode': {
+      const freq = new Map<number, number>();
+      values.forEach(v => freq.set(v, (freq.get(v) || 0) + 1));
+      let maxFreq = 0;
+      let mode: number | null = null;
+      freq.forEach((count, value) => {
+        if (count > maxFreq) {
+          maxFreq = count;
+          mode = value;
+        }
+      });
+      return mode;
+    }
 
     default:
       return null;
@@ -39,9 +169,6 @@ function applyOp(values: number[], op: MetricDef['op']): number | null {
 
 /**
  * Compute a metric based on the metric definition and data
- *
- * For now, uses the mock time-series data for the report.
- * Later this will be wired to actual field selection.
  */
 export function computeMetric({
   def,
@@ -50,49 +177,100 @@ export function computeMetric({
   granularity,
   generateSeries,
   rows,
+  schema,
 }: ComputeMetricParams): MetricResult {
   // Check if source is defined
   if (!def.source) {
     return {
       value: null,
       series: null,
-      note: 'Metric source removed. Choose a new source in the Metric tab.',
+      note: 'Select a metric source field',
     };
   }
 
-  // Generate the series from the report (mock data for now)
-  const reportSeries = generateSeries();
-  const bucketValues = reportSeries.points.map(p => p.value);
+  const { object, field } = def.source;
+  const kind = inferValueKind(object, field, schema);
 
-  // Handle different scopes
-  if (def.scope === 'per_bucket') {
-    // Use bucket values as-is for the series
-    const series = reportSeries.points;
+  // If no rows provided, fall back to mock data
+  if (!rows || rows.length === 0) {
+    const reportSeries = generateSeries();
+    const bucketValues = reportSeries.points.map(p => p.value);
 
-    // Headline value is the latest bucket value
-    const value = bucketValues.length > 0 ? bucketValues[bucketValues.length - 1] : null;
+    // Apply metric type
+    let value: number | null = null;
+    let series = reportSeries.points;
 
-    return {
-      value,
-      series,
-    };
-  } else if (def.scope === 'entire_period') {
-    // Compute a single aggregate value over all buckets
-    const value = applyOp(bucketValues, def.op);
+    switch (def.type) {
+      case 'sum_over_period':
+        value = bucketValues.reduce((acc, v) => acc + v, 0);
+        break;
+      case 'average_over_period':
+        value = bucketValues.length > 0
+          ? bucketValues.reduce((acc, v) => acc + v, 0) / bucketValues.length
+          : null;
+        break;
+      case 'latest':
+        value = bucketValues.length > 0 ? bucketValues[bucketValues.length - 1] : null;
+        break;
+      case 'first':
+        value = bucketValues.length > 0 ? bucketValues[0] : null;
+        break;
+    }
 
-    // For entire_period, we still provide the series for visualization
-    // but the headline value is the period aggregate
-    return {
-      value,
-      series: reportSeries.points,
-      note: `${def.op.toUpperCase()} across entire period`,
-    };
+    return { value, series, kind };
   }
 
-  // Fallback
+  // Bucket the rows
+  const buckets = bucketRows(rows, object, start, end, granularity);
+  const bucketEntries = Array.from(buckets.entries()).sort((a, b) =>
+    a[0].localeCompare(b[0])
+  );
+
+  // Compute per-bucket values
+  const perBucketValues: Array<{ date: string; value: number }> = [];
+
+  for (const [bucketDate, bucketRows] of bucketEntries) {
+    const bucketValue = applyOperation(bucketRows, field, def.op);
+    if (bucketValue !== null) {
+      perBucketValues.push({ date: bucketDate, value: bucketValue });
+    } else {
+      perBucketValues.push({ date: bucketDate, value: 0 });
+    }
+  }
+
+  // Apply metric type for headline and series
+  let headlineValue: number | null = null;
+  const series: SeriesPoint[] = perBucketValues;
+
+  const nonNullValues = perBucketValues.map(p => p.value).filter(v => v !== 0);
+
+  switch (def.type) {
+    case 'sum_over_period':
+      headlineValue = perBucketValues.reduce((acc, p) => acc + p.value, 0);
+      break;
+
+    case 'average_over_period':
+      headlineValue = nonNullValues.length > 0
+        ? nonNullValues.reduce((acc, v) => acc + v, 0) / nonNullValues.length
+        : null;
+      break;
+
+    case 'latest':
+      headlineValue = perBucketValues.length > 0
+        ? perBucketValues[perBucketValues.length - 1].value
+        : null;
+      break;
+
+    case 'first':
+      headlineValue = perBucketValues.length > 0
+        ? perBucketValues[0].value
+        : null;
+      break;
+  }
+
   return {
-    value: null,
-    series: null,
-    note: 'Invalid metric configuration',
+    value: headlineValue,
+    series,
+    kind,
   };
 }

@@ -9,6 +9,7 @@ const schema: SchemaCatalog = {
         { name: 'id', label: 'ID', type: 'id' },
         { name: 'email', label: 'Email', type: 'string' },
         { name: 'name', label: 'Name', type: 'string' },
+        { name: 'country', label: 'Country', type: 'string' },
         { name: 'created', label: 'Created', type: 'date' },
         { name: 'balance', label: 'Balance', type: 'number' },
         { name: 'delinquent', label: 'Delinquent', type: 'boolean' },
@@ -20,6 +21,7 @@ const schema: SchemaCatalog = {
       fields: [
         { name: 'id', label: 'ID', type: 'id' },
         { name: 'customer_id', label: 'Customer ID', type: 'id' },
+        { name: 'price_id', label: 'Price ID', type: 'id' },
         { name: 'status', label: 'Status', type: 'string' },
         { name: 'created', label: 'Created', type: 'date' },
         { name: 'current_period_start', label: 'Current Period Start', type: 'date' },
