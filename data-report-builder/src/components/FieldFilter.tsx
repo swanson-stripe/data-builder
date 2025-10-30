@@ -34,8 +34,8 @@ export function FieldFilter({
       : ''
   );
   const [selectedEnumValues, setSelectedEnumValues] = useState<string[]>(
-    currentFilter?.operator === 'in' && Array.isArray(currentFilter.value)
-      ? currentFilter.value
+    currentFilter?.operator === 'in' && Array.isArray(currentFilter.value) && currentFilter.value.every(v => typeof v === 'string')
+      ? (currentFilter.value as string[])
       : []
   );
 

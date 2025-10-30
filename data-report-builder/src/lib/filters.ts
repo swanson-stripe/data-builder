@@ -40,7 +40,7 @@ export function matchesCondition(
       return typeof rowValue === 'number' && rowValue < (value as number);
 
     case 'between':
-      if (typeof rowValue === 'number' && Array.isArray(value) && value.length === 2) {
+      if (typeof rowValue === 'number' && Array.isArray(value) && value.length === 2 && typeof value[0] === 'number' && typeof value[1] === 'number') {
         return rowValue >= value[0] && rowValue <= value[1];
       }
       return false;
@@ -61,7 +61,7 @@ export function matchesCondition(
 
     case 'in':
       if (Array.isArray(value)) {
-        return value.includes(rowValue);
+        return (value as Array<any>).includes(rowValue);
       }
       return false;
 
