@@ -1,0 +1,27 @@
+{
+  "version": 1761845029572,
+  "counts": {
+    "customers": 1000,
+    "payment_methods": 1478,
+    "products": 15,
+    "prices": 33,
+    "payments": 10000,
+    "refunds": 257,
+    "subscriptions": 789,
+    "invoices": 2639,
+    "charges": 1000,
+    "payouts": 58
+  },
+  "entities": [
+    "customers",
+    "payment_methods",
+    "products",
+    "prices",
+    "payments",
+    "refunds",
+    "subscriptions",
+    "invoices",
+    "charges",
+    "payouts"
+  ]
+}

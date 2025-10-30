@@ -7,12 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "generate-warehouse": "node --loader ts-node/esm scripts/generateWarehouse.ts"
+    "generate-warehouse": "node scripts/generateWarehouse.mjs",
+    "split-warehouse": "node scripts/splitWarehouse.mjs"
   },
   "dependencies": {
+    "@types/react-window": "^2.0.0",
     "next": "16.0.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "react-window": "^2.2.2",
     "recharts": "^3.3.0"
   },
   "devDependencies": {
