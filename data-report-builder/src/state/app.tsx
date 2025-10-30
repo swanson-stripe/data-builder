@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { Granularity } from '@/lib/time';
-import { ReportKey, MetricDef, MetricOp, MetricType } from '@/types';
+import { ReportKey, MetricDef, MetricOp, MetricType, FilterGroup, FilterCondition } from '@/types';
 
 // Chart types
 export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year' | 'benchmark';
@@ -42,6 +42,7 @@ export type AppState = {
   selectedGrid?: GridSelection;
   chart: ChartSettings;
   metric: MetricDef;
+  filters: FilterGroup;
 };
 
 // Action types
@@ -156,6 +157,30 @@ type ClearGridSelectionAction = {
   type: 'CLEAR_GRID_SELECTION';
 };
 
+type AddFilterAction = {
+  type: 'ADD_FILTER';
+  payload: FilterCondition;
+};
+
+type UpdateFilterAction = {
+  type: 'UPDATE_FILTER';
+  payload: { index: number; condition: FilterCondition };
+};
+
+type RemoveFilterAction = {
+  type: 'REMOVE_FILTER';
+  payload: number; // index
+};
+
+type SetFilterLogicAction = {
+  type: 'SET_FILTER_LOGIC';
+  payload: 'AND' | 'OR';
+};
+
+type ClearFiltersAction = {
+  type: 'CLEAR_FILTERS';
+};
+
 type ResetAllAction = {
   type: 'RESET_ALL';
 };
@@ -183,6 +208,11 @@ export type AppAction =
   | ReorderFieldsAction
   | SetGridSelectionAction
   | ClearGridSelectionAction
+  | AddFilterAction
+  | UpdateFilterAction
+  | RemoveFilterAction
+  | SetFilterLogicAction
+  | ClearFiltersAction
   | ResetAllAction;
 
 // Initial state
@@ -204,6 +234,10 @@ const initialState: AppState = {
     name: 'Metric',
     op: 'sum',
     type: 'sum_over_period',
+  },
+  filters: {
+    conditions: [],
+    logic: 'AND',
   },
 };
 
@@ -323,6 +357,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
         selectedObjects: [],
         selectedFields: [],
         fieldOrder: [],
+        filters: {
+          conditions: [],
+          logic: 'AND',
+        },
       };
 
     case 'SET_SELECTED_BUCKET':
@@ -445,6 +483,53 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         selectedGrid: undefined,
+      };
+
+    case 'ADD_FILTER':
+      return {
+        ...state,
+        filters: {
+          ...state.filters,
+          conditions: [...state.filters.conditions, action.payload],
+        },
+      };
+
+    case 'UPDATE_FILTER':
+      return {
+        ...state,
+        filters: {
+          ...state.filters,
+          conditions: state.filters.conditions.map((c, i) =>
+            i === action.payload.index ? action.payload.condition : c
+          ),
+        },
+      };
+
+    case 'REMOVE_FILTER':
+      return {
+        ...state,
+        filters: {
+          ...state.filters,
+          conditions: state.filters.conditions.filter((_, i) => i !== action.payload),
+        },
+      };
+
+    case 'SET_FILTER_LOGIC':
+      return {
+        ...state,
+        filters: {
+          ...state.filters,
+          logic: action.payload,
+        },
+      };
+
+    case 'CLEAR_FILTERS':
+      return {
+        ...state,
+        filters: {
+          conditions: [],
+          logic: 'AND',
+        },
       };
 
     case 'RESET_ALL':
@@ -602,6 +687,30 @@ export const actions = {
 
   clearGridSelection: (): ClearGridSelectionAction => ({
     type: 'CLEAR_GRID_SELECTION',
+  }),
+
+  addFilter: (condition: FilterCondition): AddFilterAction => ({
+    type: 'ADD_FILTER',
+    payload: condition,
+  }),
+
+  updateFilter: (index: number, condition: FilterCondition): UpdateFilterAction => ({
+    type: 'UPDATE_FILTER',
+    payload: { index, condition },
+  }),
+
+  removeFilter: (index: number): RemoveFilterAction => ({
+    type: 'REMOVE_FILTER',
+    payload: index,
+  }),
+
+  setFilterLogic: (logic: 'AND' | 'OR'): SetFilterLogicAction => ({
+    type: 'SET_FILTER_LOGIC',
+    payload: logic,
+  }),
+
+  clearFilters: (): ClearFiltersAction => ({
+    type: 'CLEAR_FILTERS',
   }),
 
   resetAll: (): ResetAllAction => ({

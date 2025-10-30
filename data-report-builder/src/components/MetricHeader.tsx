@@ -6,6 +6,8 @@ import { formatMetricValue, deltaCurrency, deltaNumber } from '@/lib/format';
 import { ReportKey } from '@/types';
 import { warehouse } from '@/data/warehouse';
 import schema from '@/data/schema';
+import { buildDataListView } from '@/lib/views';
+import { applyFilters } from '@/lib/filters';
 
 // Map report keys to their full labels
 const REPORT_LABELS: Record<ReportKey, string> = {
@@ -19,16 +21,42 @@ const REPORT_LABELS: Record<ReportKey, string> = {
 export function MetricHeader() {
   const { state } = useApp();
 
-  // Build PK include set from grid selection
+  // Build PK include set from grid selection and field filters
   const includeSet = useMemo(() => {
-    if (!state.selectedGrid || state.selectedGrid.rowIds.length === 0) {
-      return undefined;
+    // If we have field filters, compute filtered PKs
+    if (state.filters.conditions.length > 0 && state.selectedObjects.length > 0 && state.selectedFields.length > 0) {
+      const rawRows = buildDataListView({
+        store: warehouse,
+        selectedObjects: state.selectedObjects,
+        selectedFields: state.selectedFields,
+      });
+      
+      const filteredRows = applyFilters(rawRows, state.filters);
+      
+      // Extract PKs from filtered rows
+      const filterSet = new Set(filteredRows.map(row => `${row.pk.object}:${row.pk.id}`));
+      
+      // If we also have a grid selection, intersect the two sets
+      if (state.selectedGrid && state.selectedGrid.rowIds.length > 0) {
+        const gridSet = new Set(state.selectedGrid.rowIds.map(pk => `${pk.object}:${pk.id}`));
+        return new Set([...filterSet].filter(pk => gridSet.has(pk)));
+      }
+      
+      return filterSet;
     }
-    // Build a Set of encoded PKs like "${object}:${id}"
-    return new Set(
-      state.selectedGrid.rowIds.map(pk => `${pk.object}:${pk.id}`)
-    );
-  }, [state.selectedGrid?.rowIds]);
+    
+    // If no field filters, just use grid selection if present
+    if (state.selectedGrid && state.selectedGrid.rowIds.length > 0) {
+      return new Set(state.selectedGrid.rowIds.map(pk => `${pk.object}:${pk.id}`));
+    }
+    
+    return undefined;
+  }, [
+    state.selectedGrid?.rowIds,
+    state.filters,
+    state.selectedObjects,
+    state.selectedFields,
+  ]);
 
   // Compute the metric result
   const metricResult = useMemo(() => {
@@ -40,6 +68,7 @@ export function MetricHeader() {
       store: warehouse,
       include: includeSet,
       schema,
+      objects: state.selectedObjects,
     });
   }, [
     state.metric.name,
@@ -51,6 +80,7 @@ export function MetricHeader() {
     state.end,
     state.granularity,
     includeSet,
+    state.selectedObjects,
   ]);
 
   // Calculate delta (current vs previous bucket)

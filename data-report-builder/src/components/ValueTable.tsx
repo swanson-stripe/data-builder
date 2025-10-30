@@ -11,27 +11,61 @@ import { currency, number, percentageChange, shortDate } from '@/lib/format';
 import { getBucketRange } from '@/lib/time';
 import { warehouse } from '@/data/warehouse';
 import schema from '@/data/schema';
+import { buildDataListView } from '@/lib/views';
+import { applyFilters } from '@/lib/filters';
 
 export function ValueTable() {
   const { state, dispatch } = useApp();
 
   // Handle bucket selection
   const handleBucketClick = (date: string) => {
-    const bucketDate = new Date(date);
+    // Parse the bucket label as a local date to avoid timezone shifts
+    // For "2025-07", create July 1st in local time, not UTC
+    const parts = date.split('-');
+    const bucketDate = parts.length === 2
+      ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1) // Year-month: create first of month
+      : new Date(date); // Full date string
+    
     const { start, end } = getBucketRange(bucketDate, state.granularity);
     dispatch(actions.setSelectedBucket(start, end, date));
   };
 
-  // Build PK include set from grid selection
+  // Build PK include set from grid selection and field filters
   const includeSet = useMemo(() => {
-    if (!state.selectedGrid || state.selectedGrid.rowIds.length === 0) {
-      return undefined;
+    // If we have field filters, compute filtered PKs
+    if (state.filters.conditions.length > 0 && state.selectedObjects.length > 0 && state.selectedFields.length > 0) {
+      const rawRows = buildDataListView({
+        store: warehouse,
+        selectedObjects: state.selectedObjects,
+        selectedFields: state.selectedFields,
+      });
+      
+      const filteredRows = applyFilters(rawRows, state.filters);
+      
+      // Extract PKs from filtered rows
+      const filterSet = new Set(filteredRows.map(row => `${row.pk.object}:${row.pk.id}`));
+      
+      // If we also have a grid selection, intersect the two sets
+      if (state.selectedGrid && state.selectedGrid.rowIds.length > 0) {
+        const gridSet = new Set(state.selectedGrid.rowIds.map(pk => `${pk.object}:${pk.id}`));
+        return new Set([...filterSet].filter(pk => gridSet.has(pk)));
+      }
+      
+      return filterSet;
     }
-    // Build a Set of encoded PKs like "${object}:${id}"
-    return new Set(
-      state.selectedGrid.rowIds.map(pk => `${pk.object}:${pk.id}`)
-    );
-  }, [state.selectedGrid?.rowIds]);
+    
+    // If no field filters, just use grid selection if present
+    if (state.selectedGrid && state.selectedGrid.rowIds.length > 0) {
+      return new Set(state.selectedGrid.rowIds.map(pk => `${pk.object}:${pk.id}`));
+    }
+    
+    return undefined;
+  }, [
+    state.selectedGrid?.rowIds,
+    state.filters,
+    state.selectedObjects,
+    state.selectedFields,
+  ]);
 
   // Compute metric result (includes series)
   const metricResult = useMemo(() => {
@@ -43,6 +77,7 @@ export function ValueTable() {
       store: warehouse,
       include: includeSet,
       schema,
+      objects: state.selectedObjects,
     });
   }, [
     state.metric.name,
@@ -54,6 +89,7 @@ export function ValueTable() {
     state.end,
     state.granularity,
     includeSet,
+    state.selectedObjects,
   ]);
 
   // Generate current period data (from metric result)

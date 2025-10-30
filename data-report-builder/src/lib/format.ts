@@ -73,7 +73,13 @@ export function percentageChange(current: number, previous: number): string {
  * Format a short date label
  */
 export function shortDate(date: string): string {
-  const d = new Date(date);
+  // Parse as local date to avoid timezone shifts
+  // For "2025-07", create July 1st in local time, not UTC
+  const parts = date.split('-');
+  const d = parts.length === 2
+    ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)
+    : new Date(date);
+  
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',

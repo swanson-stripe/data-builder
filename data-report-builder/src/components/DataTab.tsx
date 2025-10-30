@@ -3,10 +3,14 @@ import { useState } from 'react';
 import { useApp, actions } from '@/state/app';
 import schema, { getRelated } from '@/data/schema';
 import { SchemaObject } from '@/types';
+import { FieldFilter } from './FieldFilter';
+import { FilterLogicToggle } from './FilterLogicToggle';
+import { FilterCondition } from '@/types';
 
 function ObjectCard({ object }: { object: SchemaObject }) {
   const { state, dispatch } = useApp();
   const [expanded, setExpanded] = useState(false);
+  const [expandedFilters, setExpandedFilters] = useState<Record<string, boolean>>({});
 
   const isObjectSelected = state.selectedObjects.includes(object.name);
   const relationships = getRelated(object.name);
@@ -102,29 +106,104 @@ function ObjectCard({ object }: { object: SchemaObject }) {
                 );
                 const fieldId = `field-${object.name}-${field.name}`;
                 const qualifiedName = `${object.name}.${field.name}`;
+                const isFilterExpanded = expandedFilters[field.name] || false;
+                
+                // Check if this field has an active filter
+                const activeFilter = state.filters.conditions.find(
+                  c => c.field.object === object.name && c.field.field === field.name
+                );
+                
+                const handleFilterChange = (condition: FilterCondition | null) => {
+                  if (condition) {
+                    // Check if filter already exists
+                    const existingIndex = state.filters.conditions.findIndex(
+                      c => c.field.object === object.name && c.field.field === field.name
+                    );
+                    
+                    if (existingIndex >= 0) {
+                      // Update existing filter
+                      dispatch(actions.updateFilter(existingIndex, condition));
+                    } else {
+                      // Add new filter
+                      dispatch(actions.addFilter(condition));
+                    }
+                  } else {
+                    // Remove filter
+                    const existingIndex = state.filters.conditions.findIndex(
+                      c => c.field.object === object.name && c.field.field === field.name
+                    );
+                    if (existingIndex >= 0) {
+                      dispatch(actions.removeFilter(existingIndex));
+                    }
+                  }
+                };
+                
                 return (
-                  <label
-                    key={field.name}
-                    htmlFor={fieldId}
-                    className="flex items-center gap-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      id={fieldId}
-                      checked={isFieldSelected}
-                      onChange={() =>
-                        dispatch(actions.toggleField(object.name, field.name))
-                      }
-                      className="text-xs"
-                      aria-label={`${qualifiedName} (${field.type})`}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="font-mono text-[11px] text-gray-600 dark:text-gray-300">{qualifiedName}</span>
-                      <span className="text-gray-400 dark:text-gray-500 ml-2">
-                        · {field.type}
-                      </span>
+                  <div key={field.name}>
+                    <div className="flex items-center gap-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                      {/* Expand/collapse filter button */}
+                      <button
+                        onClick={() => setExpandedFilters(prev => ({
+                          ...prev,
+                          [field.name]: !prev[field.name],
+                        }))}
+                        className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-500 rounded transition-colors"
+                        aria-label={`${isFilterExpanded ? 'Collapse' : 'Expand'} filter for ${qualifiedName}`}
+                      >
+                        <svg
+                          className={`w-3 h-3 text-gray-500 dark:text-gray-400 transition-transform ${isFilterExpanded ? 'rotate-90' : ''}`}
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path d="M9 5l7 7-7 7"></path>
+                        </svg>
+                      </button>
+                      
+                      {/* Field checkbox */}
+                      <label
+                        htmlFor={fieldId}
+                        className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          id={fieldId}
+                          checked={isFieldSelected}
+                          onChange={() =>
+                            dispatch(actions.toggleField(object.name, field.name))
+                          }
+                          className="text-xs"
+                          aria-label={`${qualifiedName} (${field.type})`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="font-mono text-[11px] text-gray-600 dark:text-gray-300">{qualifiedName}</span>
+                          <span className="text-gray-400 dark:text-gray-500 ml-2">
+                            · {field.type}
+                          </span>
+                        </div>
+                      </label>
+                      
+                      {/* Filter indicator badge */}
+                      {activeFilter && (
+                        <span className="px-1.5 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded font-medium">
+                          ⚡
+                        </span>
+                      )}
                     </div>
-                  </label>
+                    
+                    {/* Filter controls when expanded */}
+                    {isFilterExpanded && (
+                      <FieldFilter
+                        field={field}
+                        objectName={object.name}
+                        currentFilter={activeFilter}
+                        onFilterChange={handleFilterChange}
+                      />
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -137,7 +216,7 @@ function ObjectCard({ object }: { object: SchemaObject }) {
 
 export function DataTab() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
 
   // Filter objects based on search
   const filteredObjects = schema.objects.filter((obj) => {
@@ -169,7 +248,7 @@ export function DataTab() {
   return (
     <div className="flex flex-col h-full">
       {/* Search input */}
-      <div className="mb-3">
+      <div className="mb-3 flex gap-2">
         <label htmlFor="object-search" className="sr-only">
           Search objects and fields
         </label>
@@ -179,10 +258,29 @@ export function DataTab() {
           placeholder="Search objects and fields..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           aria-describedby="search-results-count"
         />
+        {state.filters.conditions.length > 0 && (
+          <button
+            onClick={() => dispatch(actions.clearFilters())}
+            className="px-3 py-2 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded transition-colors"
+            title="Clear all filters"
+          >
+            Clear Filters
+          </button>
+        )}
       </div>
+
+      {/* Filter logic toggle */}
+      {state.filters.conditions.length > 1 && (
+        <FilterLogicToggle
+          logic={state.filters.logic}
+          onToggle={() =>
+            dispatch(actions.setFilterLogic(state.filters.logic === 'AND' ? 'OR' : 'AND'))
+          }
+        />
+      )}
 
       {/* Results count */}
       {searchQuery && (

@@ -12,6 +12,7 @@ import { DataList } from '@/components/DataList';
 import { useReportHeuristics } from '@/hooks/useReportHeuristics';
 import { PRESET_OPTIONS, applyPreset } from '@/lib/presets';
 import { ReportKey } from '@/types';
+import { WarehouseProvider } from '@/lib/useWarehouse';
 
 function PageContent() {
   const { state, dispatch } = useApp();
@@ -131,8 +132,18 @@ export default function Page() {
   return (
     <ThemeProvider>
       <AppProvider>
-        <PageContent />
+        <WarehouseConnector />
       </AppProvider>
     </ThemeProvider>
+  );
+}
+
+// Connector component to bridge AppProvider and WarehouseProvider
+function WarehouseConnector() {
+  const { state } = useApp();
+  return (
+    <WarehouseProvider presetKey={state.report}>
+      <PageContent />
+    </WarehouseProvider>
   );
 }

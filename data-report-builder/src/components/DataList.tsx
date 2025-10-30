@@ -4,6 +4,7 @@ import { useApp, actions } from '@/state/app';
 import { warehouse } from '@/data/warehouse';
 import { getObject } from '@/data/schema';
 import { buildDataListView, filterRowsByDate, getRowKey, sortRowsByField, type RowView } from '@/lib/views';
+import { applyFilters } from '@/lib/filters';
 
 type SortDirection = 'asc' | 'desc' | null;
 
@@ -78,7 +79,7 @@ export function DataList() {
   }, [state.selectedObjects, state.selectedFields]);
 
   // Filter rows by selected bucket using filterRowsByDate
-  const filteredRows = useMemo(() => {
+  const dateFilteredRows = useMemo(() => {
     if (!state.selectedBucket) {
       return rawRows;
     }
@@ -86,14 +87,23 @@ export function DataList() {
     return filterRowsByDate(rawRows, state.selectedBucket.start, state.selectedBucket.end);
   }, [rawRows, state.selectedBucket]);
 
+  // Apply field filters
+  const fieldFilteredRows = useMemo(() => {
+    if (state.filters.conditions.length === 0) {
+      return dateFilteredRows;
+    }
+
+    return applyFilters(dateFilteredRows, state.filters);
+  }, [dateFilteredRows, state.filters]);
+
   // Sort rows based on current sort state using sortRowsByField
   const sortedRows = useMemo(() => {
     if (!sortState.column || !sortState.direction) {
-      return filteredRows;
+      return fieldFilteredRows;
     }
 
-    return sortRowsByField(filteredRows, sortState.column, sortState.direction);
-  }, [filteredRows, sortState]);
+    return sortRowsByField(fieldFilteredRows, sortState.column, sortState.direction);
+  }, [fieldFilteredRows, sortState]);
 
   // Check if cell is selected
   const isCellSelected = useCallback((rowIndex: number, colKey: string): boolean => {

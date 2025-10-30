@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { useApp, actions } from '@/state/app';
+import { useApp } from '@/state/app';
 import { ReportKey } from '@/types';
+import { applyPreset } from '@/lib/presets';
 
 /**
  * Heuristic mapping: object name → suggested report
@@ -49,7 +50,8 @@ export function useReportHeuristics() {
         console.log(
           `[Heuristic] Switching report from "${state.report}" to "${suggestedReport}" based on "${objectWithHeuristic}" selection`
         );
-        dispatch(actions.setReport(suggestedReport));
+        // Apply the full preset configuration, not just set the report key
+        applyPreset(suggestedReport, dispatch);
       }
 
       // Mark this object as having triggered a switch

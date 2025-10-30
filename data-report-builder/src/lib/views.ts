@@ -67,37 +67,70 @@ export function buildDataListView(opts: {
   const { store, selectedObjects, selectedFields } = opts;
   const rows: RowView[] = [];
 
-  for (const object of selectedObjects) {
-    // Get the table for this object type (handle both singular and plural)
-    // @ts-ignore - dynamic property access on Warehouse
-    let table = store[object];
+  // First object is the primary object (the base table)
+  if (selectedObjects.length === 0) return rows;
+  
+  const primaryObject = selectedObjects[0];
+  
+  // Get the primary table
+  // @ts-ignore - dynamic property access on Warehouse
+  let primaryTable = store[primaryObject];
+  if (!primaryTable) {
+    const pluralKey = primaryObject + 's' as keyof Warehouse;
+    primaryTable = store[pluralKey];
+  }
+  
+  if (!primaryTable || !Array.isArray(primaryTable)) {
+    return rows;
+  }
 
-    // If singular form doesn't work, try plural form
-    if (!table) {
-      const pluralKey = object + 's' as keyof Warehouse;
-      table = store[pluralKey];
+  // Build lookup maps for related objects
+  const relatedMaps = new Map<string, Map<string, any>>();
+  for (const relatedObject of selectedObjects.slice(1)) {
+    // @ts-ignore
+    let relatedTable = store[relatedObject];
+    if (!relatedTable) {
+      const pluralKey = relatedObject + 's' as keyof Warehouse;
+      relatedTable = store[pluralKey];
     }
-
-    if (!table || !Array.isArray(table)) {
-      continue;
+    
+    if (relatedTable && Array.isArray(relatedTable)) {
+      const lookupMap = new Map(relatedTable.map((r: any) => [r.id, r]));
+      relatedMaps.set(relatedObject, lookupMap);
     }
+  }
 
-    // Build a row for each record in the table
-    for (const record of table) {
-      const row: RowView = {
-        display: {},
-        pk: { object, id: record.id },
-        ts: pickTimestamp(object, record),
-      };
+  // Build a row for each primary record
+  for (const record of primaryTable) {
+    const row: RowView = {
+      display: {},
+      pk: { object: primaryObject, id: record.id },
+      ts: pickTimestamp(primaryObject, record),
+    };
 
-      // Add qualified fields to display
-      for (const f of selectedFields.filter(s => s.object === object)) {
-        const qualifiedKey = qualify(object, f.field);
+    // Add all selected fields to display
+    for (const f of selectedFields) {
+      const qualifiedKey = qualify(f.object, f.field);
+      
+      if (f.object === primaryObject) {
+        // Direct field from primary object
         row.display[qualifiedKey] = record[f.field];
+      } else {
+        // Join to related object
+        const foreignKey = `${f.object}_id`;
+        const relatedId = record[foreignKey];
+        const relatedMap = relatedMaps.get(f.object);
+        
+        if (relatedId && relatedMap) {
+          const relatedRecord = relatedMap.get(relatedId);
+          row.display[qualifiedKey] = relatedRecord ? relatedRecord[f.field] : null;
+        } else {
+          row.display[qualifiedKey] = null;
+        }
       }
-
-      rows.push(row);
     }
+
+    rows.push(row);
   }
 
   return rows;

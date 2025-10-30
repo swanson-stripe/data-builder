@@ -14,6 +14,7 @@ export type ComputeMetricParams = {
   store: Warehouse;
   include?: Set<string>; // Set of "${object}:${id}" for PK-based filtering
   schema?: SchemaCatalog;
+  objects?: string[]; // Selected objects - first one is primary
 };
 
 /**
@@ -43,13 +44,6 @@ export function inferValueKind(object: string, field: string, schema?: SchemaCat
 }
 
 /**
- * Get best timestamp field for an object using pickTimestamp
- */
-function getTimestampField(object: string, row: any): string | null {
-  return pickTimestamp(object, row);
-}
-
-/**
  * Bucket rows by granularity
  */
 export function bucketRows(
@@ -72,10 +66,11 @@ export function bucketRows(
 
   // Place rows into buckets
   for (const row of rows) {
-    const tsField = getTimestampField(object, row);
-    if (!tsField || !row[tsField]) continue;
+    // pickTimestamp returns the timestamp VALUE, not the field name
+    const timestamp = pickTimestamp(object, row);
+    if (!timestamp) continue;
 
-    const rowDate = new Date(row[tsField]);
+    const rowDate = new Date(timestamp);
     if (rowDate < startDate || rowDate > endDate) continue;
 
     const label = bucketLabel(rowDate, granularity);
@@ -94,21 +89,25 @@ export function bucketRows(
 function applyOperation(
   bucketRows: any[],
   sourceField: string,
+  sourceObject: string,
   op: MetricOp
 ): number | null {
   if (op === 'count') {
     return bucketRows.length;
   }
 
+  // Build qualified field name (e.g., "price.unit_amount")
+  const qualifiedField = `${sourceObject}.${sourceField}`;
+
   if (op === 'distinct_count') {
-    const values = bucketRows.map(row => row[sourceField]).filter(v => v != null);
+    const values = bucketRows.map(row => row[qualifiedField] ?? row[sourceField]).filter(v => v != null);
     return new Set(values).size;
   }
 
-  // Extract numeric values
+  // Extract numeric values - try qualified name first, then unqualified
   const values = bucketRows
     .map(row => {
-      const val = row[sourceField];
+      const val = row[qualifiedField] ?? row[sourceField];
       return typeof val === 'number' ? val : parseFloat(val);
     })
     .filter(v => !isNaN(v));
@@ -160,6 +159,7 @@ export function computeMetric({
   store,
   include,
   schema,
+  objects,
 }: ComputeMetricParams): MetricResult {
   // Check if source is defined
   if (!def.source) {
@@ -170,25 +170,35 @@ export function computeMetric({
     };
   }
 
-  const { object, field } = def.source;
-  const kind = inferValueKind(object, field, schema);
+  const { object: sourceObject, field } = def.source;
+  const kind = inferValueKind(sourceObject, field, schema);
 
-  // Get rows from warehouse for this object type
+  // Determine primary object:
+  // 1. If we have selected objects, use the first one (it's the primary table)
+  // 2. Otherwise, try to infer from include set
+  // 3. Fall back to source object
+  let primaryObject = sourceObject;
+  
+  if (objects && objects.length > 0) {
+    primaryObject = objects[0];
+  } else if (include && include.size > 0) {
+    const firstKey = Array.from(include)[0];
+    primaryObject = firstKey.split(':')[0];
+  }
+
+  // Get primary rows from warehouse
   // @ts-ignore - dynamic property access on Warehouse
-  let allRows = store[object];
-
-  // If singular form doesn't work, try plural form
+  let allRows = store[primaryObject];
   if (!allRows) {
-    const pluralKey = object + 's' as keyof Warehouse;
+    const pluralKey = primaryObject + 's' as keyof Warehouse;
     allRows = store[pluralKey];
   }
 
-  // If still no rows found, return empty result
   if (!allRows || !Array.isArray(allRows)) {
     return {
       value: null,
       series: null,
-      note: `No data found for ${object}`,
+      note: `No data found for ${primaryObject}`,
     };
   }
 
@@ -196,9 +206,38 @@ export function computeMetric({
   let rows = allRows;
   if (include && include.size > 0) {
     rows = allRows.filter(row => {
-      const rowKey = `${object}:${row.id}`;
+      const rowKey = `${primaryObject}:${row.id}`;
       return include.has(rowKey);
     });
+  }
+
+  // If source object is different from primary, perform join
+  if (sourceObject !== primaryObject) {
+    const foreignKey = `${sourceObject}_id`;
+    
+    // Get related objects
+    // @ts-ignore
+    let relatedRows = store[sourceObject];
+    if (!relatedRows) {
+      const pluralKey = sourceObject + 's' as keyof Warehouse;
+      relatedRows = store[pluralKey];
+    }
+    
+    if (relatedRows && Array.isArray(relatedRows)) {
+      // Build lookup map for join
+      const relatedMap = new Map(relatedRows.map((r: any) => [r.id, r]));
+      
+      // Join: add qualified field to each row
+      rows = rows.map(row => {
+        const relatedId = row[foreignKey];
+        const relatedRow = relatedId ? relatedMap.get(relatedId) : null;
+        const qualifiedField = `${sourceObject}.${field}`;
+        return {
+          ...row,
+          [qualifiedField]: relatedRow ? relatedRow[field] : null,
+        };
+      });
+    }
   }
 
   // If no rows after filtering, return zero/null
@@ -211,7 +250,7 @@ export function computeMetric({
   }
 
   // Bucket the rows by timestamp using pickTimestamp
-  const buckets = bucketRows(rows, object, start, end, granularity);
+  const buckets = bucketRows(rows, primaryObject, start, end, granularity);
   const bucketEntries = Array.from(buckets.entries()).sort((a, b) =>
     a[0].localeCompare(b[0])
   );
@@ -220,7 +259,7 @@ export function computeMetric({
   const perBucketValues: Array<{ date: string; value: number }> = [];
 
   for (const [bucketDate, bucketRows] of bucketEntries) {
-    const bucketValue = applyOperation(bucketRows, field, def.op);
+    const bucketValue = applyOperation(bucketRows, field, sourceObject, def.op);
     if (bucketValue !== null) {
       perBucketValues.push({ date: bucketDate, value: bucketValue });
     } else {

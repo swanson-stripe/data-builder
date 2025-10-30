@@ -4,6 +4,7 @@ export type SchemaField = {
   name: string;
   label: string;
   type: FieldType;
+  enum?: string[]; // Valid values for categorical string fields
 };
 
 export type SchemaObject = {
@@ -74,6 +75,26 @@ export type MetricResult = {
   series: SeriesPoint[] | null;
   note?: string;
   kind?: ValueKind;
+};
+
+/**
+ * Filter types
+ */
+export type FilterOperator = 
+  | 'equals' | 'not_equals'
+  | 'greater_than' | 'less_than' | 'between'
+  | 'contains' | 'in'
+  | 'is_true' | 'is_false';
+
+export type FilterCondition = {
+  field: { object: string; field: string };
+  operator: FilterOperator;
+  value: string | number | boolean | string[] | [number, number];
+};
+
+export type FilterGroup = {
+  conditions: FilterCondition[];
+  logic: 'AND' | 'OR';
 };
 
 /**

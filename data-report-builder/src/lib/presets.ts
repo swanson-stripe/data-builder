@@ -46,12 +46,12 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       { object: 'price', field: 'currency' },
       { object: 'price', field: 'recurring_interval' },
     ],
-    // Snapshot metric — if you later add a synthetic `subscription.mrr`, update `source` to that.
+    // MRR metric - sum of subscription prices
     metric: {
       name: 'Monthly Recurring Revenue (MRR)',
-      source: { object: 'subscription', field: 'id' }, // proxy for active subs → latest snapshot
-      op: 'count',
-      type: 'latest',
+      source: { object: 'price', field: 'unit_amount' },
+      op: 'sum',
+      type: 'sum_over_period',
     },
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
   },
@@ -165,6 +165,9 @@ export function applyPreset(
 ) {
   const p = PRESET_CONFIGS[key];
   if (!p) return;
+
+  // Set the report key first so the dropdown stays in sync
+  dispatch({ type: 'SET_REPORT', payload: key });
 
   // Reset selections and clear any active bucket filter
   dispatch({ type: 'RESET_SELECTIONS' });
