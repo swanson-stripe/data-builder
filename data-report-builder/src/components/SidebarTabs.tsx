@@ -8,6 +8,7 @@ export function SidebarTabs() {
     { id: 'data' as const, label: 'Data' },
     { id: 'chart' as const, label: 'Chart' },
     { id: 'metric' as const, label: 'Metric' },
+    { id: 'sql' as const, label: 'SQL' },
   ];
 
   return (

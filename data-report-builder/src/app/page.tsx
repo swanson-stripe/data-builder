@@ -6,6 +6,7 @@ import { SidebarTabs } from '@/components/SidebarTabs';
 import { DataTab } from '@/components/DataTab';
 import { ChartTab } from '@/components/ChartTab';
 import { MetricTab } from '@/components/MetricTab';
+import { SQLTab } from '@/components/SQLTab';
 import { ChartPanel } from '@/components/ChartPanel';
 import { ValueTable } from '@/components/ValueTable';
 import { DataList } from '@/components/DataList';
@@ -104,6 +105,7 @@ function PageContent() {
             {state.activeTab === 'data' && <DataTab />}
             {state.activeTab === 'chart' && <ChartTab />}
             {state.activeTab === 'metric' && <MetricTab />}
+            {state.activeTab === 'sql' && <SQLTab />}
           </div>
         </aside>
 

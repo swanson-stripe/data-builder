@@ -372,7 +372,7 @@ export function ChartPanel() {
 
       {/* Date range info and warnings */}
       <div className="mb-2">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-gray-600 dark:text-gray-300">
           {state.start} to {state.end} • {validation.bucketCount} data points
         </p>
         {!validation.valid && validation.warning && (
@@ -401,9 +401,9 @@ export function ChartPanel() {
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-600" />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11, fill: '#4b5563' }}
                 stroke="#6b7280"
-                className="dark:stroke-gray-400"
+                className="dark:[&_.recharts-cartesian-axis-tick-value]:fill-gray-300"
                 tickFormatter={(value) => {
                   if (state.granularity === 'day' || state.granularity === 'week') {
                     const [year, month, day] = value.split('-');
@@ -413,9 +413,9 @@ export function ChartPanel() {
                 }}
               />
               <YAxis
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11, fill: '#4b5563' }}
                 stroke="#6b7280"
-                className="dark:stroke-gray-400"
+                className="dark:[&_.recharts-cartesian-axis-tick-value]:fill-gray-300"
                 tickFormatter={formatValue}
               />
               <Tooltip
@@ -475,9 +475,9 @@ export function ChartPanel() {
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-600" />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11, fill: '#4b5563' }}
                 stroke="#6b7280"
-                className="dark:stroke-gray-400"
+                className="dark:[&_.recharts-cartesian-axis-tick-value]:fill-gray-300"
                 tickFormatter={(value) => {
                   if (state.granularity === 'day' || state.granularity === 'week') {
                     const [year, month, day] = value.split('-');
@@ -487,9 +487,9 @@ export function ChartPanel() {
                 }}
               />
               <YAxis
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11, fill: '#4b5563' }}
                 stroke="#6b7280"
-                className="dark:stroke-gray-400"
+                className="dark:[&_.recharts-cartesian-axis-tick-value]:fill-gray-300"
                 tickFormatter={formatValue}
               />
               <Tooltip
@@ -551,9 +551,9 @@ export function ChartPanel() {
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-600" />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11, fill: '#4b5563' }}
                 stroke="#6b7280"
-                className="dark:stroke-gray-400"
+                className="dark:[&_.recharts-cartesian-axis-tick-value]:fill-gray-300"
                 tickFormatter={(value) => {
                   if (state.granularity === 'day' || state.granularity === 'week') {
                     const [year, month, day] = value.split('-');
@@ -563,9 +563,9 @@ export function ChartPanel() {
                 }}
               />
               <YAxis
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11, fill: '#4b5563' }}
                 stroke="#6b7280"
-                className="dark:stroke-gray-400"
+                className="dark:[&_.recharts-cartesian-axis-tick-value]:fill-gray-300"
                 tickFormatter={formatValue}
               />
               <Tooltip

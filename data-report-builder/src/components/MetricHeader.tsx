@@ -128,7 +128,7 @@ export function MetricHeader() {
   return (
     <div className="flex flex-col gap-2 pb-3 border-b border-gray-200 dark:border-gray-700">
       {/* Title */}
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
         {title}
       </h3>
 
@@ -153,7 +153,7 @@ export function MetricHeader() {
       </div>
 
       {/* Metadata */}
-      <div className="text-xs text-gray-500 dark:text-gray-400">
+      <div className="text-xs text-gray-600 dark:text-gray-300">
         {state.metric.type === 'latest' ? (
           <>Latest value • {metricResult.series?.length || 0} data points</>
         ) : state.metric.type === 'first' ? (

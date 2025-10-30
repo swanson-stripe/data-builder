@@ -435,7 +435,7 @@ export function DataList() {
       {/* Header */}
       <div className="mb-2">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold">Data Preview</h3>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Data Preview</h3>
           <div className="flex items-center gap-2">
             {/* Selection chip */}
             {state.selectedGrid && state.selectedGrid.cells.length > 0 && (
@@ -481,7 +481,7 @@ export function DataList() {
             )}
           </div>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400" role="status" aria-live="polite">
+        <p className="text-xs text-gray-600 dark:text-gray-300" role="status" aria-live="polite">
           {sortedRows.length} rows • {columns.length} columns
           {sortState.column && (
             <span className="ml-2">
@@ -588,7 +588,7 @@ export function DataList() {
                 {columns.map((column) => (
                   <td
                     key={column.key}
-                    className={`py-2 px-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs cursor-cell ${
+                    className={`py-2 px-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs cursor-cell text-gray-900 dark:text-gray-200 ${
                       isCellSelected(rowIndex, column.key) ? 'ring-1 ring-blue-500 bg-blue-100 dark:bg-blue-900/50' : ''
                     }`}
                     onMouseDown={(e) => handleCellMouseDown(e, rowIndex, column.key)}
@@ -604,7 +604,7 @@ export function DataList() {
       </div>
 
       {/* Footer info */}
-      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+      <div className="mt-2 text-xs text-gray-600 dark:text-gray-300">
         Click headers to sort • Drag headers to reorder • Click ✕ to remove • Click/drag cells to select • Cmd/Ctrl+C to copy • Showing sample data
       </div>
     </div>

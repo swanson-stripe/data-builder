@@ -26,7 +26,7 @@ export type GridSelection = {
 
 // State type
 export type AppState = {
-  activeTab: 'data' | 'metric' | 'chart';
+  activeTab: 'data' | 'metric' | 'chart' | 'sql';
   selectedObjects: string[];
   selectedFields: { object: string; field: string }[];
   fieldOrder: string[]; // Qualified field names: "object.field"
@@ -48,7 +48,7 @@ export type AppState = {
 // Action types
 type SetTabAction = {
   type: 'SET_TAB';
-  payload: 'data' | 'metric' | 'chart';
+  payload: 'data' | 'metric' | 'chart' | 'sql';
 };
 
 type ToggleObjectAction = {
@@ -576,7 +576,7 @@ export function useApp() {
 
 // Action creators for convenience
 export const actions = {
-  setTab: (tab: 'data' | 'metric' | 'chart'): SetTabAction => ({
+  setTab: (tab: 'data' | 'metric' | 'chart' | 'sql'): SetTabAction => ({
     type: 'SET_TAB',
     payload: tab,
   }),

@@ -227,8 +227,8 @@ export function ValueTable() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="mb-2">
-        <h3 className="text-sm font-semibold">{currentSeries.label}</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{currentSeries.label}</h3>
+        <p className="text-xs text-gray-600 dark:text-gray-300">
           {comparisonSeries
             ? `Current vs. ${getComparisonLabel()} • Last ${displayCount} periods`
             : `Last ${displayCount} periods`}
@@ -263,10 +263,10 @@ export function ValueTable() {
                 return (
                   <td
                     key={idx}
-                    className={`text-right py-2 px-2 font-mono tabular-nums transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    className={`text-right py-2 px-2 font-mono tabular-nums transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-200 ${
                       isSelected
-                        ? 'bg-blue-200 hover:bg-blue-300 font-semibold'
-                        : 'hover:bg-blue-100 focus:bg-blue-100'
+                        ? 'bg-blue-200 dark:bg-blue-900 hover:bg-blue-300 dark:hover:bg-blue-800 font-semibold'
+                        : 'hover:bg-blue-100 dark:hover:bg-gray-700 focus:bg-blue-100 dark:focus:bg-gray-700'
                     }`}
                     tabIndex={0}
                     onClick={() => handleBucketClick(point.date)}
