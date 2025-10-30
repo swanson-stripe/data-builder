@@ -128,8 +128,10 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     loadingRef.current.add(name);
 
     try {
-      console.log('[Warehouse] Fetching:', `/data/${name}.json`);
-      const res = await fetch(`/data/${name}.json`);
+      const basePath = process.env.NODE_ENV === 'production' ? '/data-builder' : '';
+      const url = `${basePath}/data/${name}.json`;
+      console.log('[Warehouse] Fetching:', url);
+      const res = await fetch(url);
       if (!res.ok) {
         throw new Error(`Failed to load ${name}: ${res.statusText}`);
       }
@@ -202,7 +204,8 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
         if (typeof requestIdleCallback !== 'undefined') {
           requestIdleCallback(async () => {
             try {
-              const manifest = await fetch('/data/manifest.json').then(r => r.json());
+              const basePath = process.env.NODE_ENV === 'production' ? '/data-builder' : '';
+              const manifest = await fetch(`${basePath}/data/manifest.json`).then(r => r.json());
               const allEntities: EntityName[] = manifest?.entities || [];
 
               // Load entities not yet loaded
@@ -218,7 +221,8 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
         } else {
           setTimeout(async () => {
             try {
-              const manifest = await fetch('/data/manifest.json').then(r => r.json());
+              const basePath = process.env.NODE_ENV === 'production' ? '/data-builder' : '';
+              const manifest = await fetch(`${basePath}/data/manifest.json`).then(r => r.json());
               const allEntities: EntityName[] = manifest?.entities || [];
 
               for (const ent of allEntities) {

@@ -60,7 +60,7 @@ export type RowView = {
  * // ]
  */
 export function buildDataListView(opts: {
-  store: Warehouse;
+  store: Warehouse | Partial<Record<string, any[]>>;
   selectedObjects: string[];
   selectedFields: { object: string; field: string }[];
 }): RowView[] {

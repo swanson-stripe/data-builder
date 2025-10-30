@@ -11,7 +11,7 @@ export type ComputeMetricParams = {
   start: string;
   end: string;
   granularity: Granularity;
-  store: Warehouse;
+  store: Warehouse | Partial<Record<string, any[]>>;
   include?: Set<string>; // Set of "${object}:${id}" for PK-based filtering
   schema?: SchemaCatalog;
   objects?: string[]; // Selected objects - first one is primary

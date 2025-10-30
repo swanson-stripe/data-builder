@@ -4,7 +4,7 @@ import { useApp } from '@/state/app';
 import { computeMetric } from '@/lib/metrics';
 import { formatMetricValue, deltaCurrency, deltaNumber } from '@/lib/format';
 import { ReportKey } from '@/types';
-import { warehouse } from '@/data/warehouse';
+import { useWarehouseStore } from '@/lib/useWarehouse';
 import schema from '@/data/schema';
 import { buildDataListView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
@@ -20,6 +20,7 @@ const REPORT_LABELS: Record<ReportKey, string> = {
 
 export function MetricHeader() {
   const { state } = useApp();
+  const { store: warehouse, version } = useWarehouseStore();
 
   // Build PK include set from field filters only (exclude grid selection)
   // Grid selection should only affect chart/table, not the headline metric
@@ -44,6 +45,7 @@ export function MetricHeader() {
     state.filters,
     state.selectedObjects,
     state.selectedFields,
+    version,
   ]);
 
   // Compute the metric result

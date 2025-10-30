@@ -9,13 +9,14 @@ import {
 import { computeMetric } from '@/lib/metrics';
 import { currency, number, percentageChange, shortDate } from '@/lib/format';
 import { getBucketRange } from '@/lib/time';
-import { warehouse } from '@/data/warehouse';
+import { useWarehouseStore } from '@/lib/useWarehouse';
 import schema from '@/data/schema';
 import { buildDataListView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
 
 export function ValueTable() {
   const { state, dispatch } = useApp();
+  const { store: warehouse, version } = useWarehouseStore();
 
   // Handle bucket selection
   const handleBucketClick = (date: string) => {
@@ -66,6 +67,7 @@ export function ValueTable() {
     state.filters,
     state.selectedObjects,
     state.selectedFields,
+    version,
   ]);
 
   // Compute metric result (includes series)

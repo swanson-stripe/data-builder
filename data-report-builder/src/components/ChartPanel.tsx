@@ -9,7 +9,7 @@ import {
 } from '@/data/mock';
 import { computeMetric } from '@/lib/metrics';
 import { Granularity, validateGranularityRange, getBucketRange } from '@/lib/time';
-import { warehouse } from '@/data/warehouse';
+import { useWarehouseStore } from '@/lib/useWarehouse';
 import schema from '@/data/schema';
 import { buildDataListView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
@@ -114,6 +114,7 @@ const granularityOptions: Granularity[] = ['day', 'week', 'month', 'quarter', 'y
 
 export function ChartPanel() {
   const { state, dispatch } = useApp();
+  const { store: warehouse, version } = useWarehouseStore();
 
   // Handle point click
   const handlePointClick = (data: any) => {
@@ -175,6 +176,7 @@ export function ChartPanel() {
     state.filters,
     state.selectedObjects,
     state.selectedFields,
+    version,
   ]);
 
   // Compute metric result (includes series)

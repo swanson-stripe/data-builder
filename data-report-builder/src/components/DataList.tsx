@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useApp, actions } from '@/state/app';
-import { warehouse } from '@/data/warehouse';
+import { useWarehouseStore } from '@/lib/useWarehouse';
 import { getObject } from '@/data/schema';
 import { buildDataListView, filterRowsByDate, getRowKey, sortRowsByField, type RowView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
@@ -17,6 +17,7 @@ type SelectionMode = 'cell' | 'row' | 'column' | 'multi-cell';
 
 export function DataList() {
   const { state, dispatch } = useApp();
+  const { store: warehouse, version } = useWarehouseStore();
   const [sortState, setSortState] = useState<SortState>({
     column: null,
     direction: null,
@@ -76,7 +77,7 @@ export function DataList() {
       selectedObjects: state.selectedObjects,
       selectedFields: state.selectedFields,
     });
-  }, [state.selectedObjects, state.selectedFields]);
+  }, [state.selectedObjects, state.selectedFields, version]);
 
   // Filter rows by selected bucket using filterRowsByDate
   const dateFilteredRows = useMemo(() => {
