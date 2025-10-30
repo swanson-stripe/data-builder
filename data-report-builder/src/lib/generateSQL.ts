@@ -144,10 +144,10 @@ function buildJoinClause(
   // Build JOIN based on relationship
   if (relationship.from === fromObject) {
     // Forward relationship: fromObject has foreign key to toObject
-    return `LEFT JOIN ${toObject} ON ${fromObject}.${relationship.foreignKey} = ${toObject}.id`;
+    return `LEFT JOIN ${toObject} ON ${fromObject}.${relationship.via} = ${toObject}.id`;
   } else {
     // Reverse relationship: toObject has foreign key to fromObject
-    return `LEFT JOIN ${toObject} ON ${toObject}.${relationship.foreignKey} = ${fromObject}.id`;
+    return `LEFT JOIN ${toObject} ON ${toObject}.${relationship.via} = ${fromObject}.id`;
   }
 }
 
@@ -187,16 +187,38 @@ function buildSingleCondition(
 ): string {
   switch (operator) {
     case 'equals':
-      return `${fieldRef} = ${formatValue(value)}`;
+      if (Array.isArray(value)) {
+        // If value is an array, treat like 'in' operator
+        if (value.length > 0) {
+          const values = value.map(v => formatValue(v as string | number | boolean)).join(', ');
+          return `${fieldRef} IN (${values})`;
+        }
+        return `${fieldRef} IS NOT NULL`;
+      }
+      return `${fieldRef} = ${formatValue(value as string | number | boolean)}`;
     
     case 'not_equals':
-      return `${fieldRef} != ${formatValue(value)}`;
+      if (Array.isArray(value)) {
+        // If value is an array, treat like 'not in' operator
+        if (value.length > 0) {
+          const values = value.map(v => formatValue(v as string | number | boolean)).join(', ');
+          return `${fieldRef} NOT IN (${values})`;
+        }
+        return `${fieldRef} IS NULL`;
+      }
+      return `${fieldRef} != ${formatValue(value as string | number | boolean)}`;
     
     case 'greater_than':
-      return `${fieldRef} > ${formatValue(value)}`;
+      if (!Array.isArray(value)) {
+        return `${fieldRef} > ${formatValue(value)}`;
+      }
+      return `${fieldRef} IS NOT NULL`;
     
     case 'less_than':
-      return `${fieldRef} < ${formatValue(value)}`;
+      if (!Array.isArray(value)) {
+        return `${fieldRef} < ${formatValue(value)}`;
+      }
+      return `${fieldRef} IS NOT NULL`;
     
     case 'between':
       if (Array.isArray(value) && value.length === 2) {
