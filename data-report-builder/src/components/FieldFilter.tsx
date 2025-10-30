@@ -8,6 +8,7 @@ type FieldFilterProps = {
   objectName: string;
   currentFilter?: FilterCondition;
   onFilterChange: (condition: FilterCondition | null) => void;
+  distinctValues?: string[]; // Dynamic distinct values from actual data
 };
 
 export function FieldFilter({
@@ -15,6 +16,7 @@ export function FieldFilter({
   objectName,
   currentFilter,
   onFilterChange,
+  distinctValues,
 }: FieldFilterProps) {
   // Initialize state from currentFilter if it exists
   const [operator, setOperator] = useState<FilterOperator>(
@@ -208,7 +210,10 @@ export function FieldFilter({
     );
   }
 
-  if (field.enum) {
+  // Use distinctValues if provided, otherwise fall back to schema enum
+  const enumValues = distinctValues || field.enum;
+  
+  if (enumValues) {
     // Categorical string with multi-select
     const handleToggleEnum = (enumValue: string) => {
       setSelectedEnumValues(prev => 
@@ -225,7 +230,7 @@ export function FieldFilter({
             Select one or more:
           </div>
           <div className="space-y-1 max-h-40 overflow-y-auto">
-            {field.enum.map(enumValue => (
+            {enumValues.map(enumValue => (
               <label
                 key={enumValue}
                 className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded"

@@ -1,19 +1,49 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useApp, actions } from '@/state/app';
 import schema, { getRelated } from '@/data/schema';
 import { SchemaObject } from '@/types';
 import { FieldFilter } from './FieldFilter';
 import { FilterLogicToggle } from './FilterLogicToggle';
 import { FilterCondition } from '@/types';
+import { useWarehouseStore } from '@/lib/useWarehouse';
 
 function ObjectCard({ object }: { object: SchemaObject }) {
   const { state, dispatch } = useApp();
+  const { store: warehouse, version } = useWarehouseStore();
   const [expanded, setExpanded] = useState(false);
   const [expandedFilters, setExpandedFilters] = useState<Record<string, boolean>>({});
 
   const isObjectSelected = state.selectedObjects.includes(object.name);
   const relationships = getRelated(object.name);
+  
+  // Compute distinct values for enum fields from actual warehouse data
+  const distinctValuesCache = useMemo(() => {
+    const cache: Record<string, string[]> = {};
+    
+    // Get the data array for this object
+    const dataArray = warehouse[object.name as keyof typeof warehouse];
+    if (!dataArray || !Array.isArray(dataArray) || dataArray.length === 0) {
+      return cache;
+    }
+    
+    // For each field with an enum, compute distinct values
+    object.fields.forEach(field => {
+      if (field.enum && field.type === 'string') {
+        const distinctSet = new Set<string>();
+        dataArray.forEach((item: any) => {
+          const value = item[field.name];
+          if (value && typeof value === 'string') {
+            distinctSet.add(value);
+          }
+        });
+        // Sort alphabetically for consistent display
+        cache[field.name] = Array.from(distinctSet).sort();
+      }
+    });
+    
+    return cache;
+  }, [object.name, object.fields, warehouse, version]);
 
   // Count selected fields for this object
   const selectedFieldCount = state.selectedFields.filter(
@@ -201,6 +231,7 @@ function ObjectCard({ object }: { object: SchemaObject }) {
                         objectName={object.name}
                         currentFilter={activeFilter}
                         onFilterChange={handleFilterChange}
+                        distinctValues={distinctValuesCache[field.name]}
                       />
                     )}
                   </div>

@@ -5,6 +5,8 @@ import { useWarehouseStore } from '@/lib/useWarehouse';
 import { getObject } from '@/data/schema';
 import { buildDataListView, filterRowsByDate, getRowKey, sortRowsByField, type RowView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
+import { FilterPopover } from './FilterPopover';
+import { FilterCondition } from '@/types';
 
 type SortDirection = 'asc' | 'desc' | null;
 
@@ -51,6 +53,7 @@ export function DataList() {
             type: fieldDef?.type || 'string',
             object: field.object,
             field: field.field,
+            fieldDef, // Include the full field definition for filtering
           },
         ];
       })
@@ -65,6 +68,44 @@ export function DataList() {
 
     return Array.from(columnMap.values());
   }, [state.selectedFields, state.fieldOrder]);
+
+  // Compute distinct values for enum fields from actual warehouse data
+  const distinctValuesCache = useMemo(() => {
+    const cache: Record<string, string[]> = {};
+    
+    // Group columns by object to minimize data array lookups
+    const columnsByObject = new Map<string, typeof columns>();
+    columns.forEach(col => {
+      if (!columnsByObject.has(col.object)) {
+        columnsByObject.set(col.object, []);
+      }
+      columnsByObject.get(col.object)!.push(col);
+    });
+    
+    // For each object, get data and compute distinct values for enum fields
+    columnsByObject.forEach((cols, objectName) => {
+      const dataArray = warehouse[objectName as keyof typeof warehouse];
+      if (!dataArray || !Array.isArray(dataArray) || dataArray.length === 0) {
+        return;
+      }
+      
+      cols.forEach(col => {
+        if (col.fieldDef?.enum && col.fieldDef.type === 'string') {
+          const distinctSet = new Set<string>();
+          dataArray.forEach((item: any) => {
+            const value = item[col.field];
+            if (value && typeof value === 'string') {
+              distinctSet.add(value);
+            }
+          });
+          // Sort alphabetically for consistent display
+          cache[col.key] = Array.from(distinctSet).sort();
+        }
+      });
+    });
+    
+    return cache;
+  }, [columns, warehouse, version]);
 
   // Generate data rows using buildDataListView with RowView[]
   const rawRows: RowView[] = useMemo(() => {
@@ -205,6 +246,46 @@ export function DataList() {
   // Handle column removal
   const handleRemoveColumn = (object: string, field: string) => {
     dispatch(actions.toggleField(object, field));
+  };
+
+  // Handle filter change for a column
+  const handleFilterChange = (objectName: string, fieldName: string, condition: FilterCondition | null) => {
+    if (condition) {
+      // Check if filter already exists for this field
+      const existingIndex = state.filters.conditions.findIndex(
+        c => c.field.object === objectName && c.field.field === fieldName
+      );
+      
+      if (existingIndex >= 0) {
+        // Update existing filter
+        dispatch(actions.updateFilter(existingIndex, condition));
+      } else {
+        // Add new filter
+        dispatch(actions.addFilter(condition));
+      }
+    } else {
+      // Remove filter
+      const existingIndex = state.filters.conditions.findIndex(
+        c => c.field.object === objectName && c.field.field === fieldName
+      );
+      if (existingIndex >= 0) {
+        dispatch(actions.removeFilter(existingIndex));
+      }
+    }
+  };
+
+  // Check if a column has an active filter
+  const hasActiveFilter = (objectName: string, fieldName: string): boolean => {
+    return state.filters.conditions.some(
+      c => c.field.object === objectName && c.field.field === fieldName
+    );
+  };
+
+  // Get active filter for a column
+  const getActiveFilter = (objectName: string, fieldName: string): FilterCondition | undefined => {
+    return state.filters.conditions.find(
+      c => c.field.object === objectName && c.field.field === fieldName
+    );
   };
 
   // Selection handlers using PKs
@@ -559,7 +640,7 @@ export function DataList() {
                     draggedColumn === column.key ? 'opacity-50' : ''
                   } ${isColumnSelected(column.key) ? 'ring-1 ring-blue-500 bg-blue-50 dark:bg-blue-900/30' : ''}`}
                 >
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-1">
                     <button
                       onClick={() => handleSort(column.key)}
                       onKeyDown={(e) => {
@@ -588,24 +669,50 @@ export function DataList() {
                         {column.type}
                       </div>
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveColumn(column.object, column.field);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
+                    <div className="flex items-center gap-0.5">
+                      {/* Filter icon - show for all filterable fields */}
+                      {column.fieldDef && (
+                        <FilterPopover
+                          field={column.fieldDef}
+                          objectName={column.object}
+                          currentFilter={getActiveFilter(column.object, column.field)}
+                          onFilterChange={(condition) => handleFilterChange(column.object, column.field, condition)}
+                          distinctValues={distinctValuesCache[column.key]}
+                          hasActiveFilter={hasActiveFilter(column.object, column.field)}
+                          trigger={
+                            <svg
+                              className="w-3.5 h-3.5"
+                              fill="none"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                          }
+                        />
+                      )}
+                      <button
+                        onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveColumn(column.object, column.field);
-                        }
-                      }}
-                      className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
-                      aria-label={`Remove column ${column.label}`}
-                      title="Remove column"
-                    >
-                      ✕
-                    </button>
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleRemoveColumn(column.object, column.field);
+                          }
+                        }}
+                        className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                        aria-label={`Remove column ${column.label}`}
+                        title="Remove column"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
                 </th>
               ))}
