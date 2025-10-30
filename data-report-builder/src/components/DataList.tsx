@@ -385,17 +385,60 @@ export function DataList() {
   }, [isSelecting, handleMouseUp]);
 
   // Format cell value for display
-  const formatValue = (value: string | number | boolean | null | undefined) => {
+  const formatValue = (value: string | number | boolean | null | undefined, columnKey?: string) => {
     if (value === null || value === undefined) {
       return '-';
     }
 
     if (typeof value === 'boolean') {
-      return value ? '✓' : '✗';
+      return value ? 'true' : 'false';
     }
 
     if (typeof value === 'number') {
+      // Check if this is a currency field (amount, price, balance, etc.)
+      const isCurrencyField = columnKey && (
+        columnKey.includes('amount') || 
+        columnKey.includes('price') || 
+        columnKey.includes('balance') || 
+        columnKey.includes('total') ||
+        columnKey.includes('subtotal')
+      );
+      
+      if (isCurrencyField) {
+        // Format as currency (value is in cents)
+        const dollars = value / 100;
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(dollars);
+      }
+      
       return value.toLocaleString();
+    }
+
+    // Format date/timestamp strings
+    if (typeof value === 'string') {
+      // Check if it's an ISO timestamp (contains 'T' or 'Z')
+      if (value.includes('T') || value.includes('Z')) {
+        try {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            // Format as readable date-time
+            return new Intl.DateTimeFormat('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZone: 'UTC',
+            }).format(date);
+          }
+        } catch {
+          // If parsing fails, return as-is
+        }
+      }
     }
 
     return String(value);
@@ -594,7 +637,7 @@ export function DataList() {
                     onMouseDown={(e) => handleCellMouseDown(e, rowIndex, column.key)}
                     onMouseEnter={() => handleCellMouseEnter(rowIndex, column.key)}
                   >
-                    {formatValue(row.display[column.key])}
+                    {formatValue(row.display[column.key], column.key)}
                   </td>
                 ))}
               </tr>

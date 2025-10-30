@@ -1,0 +1,222 @@
+[
+  {
+    "id": "dp_VKDEzEPGP5dkyUqDDw7S8Wnc",
+    "charge_id": "ch_b7NpHyWoE4Us1I1nzcPERL3s",
+    "amount": 10670,
+    "currency": "usd",
+    "status": "lost",
+    "reason": "fraudulent",
+    "created": "2025-07-01T00:19:44.343Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_2WIa2wRmLMx48ZwcMn3lElX7",
+    "charge_id": "ch_dNYSU237u77Slwt2ZgsrNDEZ",
+    "amount": 21198,
+    "currency": "eur",
+    "status": "won",
+    "reason": "credit_not_processed",
+    "created": "2025-04-21T05:08:39.921Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_B0ftubdsajnPIY5YfYRVII58",
+    "charge_id": "ch_PAN2GDpI4nsBQUroub5WtMHT",
+    "amount": 23798,
+    "currency": "usd",
+    "status": "won",
+    "reason": "fraudulent",
+    "created": "2025-07-28T03:16:31.226Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_8805yhipqIn6mEuA4eG2ZL1l",
+    "charge_id": "ch_eyT2gYK3HjL2SzaWhYC39vlx",
+    "amount": 844,
+    "currency": "eur",
+    "status": "under_review",
+    "reason": "fraudulent",
+    "created": "2025-10-21T15:28:47.766Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_F7Z0wQmzMbUEQLWQsE5Hej4S",
+    "charge_id": "ch_dLfcaVZnYk9nIkhIT3RbguWc",
+    "amount": 2783,
+    "currency": "eur",
+    "status": "needs_response",
+    "reason": "duplicate",
+    "created": "2023-07-16T05:55:42.402Z",
+    "evidence_due_by": "2023-07-21T01:24:56.884Z"
+  },
+  {
+    "id": "dp_F3YBhD5R1HvWQpvqB76WGlTK",
+    "charge_id": "ch_WjywCtnzA5AUIrGMCFJI0CcF",
+    "amount": 8569,
+    "currency": "eur",
+    "status": "warning_needs_response",
+    "reason": "product_not_received",
+    "created": "2025-06-03T01:00:31.887Z",
+    "evidence_due_by": "2025-06-11T13:58:26.811Z"
+  },
+  {
+    "id": "dp_wielv24xwSG37uAOpLyCdHX6",
+    "charge_id": "ch_scc5FnIIekCsrzhi7dPEYGXy",
+    "amount": 185,
+    "currency": "cad",
+    "status": "won",
+    "reason": "product_unacceptable",
+    "created": "2025-03-19T09:07:26.500Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_mXXz71M6NrjZ8uKyHGUaPTKl",
+    "charge_id": "ch_M3qsqyCzVmrKK5GHWcACOe8K",
+    "amount": 14543,
+    "currency": "gbp",
+    "status": "charge_refunded",
+    "reason": "credit_not_processed",
+    "created": "2025-09-18T09:37:02.231Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_kjgGPYgT2DkbsR2tETcZAtjB",
+    "charge_id": "ch_Z4sSylNJc3vylGNiCOMRgKHC",
+    "amount": 1735,
+    "currency": "gbp",
+    "status": "warning_closed",
+    "reason": "credit_not_processed",
+    "created": "2025-07-30T21:13:08.718Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_B3ViclA9W7ovnp6MVBbHHMKY",
+    "charge_id": "ch_93YXoodP5ezXh7zrIkNq5Nf6",
+    "amount": 6335,
+    "currency": "gbp",
+    "status": "won",
+    "reason": "fraudulent",
+    "created": "2025-09-22T21:48:32.164Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_EYJ1pSYXgu7KzjwGnu4efKRi",
+    "charge_id": "ch_WVlY6zJ3FJxB3neWQM2B5ONy",
+    "amount": 5425,
+    "currency": "gbp",
+    "status": "won",
+    "reason": "general",
+    "created": "2025-07-26T01:01:40.066Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_ZKueFtJUHmF39D9Z1ftuEpZq",
+    "charge_id": "ch_xhK0ckPndpZv6pTk4Ybi7g1T",
+    "amount": 8444,
+    "currency": "eur",
+    "status": "warning_closed",
+    "reason": "subscription_canceled",
+    "created": "2025-10-17T23:19:41.412Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_Tdx8crs8Pg7NUfZNaA2ZVOyr",
+    "charge_id": "ch_ZZlGH9ppE06Mg1ZBwE9HsGB9",
+    "amount": 2208,
+    "currency": "cad",
+    "status": "warning_under_review",
+    "reason": "product_unacceptable",
+    "created": "2025-04-26T20:31:41.828Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_G7dm7b9MByGC100SvJ5lQPRq",
+    "charge_id": "ch_pfAKQedosgs8UrqNsr1wvHro",
+    "amount": 22293,
+    "currency": "aud",
+    "status": "charge_refunded",
+    "reason": "fraudulent",
+    "created": "2025-09-07T22:35:57.768Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_f3jboDNWTTduQTNnklXCej0C",
+    "charge_id": "ch_jgcBp91g0jwrOAlcziyB34Pf",
+    "amount": 2346,
+    "currency": "cad",
+    "status": "warning_closed",
+    "reason": "fraudulent",
+    "created": "2025-09-03T18:06:40.070Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_Mw8dDXnTXP2dNAjBOQ6Pc6lk",
+    "charge_id": "ch_X8bRICsoBTHe5rY1yzN2Ngyq",
+    "amount": 11098,
+    "currency": "aud",
+    "status": "lost",
+    "reason": "duplicate",
+    "created": "2025-08-16T04:28:22.821Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_KEImCt0OH1SJaIS0UlZuDW4d",
+    "charge_id": "ch_VskiVCSpABrLq5jirpBTjOsi",
+    "amount": 11295,
+    "currency": "aud",
+    "status": "warning_under_review",
+    "reason": "credit_not_processed",
+    "created": "2025-09-05T19:31:05.548Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_MLHdGoDZHsqtwOTCIHxCD2hr",
+    "charge_id": "ch_cR3KlWUykctZ4EuUlFXTov63",
+    "amount": 18925,
+    "currency": "usd",
+    "status": "lost",
+    "reason": "general",
+    "created": "2025-06-27T04:44:11.319Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_ELnAYE6OZuSDJCtNEJd1YsR4",
+    "charge_id": "ch_NltHZWoHNGsxGPcpPYplNIPD",
+    "amount": 189184,
+    "currency": "gbp",
+    "status": "lost",
+    "reason": "product_unacceptable",
+    "created": "2025-07-15T04:01:47.706Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_3QFs5oajU0inRBGU9hwbsZ7T",
+    "charge_id": "ch_QOlMDMMQ4qIp57MQ6AeUujL9",
+    "amount": 12382,
+    "currency": "aud",
+    "status": "won",
+    "reason": "fraudulent",
+    "created": "2025-07-25T11:37:57.203Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_jd4D0m7MHCGCKIFQxidrcUx5",
+    "charge_id": "ch_aQSNMD5AOO2Wdy5rfAkE6wrB",
+    "amount": 11609,
+    "currency": "gbp",
+    "status": "warning_under_review",
+    "reason": "fraudulent",
+    "created": "2025-07-20T04:02:09.818Z",
+    "evidence_due_by": null
+  },
+  {
+    "id": "dp_DBTkSfWztgIT181dzp9IdtTB",
+    "charge_id": "ch_NA4aEacKVPvOENr9nXf4BLUS",
+    "amount": 24700,
+    "currency": "eur",
+    "status": "charge_refunded",
+    "reason": "product_not_received",
+    "created": "2025-03-05T05:07:13.535Z",
+    "evidence_due_by": null
+  }
+]

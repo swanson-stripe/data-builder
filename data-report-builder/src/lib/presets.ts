@@ -1,6 +1,6 @@
 // src/lib/presets.ts
 import { Granularity } from '@/lib/time';
-import { MetricDef } from '@/types';
+import { MetricDef, FilterCondition } from '@/types';
 import { AppAction } from '@/state/app';
 
 export type PresetKey =
@@ -25,6 +25,8 @@ type PresetConfig = {
   };
   // Optional default time settings
   range?: { start: string; end: string; granularity: Granularity };
+  // Optional filters to apply
+  filters?: FilterCondition[];
 };
 
 // convenience generator for ISO "today"
@@ -34,7 +36,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   mrr: {
     key: 'mrr',
     label: 'MRR',
-    objects: ['subscription', 'customer', 'price'],
+    objects: ['subscription', 'customer', 'subscription_item', 'price'],
     fields: [
       { object: 'subscription', field: 'id' },
       { object: 'subscription', field: 'status' },
@@ -42,6 +44,8 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       { object: 'subscription', field: 'current_period_end' },
       { object: 'customer', field: 'id' },
       { object: 'customer', field: 'email' },
+      { object: 'subscription_item', field: 'id' },
+      { object: 'subscription_item', field: 'quantity' },
       { object: 'price', field: 'unit_amount' },
       { object: 'price', field: 'currency' },
       { object: 'price', field: 'recurring_interval' },
@@ -59,22 +63,23 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   gross_volume: {
     key: 'gross_volume',
     label: 'Gross Volume',
-    objects: ['payment', 'customer', 'product'],
+    objects: ['charge', 'customer', 'payment_intent', 'invoice'],
     fields: [
-      { object: 'payment', field: 'id' },
-      { object: 'payment', field: 'amount' },
-      { object: 'payment', field: 'currency' },
-      { object: 'payment', field: 'created' },
-      { object: 'payment', field: 'status' },
+      { object: 'charge', field: 'id' },
+      { object: 'charge', field: 'amount' },
+      { object: 'charge', field: 'currency' },
+      { object: 'charge', field: 'created' },
+      { object: 'charge', field: 'status' },
       { object: 'customer', field: 'id' },
       { object: 'customer', field: 'email' },
-      { object: 'product', field: 'id' },
-      { object: 'product', field: 'name' },
+      { object: 'payment_intent', field: 'id' },
+      { object: 'invoice', field: 'id' },
+      { object: 'invoice', field: 'number' },
     ],
     // Flow metric — sum amounts per bucket
     metric: {
       name: 'Gross Volume',
-      source: { object: 'payment', field: 'amount' },
+      source: { object: 'charge', field: 'amount' },
       op: 'sum',
       type: 'sum_over_period',
     },
@@ -104,19 +109,29 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       type: 'latest',
     },
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
+    // Only count subscriptions with status = 'active'
+    filters: [
+      {
+        field: { object: 'subscription', field: 'status' },
+        operator: 'in',
+        value: ['active'],
+      },
+    ],
   },
 
   refund_count: {
     key: 'refund_count',
     label: 'Refund Count',
-    objects: ['refund', 'payment', 'customer'],
+    objects: ['refund', 'charge', 'customer'],
     fields: [
       { object: 'refund', field: 'id' },
       { object: 'refund', field: 'created' },
       { object: 'refund', field: 'amount' },
       { object: 'refund', field: 'status' },
-      { object: 'payment', field: 'id' },
-      { object: 'payment', field: 'created' },
+      { object: 'refund', field: 'reason' },
+      { object: 'charge', field: 'id' },
+      { object: 'charge', field: 'amount' },
+      { object: 'charge', field: 'created' },
       { object: 'customer', field: 'id' },
       { object: 'customer', field: 'email' },
     ],
@@ -132,21 +147,23 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
 
   subscriber_ltv: {
     key: 'subscriber_ltv',
-    label: 'Subscriber LTV',
-    objects: ['customer', 'subscription', 'invoice'],
+    label: 'ARPU',
+    objects: ['subscription', 'customer', 'invoice'], // Start with subscription to only include customers who subscribe
     fields: [
       { object: 'customer', field: 'id' },
       { object: 'customer', field: 'email' },
+      { object: 'customer', field: 'created' },
       { object: 'subscription', field: 'id' },
       { object: 'subscription', field: 'status' },
-      { object: 'invoice', field: 'id' },
+      { object: 'subscription', field: 'created' },
       { object: 'invoice', field: 'amount_paid' },
+      { object: 'invoice', field: 'status' },
       { object: 'invoice', field: 'created' },
     ],
-    // Hybrid metric — average over the period
+    // Average revenue per user - average invoice amount per subscriber
     metric: {
-      name: 'Subscriber Lifetime Value',
-      source: { object: 'invoice', field: 'amount_paid' }, // average invoice total across window
+      name: 'Average Revenue Per User (ARPU)',
+      source: { object: 'invoice', field: 'amount_paid' }, // average revenue across subscribers
       op: 'avg',
       type: 'average_over_period',
     },
@@ -172,6 +189,9 @@ export function applyPreset(
   // Reset selections and clear any active bucket filter
   dispatch({ type: 'RESET_SELECTIONS' });
   dispatch({ type: 'CLEAR_SELECTED_BUCKET' });
+
+  // Clear existing filters before applying preset filters
+  dispatch({ type: 'CLEAR_FILTERS' });
 
   // Apply optional time range
   if (p.range) {
@@ -204,5 +224,12 @@ export function applyPreset(
     dispatch({ type: 'SET_METRIC_OP', payload: p.metric.op });
     dispatch({ type: 'SET_METRIC_TYPE', payload: p.metric.type });
     dispatch({ type: 'SET_METRIC_SOURCE', payload: p.metric.source });
+  }
+
+  // Apply preset filters
+  if (p.filters) {
+    for (const filter of p.filters) {
+      dispatch({ type: 'ADD_FILTER', payload: filter });
+    }
   }
 }

@@ -1,23 +1,26 @@
 /**
- * Format a number as currency
+ * Format a number as currency (assumes value is in cents)
  */
 export function currency(value: number, options?: { compact?: boolean }): string {
   const { compact = false } = options || {};
+  
+  // Convert cents to dollars
+  const dollars = value / 100;
 
   if (compact) {
-    if (Math.abs(value) >= 1_000_000) {
-      return `$${(value / 1_000_000).toFixed(2)}M`;
-    } else if (Math.abs(value) >= 1_000) {
-      return `$${(value / 1_000).toFixed(1)}K`;
+    if (Math.abs(dollars) >= 1_000_000) {
+      return `$${(dollars / 1_000_000).toFixed(2)}M`;
+    } else if (Math.abs(dollars) >= 1_000) {
+      return `$${(dollars / 1_000).toFixed(1)}K`;
     }
   }
 
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(dollars);
 }
 
 /**

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "generate-warehouse": "node scripts/generateWarehouse.mjs",
+    "generate-stripe-schema": "node scripts/generateStripeSchema.mjs",
     "split-warehouse": "node scripts/splitWarehouse.mjs"
   },
   "dependencies": {

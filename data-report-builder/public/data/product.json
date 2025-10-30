@@ -1,0 +1,177 @@
+[
+  {
+    "id": "prod_txa7UArzZcLzJuzuBK0U9vkk",
+    "name": "Professional Plan",
+    "description": "Stylish Bacon designed to make you stand out with mad looks",
+    "active": true,
+    "created": "2025-10-29T05:50:55.267Z"
+  },
+  {
+    "id": "prod_rOBJ3UX0h7raT5geEF2n7TJo",
+    "name": "Enterprise Plan",
+    "description": null,
+    "active": true,
+    "created": "2025-02-17T10:57:32.950Z"
+  },
+  {
+    "id": "prod_uog91qqFU9dHNBhA5YvqBkAy",
+    "name": "Starter Plan",
+    "description": "Stylish Ball designed to make you stand out with irresponsible looks",
+    "active": true,
+    "created": "2022-02-28T21:59:44.816Z"
+  },
+  {
+    "id": "prod_1koM9Z52p3tYL4ioIbdWZP06",
+    "name": "Premium Subscription",
+    "description": "Our sour-inspired Tuna brings a taste of luxury to your lavish lifestyle",
+    "active": true,
+    "created": "2020-12-09T00:51:54.966Z"
+  },
+  {
+    "id": "prod_VR5FG8kbzVcUlSsPnFtJYgST",
+    "name": "Basic Package",
+    "description": null,
+    "active": true,
+    "created": "2020-07-31T22:06:16.194Z"
+  },
+  {
+    "id": "prod_qbMePp2iHy0Zam43CFOW0cWy",
+    "name": "Advanced Features",
+    "description": null,
+    "active": true,
+    "created": "2025-04-14T03:59:37.436Z"
+  },
+  {
+    "id": "prod_eOBNMoXv7OwNj73j7RT0Kd8K",
+    "name": "Pro Membership",
+    "description": "The Smart responsive algorithm Pizza offers reliable performance and tattered design",
+    "active": true,
+    "created": "2025-05-20T07:48:55.617Z"
+  },
+  {
+    "id": "prod_BVcALDvkhG0BI2lqWVGP48M9",
+    "name": "Business Suite",
+    "description": null,
+    "active": true,
+    "created": "2025-06-10T21:41:25.992Z"
+  },
+  {
+    "id": "prod_soUWz66xqN1SQX6yzQXOzrC6",
+    "name": "Team Plan",
+    "description": "Introducing the Holy See (Vatican City State)-inspired Computer, blending harmful style with local craftsmanship",
+    "active": false,
+    "created": "2021-06-16T18:38:17.565Z"
+  },
+  {
+    "id": "prod_tpiwUQgQcoxsLmHfbgmhbYgW",
+    "name": "Individual License",
+    "description": "Innovative Towels featuring tepid technology and Marble construction",
+    "active": true,
+    "created": "2021-06-02T00:16:52.655Z"
+  },
+  {
+    "id": "prod_iV0EEckoc5YxoSfAX1HlVfik",
+    "name": "Standard Access",
+    "description": "Innovative Hat featuring slushy technology and Gold construction",
+    "active": true,
+    "created": "2022-11-26T02:08:45.813Z"
+  },
+  {
+    "id": "prod_bf1f3M3RyqzghN6FZLvWgrjZ",
+    "name": "Premium Support",
+    "description": "Introducing the Slovakia-inspired Mouse, blending sneaky style with local craftsmanship",
+    "active": true,
+    "created": "2025-05-23T13:58:07.939Z"
+  },
+  {
+    "id": "prod_mXBRHfQSHUZ6CZamnEOHfcN9",
+    "name": "Cloud Storage",
+    "description": "The sleek and frizzy Shoes comes with black LED lighting for smart functionality",
+    "active": true,
+    "created": "2025-02-15T05:33:07.623Z"
+  },
+  {
+    "id": "prod_3oxD8FlIPQdXr5aiKeqkZLju",
+    "name": "Analytics Platform",
+    "description": "Awesome Pizza designed with Silk for overdue performance",
+    "active": true,
+    "created": "2022-05-09T21:50:19.165Z"
+  },
+  {
+    "id": "prod_iRmXJ90JOCL6fWOweB0Gtjif",
+    "name": "Developer Tools",
+    "description": "Our zesty-inspired Shoes brings a taste of luxury to your lucky lifestyle",
+    "active": true,
+    "created": "2020-04-06T22:37:24.522Z"
+  },
+  {
+    "id": "prod_1Bt3IWdsyE0R5M2O7V1efgNy",
+    "name": "API Access",
+    "description": "Discover the finished new Table with an exciting mix of Silk ingredients",
+    "active": true,
+    "created": "2025-01-26T02:13:45.317Z"
+  },
+  {
+    "id": "prod_YJSp07YrBTsYRx9kZu4B4izc",
+    "name": "Mobile App",
+    "description": "Innovative Chicken featuring mature technology and Cotton construction",
+    "active": true,
+    "created": "2025-09-19T11:47:02.115Z"
+  },
+  {
+    "id": "prod_2km5OJZdA2FF4Gv7JkKKkUGi",
+    "name": "Desktop Software",
+    "description": "The Tania Pizza is the latest in a series of watery products from Conn, Dare and Ullrich",
+    "active": true,
+    "created": "2022-05-02T18:10:02.357Z"
+  },
+  {
+    "id": "prod_PpsUTwB2tucdZOrQsD9ePizP",
+    "name": "Training Course",
+    "description": "Our bat-friendly Towels ensures valuable comfort for your pets",
+    "active": true,
+    "created": "2024-04-05T11:14:40.154Z"
+  },
+  {
+    "id": "prod_GbzLHUEMCPyLTNVnX4i2kipS",
+    "name": "Consulting Services",
+    "description": null,
+    "active": true,
+    "created": "2025-10-15T01:39:05.667Z"
+  },
+  {
+    "id": "prod_kevz99W0y2UdXzfKZZPdfWpn",
+    "name": "Managed Services",
+    "description": "New Bike model with 56 GB RAM, 53 GB storage, and trusting features",
+    "active": false,
+    "created": "2025-06-22T05:45:31.316Z"
+  },
+  {
+    "id": "prod_UMVvkNh6TjwGtuKtLsnNudhy",
+    "name": "Enterprise Support",
+    "description": "Frozen Sausages designed with Rubber for bogus performance",
+    "active": true,
+    "created": "2025-04-25T23:28:15.577Z"
+  },
+  {
+    "id": "prod_96SaFZg9hlZnjVJFEKE6vs9C",
+    "name": "Priority Queue",
+    "description": "Innovative Ball featuring well-off technology and Bronze construction",
+    "active": true,
+    "created": "2025-10-23T21:35:24.977Z"
+  },
+  {
+    "id": "prod_vH3Z41tgBqtFyPwiol2vBgcz",
+    "name": "Custom Integration",
+    "description": "Professional-grade Keyboard perfect for good training and recreational use",
+    "active": true,
+    "created": "2022-09-10T09:19:54.156Z"
+  },
+  {
+    "id": "prod_nVDxeM8pDoY1qzY4S7QhRc2p",
+    "name": "White Label Solution",
+    "description": "The Sim Car is the latest in a series of oblong products from Satterfield LLC",
+    "active": true,
+    "created": "2024-05-31T20:09:41.582Z"
+  }
+]

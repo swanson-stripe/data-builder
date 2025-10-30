@@ -11,16 +11,54 @@ import { perf } from '@/lib/instrument';
 import { PRESET_CONFIGS, type PresetKey } from '@/lib/presets';
 
 export type EntityName =
+  | 'customer'
   | 'customers'
+  | 'payment'
   | 'payments'
+  | 'refund'
   | 'refunds'
+  | 'subscription'
   | 'subscriptions'
+  | 'invoice'
   | 'invoices'
+  | 'price'
   | 'prices'
+  | 'product'
   | 'products'
+  | 'payment_method'
   | 'payment_methods'
+  | 'payout'
   | 'payouts'
-  | 'charges';
+  | 'charge'
+  | 'charges'
+  | 'subscription_item'
+  | 'subscription_items'
+  | 'invoice_item'
+  | 'invoice_items'
+  | 'coupon'
+  | 'coupons'
+  | 'discount'
+  | 'discounts'
+  | 'quote'
+  | 'quotes'
+  | 'credit_note'
+  | 'credit_notes'
+  | 'subscription_schedule'
+  | 'subscription_schedules'
+  | 'plan'
+  | 'plans'
+  | 'payment_intent'
+  | 'payment_intents'
+  | 'balance_transaction'
+  | 'balance_transactions'
+  | 'dispute'
+  | 'disputes'
+  | 'customer_balance_transaction'
+  | 'customer_balance_transactions'
+  | 'customer_tax_id'
+  | 'customer_tax_ids'
+  | 'checkout_session'
+  | 'checkout_sessions';
 
 type EntityMap = Partial<Record<EntityName, any[]>>;
 
@@ -58,25 +96,14 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   const getInitialEntities = (): EntityName[] => {
     if (initial) return initial;
     if (presetKey && PRESET_CONFIGS[presetKey]) {
-      // Map preset objects to entity names (handle plural forms)
+      // Map preset objects to entity names (use singular form - matches generated JSON files)
       return PRESET_CONFIGS[presetKey].objects.map(obj => {
-        // Try to match known entities
-        const pluralMap: Record<string, EntityName> = {
-          'customer': 'customers',
-          'payment': 'payments',
-          'subscription': 'subscriptions',
-          'invoice': 'invoices',
-          'refund': 'refunds',
-          'product': 'products',
-          'price': 'prices',
-          'payment_method': 'payment_methods',
-          'payout': 'payouts',
-          'charge': 'charges',
-        };
-        return pluralMap[obj] || (obj + 's') as EntityName;
+        // The generated JSON files use singular names (customer.json, subscription_item.json, etc.)
+        // Return the object name as-is since that's what files are named
+        return obj as EntityName;
       });
     }
-    return ['customers', 'payments', 'subscriptions'];
+    return ['customer', 'payment', 'subscription'];
   };
 
   /**

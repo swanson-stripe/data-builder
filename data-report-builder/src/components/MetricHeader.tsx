@@ -21,9 +21,10 @@ const REPORT_LABELS: Record<ReportKey, string> = {
 export function MetricHeader() {
   const { state } = useApp();
 
-  // Build PK include set from grid selection and field filters
+  // Build PK include set from field filters only (exclude grid selection)
+  // Grid selection should only affect chart/table, not the headline metric
   const includeSet = useMemo(() => {
-    // If we have field filters, compute filtered PKs
+    // Only use field filters, not grid selection
     if (state.filters.conditions.length > 0 && state.selectedObjects.length > 0 && state.selectedFields.length > 0) {
       const rawRows = buildDataListView({
         store: warehouse,
@@ -34,25 +35,12 @@ export function MetricHeader() {
       const filteredRows = applyFilters(rawRows, state.filters);
       
       // Extract PKs from filtered rows
-      const filterSet = new Set(filteredRows.map(row => `${row.pk.object}:${row.pk.id}`));
-      
-      // If we also have a grid selection, intersect the two sets
-      if (state.selectedGrid && state.selectedGrid.rowIds.length > 0) {
-        const gridSet = new Set(state.selectedGrid.rowIds.map(pk => `${pk.object}:${pk.id}`));
-        return new Set([...filterSet].filter(pk => gridSet.has(pk)));
-      }
-      
-      return filterSet;
+      return new Set(filteredRows.map(row => `${row.pk.object}:${row.pk.id}`));
     }
     
-    // If no field filters, just use grid selection if present
-    if (state.selectedGrid && state.selectedGrid.rowIds.length > 0) {
-      return new Set(state.selectedGrid.rowIds.map(pk => `${pk.object}:${pk.id}`));
-    }
-    
+    // No filtering - return undefined to use all data
     return undefined;
   }, [
-    state.selectedGrid?.rowIds,
     state.filters,
     state.selectedObjects,
     state.selectedFields,

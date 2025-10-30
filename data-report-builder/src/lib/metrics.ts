@@ -213,31 +213,140 @@ export function computeMetric({
 
   // If source object is different from primary, perform join
   if (sourceObject !== primaryObject) {
-    const foreignKey = `${sourceObject}_id`;
+    // Get all selected objects for multi-hop join
+    const selectedObjects = objects || [primaryObject, sourceObject];
     
-    // Get related objects
-    // @ts-ignore
-    let relatedRows = store[sourceObject];
-    if (!relatedRows) {
-      const pluralKey = sourceObject + 's' as keyof Warehouse;
-      relatedRows = store[pluralKey];
-    }
+    // Build lookup maps for all related objects
+    const relatedMaps = new Map<string, Map<string, any>>();
+    const bridgeMaps = new Map<string, Map<string, any[]>>();
     
-    if (relatedRows && Array.isArray(relatedRows)) {
-      // Build lookup map for join
-      const relatedMap = new Map(relatedRows.map((r: any) => [r.id, r]));
+    for (const obj of selectedObjects) {
+      if (obj === primaryObject) continue;
       
-      // Join: add qualified field to each row
-      rows = rows.map(row => {
-        const relatedId = row[foreignKey];
-        const relatedRow = relatedId ? relatedMap.get(relatedId) : null;
-        const qualifiedField = `${sourceObject}.${field}`;
-        return {
-          ...row,
-          [qualifiedField]: relatedRow ? relatedRow[field] : null,
-        };
-      });
+      // @ts-ignore
+      let objTable = store[obj];
+      if (!objTable) {
+        const pluralKey = obj + 's' as keyof Warehouse;
+        objTable = store[pluralKey];
+      }
+      
+      if (objTable && Array.isArray(objTable)) {
+        // Build direct lookup map
+        relatedMaps.set(obj, new Map(objTable.map((r: any) => [r.id, r])));
+        
+        // Build reverse indexes for foreign keys (bridge maps)
+        if (objTable.length > 0) {
+          const sampleRecord = objTable[0];
+          for (const key of Object.keys(sampleRecord)) {
+            if (key.endsWith('_id') && key !== 'id') {
+              const foreignObject = key.replace(/_id$/, '');
+              const bridgeKey = `${obj}_by_${foreignObject}`;
+              const reverseMap = new Map<string, any[]>();
+              
+              for (const r of objTable) {
+                const fkValue = r[key];
+                if (fkValue) {
+                  if (!reverseMap.has(fkValue)) {
+                    reverseMap.set(fkValue, []);
+                  }
+                  reverseMap.get(fkValue)!.push(r);
+                }
+              }
+              
+              bridgeMaps.set(bridgeKey, reverseMap);
+            }
+          }
+        }
+      }
     }
+    
+    // Join: add qualified field to each row using multi-hop join logic
+    const qualifiedField = `${sourceObject}.${field}`;
+    rows = rows.map(row => {
+      let joinedValue = null;
+      
+      // Strategy 1: Try 1-hop direct FK
+      const foreignKey = `${sourceObject}_id`;
+      const relatedId = row[foreignKey];
+      const relatedMap = relatedMaps.get(sourceObject);
+      
+      if (relatedId && relatedMap) {
+        const relatedRow = relatedMap.get(relatedId);
+        if (relatedRow) {
+          joinedValue = relatedRow[field];
+        }
+      }
+      
+      // Strategy 2: Try reverse lookup (target object has primary_object_id)
+      if (joinedValue === null) {
+        const bridgeKey = `${sourceObject}_by_${primaryObject}`;
+        const bridgeRecords = bridgeMaps.get(bridgeKey);
+        if (bridgeRecords) {
+          const records = bridgeRecords.get(row.id);
+          if (records && records.length > 0) {
+            joinedValue = records[0][field];
+          }
+        }
+      }
+      
+      // Strategy 3: Try 2-hop join through intermediate bridge table (reverse map)
+      if (joinedValue === null) {
+        for (const intermediateObj of selectedObjects) {
+          if (intermediateObj === sourceObject || intermediateObj === primaryObject) continue;
+          
+          const primaryToBridge = `${intermediateObj}_by_${primaryObject}`;
+          const bridgeToTarget = relatedMaps.get(sourceObject);
+          
+          const primaryBridgeRecords = bridgeMaps.get(primaryToBridge);
+          if (primaryBridgeRecords && bridgeToTarget) {
+            const bridgeRecords = primaryBridgeRecords.get(row.id);
+            if (bridgeRecords && bridgeRecords.length > 0) {
+              const targetFk = `${sourceObject}_id`;
+              for (const bridgeRecord of bridgeRecords) {
+                if (bridgeRecord[targetFk]) {
+                  const targetRecord = bridgeToTarget.get(bridgeRecord[targetFk]);
+                  if (targetRecord) {
+                    joinedValue = targetRecord[field];
+                    break;
+                  }
+                }
+              }
+              if (joinedValue !== null) break;
+            }
+          }
+          
+          // Strategy 4: Forward traversal (primary.intermediate_id -> intermediate -> target)
+          // e.g., refund.charge_id -> charge -> charge.customer_id -> customer
+          if (joinedValue === null) {
+            const intermediateFk = `${intermediateObj}_id`;
+            const intermediateId = row[intermediateFk];
+            const intermediateMap = relatedMaps.get(intermediateObj);
+            
+            if (intermediateId && intermediateMap) {
+              const intermediateRecord = intermediateMap.get(intermediateId);
+              if (intermediateRecord) {
+                const targetFk = `${sourceObject}_id`;
+                const targetId = intermediateRecord[targetFk];
+                const targetMap = relatedMaps.get(sourceObject);
+                
+                if (targetId && targetMap) {
+                  const targetRecord = targetMap.get(targetId);
+                  if (targetRecord) {
+                    joinedValue = targetRecord[field];
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      return {
+        ...row,
+        [qualifiedField]: joinedValue,
+      };
+    });
   }
 
   // If no rows after filtering, return zero/null

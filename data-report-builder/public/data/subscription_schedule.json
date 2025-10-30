@@ -1,0 +1,712 @@
+[
+  {
+    "id": "sub_sched_lAOjAAacK47CHbdb8JrCPTFN",
+    "customer_id": "cus_zMM3kvyEgPfAUPcRHNs4EGVf",
+    "subscription_id": "sub_SykGg5n31TfnAjBB2AbO3HvD",
+    "status": "not_started",
+    "created": "2025-05-20T10:32:49.440Z",
+    "current_phase_start": "2025-10-30T21:20:24.963Z",
+    "current_phase_end": "2025-10-30T21:20:24.963Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_CAZNGQih7eNN8drhlxtPYUFt",
+    "customer_id": "cus_caoaFNINZqvfIOibIIZJ2qUJ",
+    "subscription_id": "sub_kOKMs9oLz4quj8VPuYkQrT8s",
+    "status": "active",
+    "created": "2020-11-17T23:34:57.267Z",
+    "current_phase_start": "2023-07-20T04:20:59.425Z",
+    "current_phase_end": "2023-08-20T04:20:59.425Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_A2gc386DrPuS124qbqsBS5KW",
+    "customer_id": "cus_3HKpqsYhshwWe7t7ujih3wnM",
+    "subscription_id": "sub_4D8e8ktyac7Llip8EKMWYOD3",
+    "status": "active",
+    "created": "2025-04-28T22:54:44.879Z",
+    "current_phase_start": "2025-04-29T17:15:19.383Z",
+    "current_phase_end": "2025-05-29T17:15:19.383Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_gVVqT2kkDu71exWLjkkdEwjZ",
+    "customer_id": "cus_FguuiduVDAecQv1iWbPune8v",
+    "subscription_id": "sub_5VV2y0MhpEd05v9aDDx7QoOk",
+    "status": "active",
+    "created": "2025-01-21T18:28:03.781Z",
+    "current_phase_start": "2025-01-23T18:48:00.498Z",
+    "current_phase_end": "2025-02-23T18:48:00.498Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_WlrtFv23GSxg7Ng4uMPohof3",
+    "customer_id": "cus_fcvw1UXbTaDPyoomLZe8aHjq",
+    "subscription_id": "sub_HXH0fWzJuCCB9jVAeI5emnhW",
+    "status": "active",
+    "created": "2025-03-16T19:59:13.823Z",
+    "current_phase_start": "2025-03-18T03:05:31.861Z",
+    "current_phase_end": "2025-04-18T03:05:31.861Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_EfdDZB59MWMmQXgEp0dzRdIj",
+    "customer_id": "cus_9EBFh3r0ygaYWvFJs4F4wHmx",
+    "subscription_id": "sub_gMvzuISFljH9qeVCpWqWAw4O",
+    "status": "active",
+    "created": "2025-04-05T17:07:17.400Z",
+    "current_phase_start": "2025-04-07T02:21:03.192Z",
+    "current_phase_end": "2025-04-08T02:21:03.192Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_zG8wJdAbxUot1Vh74hWEUxwy",
+    "customer_id": "cus_VrkQ9O7civolDfCWr86SC7uP",
+    "subscription_id": "sub_VVk320pbIzjlkKOffPtfiLsE",
+    "status": "not_started",
+    "created": "2025-05-18T13:18:25.092Z",
+    "current_phase_start": "2025-10-30T21:20:24.963Z",
+    "current_phase_end": "2025-10-30T21:20:24.963Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_frBpCMrbDMYIZNbRIVsTeE5a",
+    "customer_id": "cus_BO2vWGQ8EDlDP7T57za4G1WM",
+    "subscription_id": "sub_8ZddakSAI65MLBoeiii3kzUy",
+    "status": "active",
+    "created": "2025-07-06T02:21:21.221Z",
+    "current_phase_start": "2025-10-06T02:21:21.221Z",
+    "current_phase_end": "2025-10-07T02:21:21.221Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_0DJVozkqAkV42gUDcaEyRo5s",
+    "customer_id": "cus_WNzbWLkrYLM1afaTN2DyZRUF",
+    "subscription_id": "sub_S9sY8ZzJ5TrZYM8gQDhzmDHZ",
+    "status": "completed",
+    "created": "2025-09-19T23:47:37.495Z",
+    "current_phase_start": "2025-08-24T12:53:02.093Z",
+    "current_phase_end": "2025-10-30T13:37:22.753Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_0QXHx9qZuodRDtPw53Jyd9oE",
+    "customer_id": "cus_Kyb2j53sfENFybWqs9aGrFOk",
+    "subscription_id": "sub_GU5FuKO7Zmx1Ukk8Qn1CguYp",
+    "status": "active",
+    "created": "2025-05-20T08:08:37.112Z",
+    "current_phase_start": "2025-08-01T08:30:59.551Z",
+    "current_phase_end": "2025-09-01T08:30:59.551Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_IsGbGlKURDwfiikqjROakqk3",
+    "customer_id": "cus_UD20XQzQgkeOh4kc5XhqW35l",
+    "subscription_id": "sub_VRbS9474eZArfghFjzlWFM91",
+    "status": "active",
+    "created": "2023-06-04T00:40:19.576Z",
+    "current_phase_start": "2025-09-06T08:46:42.963Z",
+    "current_phase_end": "2025-09-13T08:46:42.963Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_zY7CY74UbYR8EYc7OSDLhMuk",
+    "customer_id": "cus_7JJw6zqNiakyMm6RbMcyt53J",
+    "subscription_id": "sub_0LdPKfUMA8ZYn00YgG02RHdm",
+    "status": "not_started",
+    "created": "2025-05-25T15:02:33.744Z",
+    "current_phase_start": "2025-10-30T21:20:24.963Z",
+    "current_phase_end": "2025-10-30T21:20:24.963Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_tvfkTRCh7XWSp9PFyXWuaLuB",
+    "customer_id": "cus_Ajlaht1GJE6iCIUgZd2JaNKZ",
+    "subscription_id": "sub_hTvMukBEa6OLIMeBhKuB9PJq",
+    "status": "not_started",
+    "created": "2025-05-03T09:59:17.589Z",
+    "current_phase_start": "2025-10-30T21:20:24.963Z",
+    "current_phase_end": "2025-10-30T21:20:24.963Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_XpU1pRG9XzDkFFCpS7kzYrpv",
+    "customer_id": "cus_VMjTW0czj9me2k923CrZUuU4",
+    "subscription_id": "sub_uV1xnuldAaROD1ii50I9tl8i",
+    "status": "not_started",
+    "created": "2025-08-22T13:14:56.254Z",
+    "current_phase_start": "2025-10-30T21:20:24.963Z",
+    "current_phase_end": "2025-10-30T21:20:24.963Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_KdzY4ryCBIp6ZvdcrizRx30Q",
+    "customer_id": "cus_BVLA6PJ35bK6TuusobOYmRiM",
+    "subscription_id": "sub_A5h93nG3lFxHm3X46YquMnFQ",
+    "status": "not_started",
+    "created": "2025-07-31T19:55:58.949Z",
+    "current_phase_start": "2025-10-30T21:20:24.963Z",
+    "current_phase_end": "2025-10-30T21:20:24.963Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_awkZUCg96RtcJqHD7p7wcmqk",
+    "customer_id": "cus_v4xyY4N6ssPsi9n6NBdtW2SU",
+    "subscription_id": "sub_niA8CY5kusr25CRG936jqNpd",
+    "status": "active",
+    "created": "2025-07-02T20:48:51.409Z",
+    "current_phase_start": "2025-10-04T03:48:33.235Z",
+    "current_phase_end": "2025-11-04T04:48:33.235Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_AT3S1bBU1OEH9moHFLqIARKo",
+    "customer_id": "cus_dP86oqFHgLJXpLF5MmyTw3Gf",
+    "subscription_id": "sub_GpEeTA4ZUGN4Lpb0okiFNfHt",
+    "status": "not_started",
+    "created": "2025-09-14T17:01:46.875Z",
+    "current_phase_start": "2025-10-30T21:20:24.963Z",
+    "current_phase_end": "2025-10-30T21:20:24.963Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_d57kYpjpZVNFXgbYG5peLW8q",
+    "customer_id": "cus_nyiUsNUw9Qgo3geRDLYuAHLB",
+    "subscription_id": "sub_U7bYFXdy3DEqpQAn0re0Waj1",
+    "status": "not_started",
+    "created": "2025-10-12T12:32:09.880Z",
+    "current_phase_start": "2025-10-30T21:20:24.963Z",
+    "current_phase_end": "2025-10-30T21:20:24.963Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_Clid5kT5dsmaCTmrVQnma1ME",
+    "customer_id": "cus_gacEf4E2q0Zvl7oTM89FCVh7",
+    "subscription_id": "sub_E54jXRg1LwB3GhjsYqfEO8ML",
+    "status": "completed",
+    "created": "2025-02-02T20:54:49.646Z",
+    "current_phase_start": "2025-01-31T04:09:49.364Z",
+    "current_phase_end": "2025-10-30T19:54:02.006Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_3ha5chRNxGgM4ln6kejmonXc",
+    "customer_id": "cus_ipadaJWROp1f24MYPE5ZFQEi",
+    "subscription_id": "sub_LjqxMTmE27qSqzYium6yw0K7",
+    "status": "active",
+    "created": "2025-09-16T02:18:14.902Z",
+    "current_phase_start": "2025-10-17T14:55:09.132Z",
+    "current_phase_end": "2025-11-17T15:55:09.132Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_aMuZz08zCk0wq8KIzk3j3F90",
+    "customer_id": "cus_9myEudOFWN5ZG0CmmF4Nzyjb",
+    "subscription_id": "sub_yfWKm0ce4O1SEMCAqe5UU6cN",
+    "status": "active",
+    "created": "2025-07-17T08:34:49.904Z",
+    "current_phase_start": "2025-07-19T06:41:11.376Z",
+    "current_phase_end": "2025-08-19T06:41:11.376Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_Bp35EEi9fyXt4qcv2KDgCjog",
+    "customer_id": "cus_nZyjzXXPnWs3DeztEaqXXpHa",
+    "subscription_id": "sub_zw7O8Hs5DvqpczFaqaqwLVZg",
+    "status": "active",
+    "created": "2025-07-10T12:16:28.345Z",
+    "current_phase_start": "2025-07-12T03:54:01.047Z",
+    "current_phase_end": "2025-07-19T03:54:01.047Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_ns8esmbdPMGVjTJpQkHpecRF",
+    "customer_id": "cus_NzYDTulIvdfNuUWxfImuelEj",
+    "subscription_id": "sub_gyAN6DylAUR5JKGLCJW48itX",
+    "status": "released",
+    "created": "2025-02-02T18:57:53.658Z",
+    "current_phase_start": "2025-05-17T10:02:32.150Z",
+    "current_phase_end": "2025-06-17T10:02:32.150Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_vZedKsZge6Co0jefT1rxIgrC",
+    "customer_id": "cus_rukMge6a8lx91ojTZdoesug9",
+    "subscription_id": "sub_zi1d8W4R7SkMvQgJlAzYGxzJ",
+    "status": "active",
+    "created": "2025-08-21T04:44:11.829Z",
+    "current_phase_start": "2025-10-25T06:30:54.803Z",
+    "current_phase_end": "2025-11-25T07:30:54.803Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_QebaXJXCnLQragEcF73bbV8H",
+    "customer_id": "cus_hqWglfdXSg7wOuWTyJYJ70yS",
+    "subscription_id": "sub_0wSxXMrl4yjisjgvgliMlgBj",
+    "status": "not_started",
+    "created": "2023-06-10T09:31:52.336Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_Swcta0JE0popcUq6SlY7j9v9",
+    "customer_id": "cus_TpY013E7WalvDOVX7AHD5qPo",
+    "subscription_id": "sub_OTd4QIRTy7EhyZo1DBMzUjpE",
+    "status": "not_started",
+    "created": "2025-03-09T12:45:18.249Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_4gE0mvyY60j3RYDOpcpPSwBl",
+    "customer_id": "cus_VFvlJhsUqzH5a0yoRlL3eArv",
+    "subscription_id": "sub_R9fWnFQUcr3GmITqZS1XF5WP",
+    "status": "active",
+    "created": "2025-06-04T23:43:35.377Z",
+    "current_phase_start": "2025-07-05T08:53:31.808Z",
+    "current_phase_end": "2026-07-05T08:53:31.808Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_KVu3JWHltkkGtQk4tCa2UGw3",
+    "customer_id": "cus_Isj9upu874iXXLUHuzYBERdd",
+    "subscription_id": "sub_MiJibUfT587ZOa1XsAd3yk2S",
+    "status": "not_started",
+    "created": "2025-03-11T17:47:14.888Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_UqdNW7d8nzJ9mbqpObGNmYni",
+    "customer_id": "cus_aQCBDa6S7cw8yp13TKZjmZFA",
+    "subscription_id": "sub_P3L74UzJV7sYzdyohO2G7pEb",
+    "status": "active",
+    "created": "2025-02-08T06:03:45.328Z",
+    "current_phase_start": "2025-02-08T19:14:46.648Z",
+    "current_phase_end": "2025-03-08T19:14:46.648Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_u2mc1kW8l8DbNIMFL5SM6WDg",
+    "customer_id": "cus_QG5ooTMWyBK8qMOkqrMywxYb",
+    "subscription_id": "sub_y7E0CkL82dFtLVUlUGFTvDkv",
+    "status": "active",
+    "created": "2025-08-22T12:39:50.248Z",
+    "current_phase_start": "2025-09-26T23:25:44.710Z",
+    "current_phase_end": "2026-09-26T23:25:44.710Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_Qo1sKlECcv1oS72oDiJuLNsT",
+    "customer_id": "cus_NmFoxW9YQKYrUJG0jnAFx0BH",
+    "subscription_id": "sub_z2ZkNCtETTGmYj9uOyWCm6We",
+    "status": "active",
+    "created": "2025-06-05T23:13:15.693Z",
+    "current_phase_start": "2025-09-06T02:13:51.301Z",
+    "current_phase_end": "2025-09-13T02:13:51.301Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_47QCDjtTPqmFWWnAQUaRkeB2",
+    "customer_id": "cus_PHyHdGCI95WpDXP8vb3Tg3uM",
+    "subscription_id": "sub_SGyAaBk7JrYZieknhmu3TOKT",
+    "status": "active",
+    "created": "2025-02-23T10:44:54.848Z",
+    "current_phase_start": "2025-04-26T20:32:31.170Z",
+    "current_phase_end": "2026-04-26T20:32:31.170Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_L3VNZbOl4uiKAzM6qQYqEIvm",
+    "customer_id": "cus_X3r5AfhlYUVAsFil0yG4hPRa",
+    "subscription_id": "sub_nhCyGmtOB9KqSBW23k6qY17m",
+    "status": "not_started",
+    "created": "2025-02-12T18:34:04.771Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_MbEGFmVA0US43RCcgsvCw4vB",
+    "customer_id": "cus_xPS1f8UlFoYQFR5eRiwKa5rB",
+    "subscription_id": "sub_IYkZUwTEsq7MnusdbMGoVtwJ",
+    "status": "active",
+    "created": "2025-06-26T16:51:04.232Z",
+    "current_phase_start": "2025-09-27T01:28:46.854Z",
+    "current_phase_end": "2025-10-27T01:28:46.854Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_QEk6S6PXigPKScf7c7cEBPVB",
+    "customer_id": "cus_L6gYi7L2ZvNsXDPyIRJnUJNw",
+    "subscription_id": "sub_PKl8DgWJxuqjRW2GbsRv104Z",
+    "status": "released",
+    "created": "2025-08-20T01:55:28.527Z",
+    "current_phase_start": "2025-08-20T06:49:36.824Z",
+    "current_phase_end": "2025-08-21T06:49:36.824Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_Slb6EStqB7ViLquNbBEk4IhB",
+    "customer_id": "cus_aBXqVaXhgZfZpyh4AGVf8e8E",
+    "subscription_id": "sub_LiuoAdPKjRtuP5lq7H0rAzjE",
+    "status": "completed",
+    "created": "2025-04-19T13:18:06.846Z",
+    "current_phase_start": "2025-03-29T14:18:48.043Z",
+    "current_phase_end": "2025-10-30T12:20:05.372Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_iNJ7h44tEJKdr4kTzJAKWCXE",
+    "customer_id": "cus_K5gfzHBCMUSY8XVaycO5IQsf",
+    "subscription_id": "sub_qnOOR1nj1kJnHvY4MkUnc9Dq",
+    "status": "completed",
+    "created": "2025-07-25T18:40:49.782Z",
+    "current_phase_start": "2025-07-24T16:45:41.654Z",
+    "current_phase_end": "2025-10-30T06:43:35.938Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_vDqfHTSkc0M7sLvUxhjHcQIe",
+    "customer_id": "cus_nbr0co1FSbO4qbPExgz72gxH",
+    "subscription_id": "sub_BjHVI12eb0P8G5x6IbXTNyZW",
+    "status": "active",
+    "created": "2025-05-29T20:19:44.581Z",
+    "current_phase_start": "2025-05-30T13:19:16.717Z",
+    "current_phase_end": "2025-06-30T13:19:16.717Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_JtJJ2Lgd3dBUn0vq4Cc8DEhC",
+    "customer_id": "cus_g2t0qnWjxJGBXK7Y5UPjdEcS",
+    "subscription_id": "sub_AnOPODU2gK8gq8v1BNcl9h8m",
+    "status": "active",
+    "created": "2025-05-18T23:00:29.346Z",
+    "current_phase_start": "2025-10-18T23:00:29.346Z",
+    "current_phase_end": "2025-10-25T23:00:29.346Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_Zk6fHaxbhUptdgjFr6IwmLSx",
+    "customer_id": "cus_bHXlFvi4DwYoS2IfafHnERlc",
+    "subscription_id": "sub_8qmwpxO6lfTtW3mz0JqXgxts",
+    "status": "completed",
+    "created": "2025-04-09T04:58:58.353Z",
+    "current_phase_start": "2025-03-22T03:43:01.380Z",
+    "current_phase_end": "2025-10-29T22:00:30.755Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_oOtGkh0LuOmzELjSqvZQNxnB",
+    "customer_id": "cus_5gSKKEMM1cytM7O6CKO7FYoX",
+    "subscription_id": "sub_yGQSsKlxqbBkb1jaEMA0dXle",
+    "status": "not_started",
+    "created": "2020-11-15T05:07:29.869Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_iAhFJh5eiRHPaiLunTNO2fcZ",
+    "customer_id": "cus_9R7Cq01xBftsAKF1E1GbtSgX",
+    "subscription_id": "sub_UI0olNtfwJTu2ZricnxGP9zB",
+    "status": "active",
+    "created": "2025-10-18T08:19:46.699Z",
+    "current_phase_start": "2025-10-19T04:20:30.092Z",
+    "current_phase_end": "2025-10-26T04:20:30.092Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_DAq4xgYv7GlgSn3mLisDY8ve",
+    "customer_id": "cus_aWBvOaRHbhoHmkjdEF11MftO",
+    "subscription_id": "sub_yFyqZ1SCO90FhRM0U5wlpgkX",
+    "status": "active",
+    "created": "2025-04-28T00:35:00.232Z",
+    "current_phase_start": "2025-10-01T12:08:03.750Z",
+    "current_phase_end": "2025-10-08T12:08:03.750Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_DFDlacFpsm70BNMzk5K9nkwn",
+    "customer_id": "cus_JeP3DciWBKUc9XwRiprsxT7D",
+    "subscription_id": "sub_9xs22DX5puSQsdi3ebpSAoK1",
+    "status": "not_started",
+    "created": "2025-05-17T15:42:21.761Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_Oyo6w5QisgXMXNFEzEqOUPE9",
+    "customer_id": "cus_eRsC2xfdemIckSda4HQ1MBkK",
+    "subscription_id": "sub_1jJNqhKoeAuNvgwRqhPnrfWy",
+    "status": "not_started",
+    "created": "2025-03-29T17:29:32.160Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_0TBpvB0EhdDKzeMn3B2tMKnU",
+    "customer_id": "cus_UWzMsA02ouXnecCBsC7lMBDQ",
+    "subscription_id": "sub_if6lbgjC7PLZEGUN14CZE8Xe",
+    "status": "released",
+    "created": "2025-05-29T12:01:05.546Z",
+    "current_phase_start": "2025-07-29T22:11:37.815Z",
+    "current_phase_end": "2025-08-29T22:11:37.815Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_ZYqIXQnkkUzvwLmd1dV5Jyb6",
+    "customer_id": "cus_fcvw1UXbTaDPyoomLZe8aHjq",
+    "subscription_id": "sub_qHEHs8Ifw3F9RSQtX7KehIzU",
+    "status": "active",
+    "created": "2025-04-17T20:44:24.680Z",
+    "current_phase_start": "2025-07-20T14:15:04.479Z",
+    "current_phase_end": "2026-07-20T14:15:04.479Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_29FrgCiJewgk9kAIyn8UM7QH",
+    "customer_id": "cus_lDDOcgKCeJRBMQBy54ew3rn2",
+    "subscription_id": "sub_UAVJ1KzUDCZbp94oUzbe7XnM",
+    "status": "completed",
+    "created": "2025-08-29T14:57:55.093Z",
+    "current_phase_start": "2025-08-18T15:43:53.319Z",
+    "current_phase_end": "2025-10-30T11:26:34.410Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_xdVhijc00ZYr15XwyiWv0l67",
+    "customer_id": "cus_JJNQoCCzBXuuIN0yemcb0fr6",
+    "subscription_id": "sub_BiXbcFDpvQzPNZ99mvlAH5ea",
+    "status": "active",
+    "created": "2025-01-11T21:19:52.812Z",
+    "current_phase_start": "2025-10-13T04:28:11.078Z",
+    "current_phase_end": "2025-11-13T05:28:11.078Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_B9rpKQNyaP8Md6Mqb8fof3dq",
+    "customer_id": "cus_yHpz72LwkDhlA8lwTy7rKL8t",
+    "subscription_id": "sub_nTGamnQ4bheG2ztB1gvxIsQe",
+    "status": "completed",
+    "created": "2025-10-25T23:14:56.940Z",
+    "current_phase_start": "2025-10-13T11:28:51.533Z",
+    "current_phase_end": "2025-10-29T23:11:54.360Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_7A2mucF85CruTcq7ewdxQ6go",
+    "customer_id": "cus_nZOMPyhAnCZsidZkptbFCY7G",
+    "subscription_id": "sub_9fIRP9LVLFWqij76K8HA4Em3",
+    "status": "not_started",
+    "created": "2025-05-24T23:48:16.217Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_7fqIT15vXIYMRdG3Px6rvBZy",
+    "customer_id": "cus_t9uZY3uoWSJlr2C5KYb1ejwL",
+    "subscription_id": "sub_Gci8YeaNY1MGb0BwTzVAJBko",
+    "status": "active",
+    "created": "2025-10-18T01:00:48.887Z",
+    "current_phase_start": "2025-10-20T19:17:44.894Z",
+    "current_phase_end": "2025-11-20T20:17:44.894Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_WLoFFPPDdZaMiLnmx7kNGwE3",
+    "customer_id": "cus_TpY013E7WalvDOVX7AHD5qPo",
+    "subscription_id": "sub_3oseyxF3U4l6dH7IfXHfipY2",
+    "status": "completed",
+    "created": "2025-03-26T18:44:52.965Z",
+    "current_phase_start": "2025-03-08T22:55:53.626Z",
+    "current_phase_end": "2025-10-30T11:35:24.822Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_vctYCFG2DVlfTzv768THzLYP",
+    "customer_id": "cus_dBSyZCNjtrlfXufX1EUhttCt",
+    "subscription_id": "sub_5W9Vq245478Paj1rQwBuhCsH",
+    "status": "active",
+    "created": "2025-06-30T10:45:16.893Z",
+    "current_phase_start": "2025-09-02T23:14:42.761Z",
+    "current_phase_end": "2025-10-02T23:14:42.761Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_EZuWo1yP7uJJUCWmM1bRhQ4O",
+    "customer_id": "cus_tiuuevbF1sqLPslrKdl5DIMl",
+    "subscription_id": "sub_RLemHtiX8kKIWzJ2jIRGG5pU",
+    "status": "not_started",
+    "created": "2025-01-20T07:25:07.051Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_8RIn2CZCv1469KYHSZTESNqJ",
+    "customer_id": "cus_wE6JLGwoYVsKWoWfwY6az9jR",
+    "subscription_id": "sub_gxwhDpe65TJcInSuTsj9B6BP",
+    "status": "not_started",
+    "created": "2025-06-16T11:58:20.547Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_JyilJ9KNYuPgSoYsAlGSIw0X",
+    "customer_id": "cus_NCkFF5zG9GnsWXwr4jdeqgLY",
+    "subscription_id": "sub_JDLlZQBvqf1YgtcjTySliN3W",
+    "status": "completed",
+    "created": "2025-02-20T00:47:35.894Z",
+    "current_phase_start": "2025-02-08T23:33:11.484Z",
+    "current_phase_end": "2025-10-30T08:04:07.687Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_LmwRDrUrsvjvsg61lD078qDl",
+    "customer_id": "cus_4QZim0mBzTM8q8DtfcLFzCH8",
+    "subscription_id": "sub_2e5loewD1niW8LCeXUKCYuRy",
+    "status": "active",
+    "created": "2025-04-01T09:41:53.337Z",
+    "current_phase_start": "2025-04-05T08:36:57.285Z",
+    "current_phase_end": "2025-04-12T08:36:57.285Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_W4l5lCdhkN8dBD4yCqbf9hqz",
+    "customer_id": "cus_gacEf4E2q0Zvl7oTM89FCVh7",
+    "subscription_id": "sub_FXug0qTvna9ByVzrugl2rQT3",
+    "status": "not_started",
+    "created": "2025-08-12T06:38:02.526Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_0Ph220kc3fHNRseDLivnU0ao",
+    "customer_id": "cus_IOkWxXAvChI9I8IgC6f1zXqI",
+    "subscription_id": "sub_yXVeX14tQ6qlNqeMnQesBy7r",
+    "status": "completed",
+    "created": "2025-02-03T18:40:24.595Z",
+    "current_phase_start": "2025-02-01T01:24:06.065Z",
+    "current_phase_end": "2025-10-30T02:35:19.130Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_Q5urxyyh67SD3SXR7HRGEWNU",
+    "customer_id": "cus_K2kMQhpWYwDocPUh1WexDfuq",
+    "subscription_id": "sub_rWvYkklSOe8RcluTwcocab4Q",
+    "status": "active",
+    "created": "2025-09-22T10:05:13.656Z",
+    "current_phase_start": "2025-10-24T22:30:34.054Z",
+    "current_phase_end": "2025-11-24T23:30:34.054Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_lXWPpcAMd6O8R5onLryOxT7j",
+    "customer_id": "cus_QcIs8YylYOuNL4bqVk83QzxO",
+    "subscription_id": "sub_3uXHg9ZHZNpZwww4c5YFyng3",
+    "status": "active",
+    "created": "2025-06-08T23:30:18.062Z",
+    "current_phase_start": "2025-08-11T10:35:03.561Z",
+    "current_phase_end": "2025-09-11T10:35:03.561Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_wW6HKEXdoLvWRiX40XEBmVrq",
+    "customer_id": "cus_5IX5W8oveH86zLopAiR98tRT",
+    "subscription_id": "sub_EX8JHqasna9UQwv26fwA5eqD",
+    "status": "not_started",
+    "created": "2020-09-12T21:05:02.253Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_shiYhEKHxKbqpvPPObkQmHS9",
+    "customer_id": "cus_m6krDRIg87C5bY6vOLPuONcf",
+    "subscription_id": "sub_bDprGhA5ogY4geKqyOnmjZGV",
+    "status": "not_started",
+    "created": "2023-12-11T19:18:43.820Z",
+    "current_phase_start": "2025-10-30T21:20:24.964Z",
+    "current_phase_end": "2025-10-30T21:20:24.964Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_vaO5HZcYm9oDC16bvpiP8qHi",
+    "customer_id": "cus_EV9DSjB1q0hoVTuPmEZLTM1R",
+    "subscription_id": "sub_aNu5cPEmIk9usrO6OaHNDxfI",
+    "status": "active",
+    "created": "2025-08-13T05:08:02.862Z",
+    "current_phase_start": "2025-08-14T09:25:29.128Z",
+    "current_phase_end": "2025-09-14T09:25:29.128Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_DIr9Out8gL6PK1NAnCRMh8VY",
+    "customer_id": "cus_ipadaJWROp1f24MYPE5ZFQEi",
+    "subscription_id": "sub_H8VgYp5h6dQfLxevxs8bVXdS",
+    "status": "active",
+    "created": "2025-09-01T19:17:16.510Z",
+    "current_phase_start": "2025-10-12T19:19:03.031Z",
+    "current_phase_end": "2025-10-19T19:19:03.031Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_hGAZRB6XWAr0VG0sXqEBCbXf",
+    "customer_id": "cus_4tcP5DnnVqdXrSPnkfw77rqE",
+    "subscription_id": "sub_tIUU0CoGBi9Hrhwxzt2u7YzH",
+    "status": "active",
+    "created": "2025-07-15T00:53:06.555Z",
+    "current_phase_start": "2025-09-21T02:57:18.406Z",
+    "current_phase_end": "2025-09-22T02:57:18.406Z",
+    "end_behavior": "cancel"
+  },
+  {
+    "id": "sub_sched_lOF5kCfMT2UZ5jfYsyC1WeUz",
+    "customer_id": "cus_w2DIUccx3u246dCsLppGEkvB",
+    "subscription_id": "sub_Q5FVxZdZpFC6bvgVzQnANY9A",
+    "status": "active",
+    "created": "2025-03-02T20:43:32.974Z",
+    "current_phase_start": "2025-06-03T15:32:52.795Z",
+    "current_phase_end": "2025-06-10T15:32:52.795Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_OCMb6AMKOnThqyr88cBX42IV",
+    "customer_id": "cus_EqD5KJUrbWi67LZT2OFAwsRy",
+    "subscription_id": "sub_lgUy0gsL0b1MEq47hfbAae1U",
+    "status": "active",
+    "created": "2025-08-11T18:56:30.198Z",
+    "current_phase_start": "2025-08-13T17:27:18.437Z",
+    "current_phase_end": "2025-09-13T17:27:18.437Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_WHlcXcRpsEUw7qKIVZNTCH9Z",
+    "customer_id": "cus_TreavAd2J3O7JIGF1JtYncTN",
+    "subscription_id": "sub_3jJVLLbXdpAkxXBv0xliuBYX",
+    "status": "active",
+    "created": "2025-01-16T18:39:14.895Z",
+    "current_phase_start": "2025-01-16T18:39:14.895Z",
+    "current_phase_end": "2025-02-16T18:39:14.895Z",
+    "end_behavior": "release"
+  },
+  {
+    "id": "sub_sched_OOseFkOM6BwIRFThHNV0FD4d",
+    "customer_id": "cus_WhumpB3buxf0pe3Dy51EwOcp",
+    "subscription_id": "sub_qTe3sB31FMZaUQirVnlwyTMH",
+    "status": "active",
+    "created": "2025-07-09T17:58:35.461Z",
+    "current_phase_start": "2025-09-10T11:36:08.236Z",
+    "current_phase_end": "2025-10-10T11:36:08.236Z",
+    "end_behavior": "release"
+  }
+]

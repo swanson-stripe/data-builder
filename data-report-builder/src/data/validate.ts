@@ -8,50 +8,65 @@ import { warehouse } from './warehouse';
 export function validateWarehouse() {
   const missing: string[] = [];
 
-  // Validate payment foreign keys
-  for (const p of warehouse.payments) {
-    if (!warehouse.customers.find(c => c.id === p.customer_id)) {
+  // Helper to safely get array (handles both singular and plural property names)
+  const getArray = (name: string): any[] => {
+    const w = warehouse as any;
+    return w[name] || w[name + 's'] || w[name.replace(/s$/, '')] || [];
+  };
+
+  // Validate payment foreign keys (legacy table - usually empty)
+  const payments = getArray('payment');
+  for (const p of payments) {
+    if (!getArray('customer').find((c: any) => c.id === p.customer_id)) {
       missing.push(`payment ${p.id} missing customer ${p.customer_id}`);
     }
-    if (p.payment_method_id && !warehouse.payment_methods.find(pm => pm.id === p.payment_method_id)) {
+    if (p.payment_method_id && !getArray('payment_method').find((pm: any) => pm.id === p.payment_method_id)) {
       missing.push(`payment ${p.id} missing payment_method ${p.payment_method_id}`);
     }
   }
 
   // Validate refund foreign keys
-  for (const r of warehouse.refunds) {
-    if (!warehouse.payments.find(p => p.id === r.payment_id)) {
-      missing.push(`refund ${r.id} missing payment ${r.payment_id}`);
+  const refunds = getArray('refund');
+  const charges = getArray('charge');
+  for (const r of refunds) {
+    // Refunds link to charges, not payments
+    if (!charges.find((c: any) => c.id === r.charge_id)) {
+      missing.push(`refund ${r.id} missing charge ${r.charge_id}`);
     }
   }
 
   // Validate subscription foreign keys
-  for (const s of warehouse.subscriptions) {
-    if (!warehouse.customers.find(c => c.id === s.customer_id)) {
+  const subscriptions = getArray('subscription');
+  const customers = getArray('customer');
+  for (const s of subscriptions) {
+    if (!customers.find((c: any) => c.id === s.customer_id)) {
       missing.push(`subscription ${s.id} missing customer ${s.customer_id}`);
     }
   }
 
   // Validate invoice foreign keys
-  for (const inv of warehouse.invoices) {
-    if (!warehouse.customers.find(c => c.id === inv.customer_id)) {
+  const invoices = getArray('invoice');
+  for (const inv of invoices) {
+    if (!customers.find((c: any) => c.id === inv.customer_id)) {
       missing.push(`invoice ${inv.id} missing customer ${inv.customer_id}`);
     }
-    if (inv.subscription_id && !warehouse.subscriptions.find(s => s.id === inv.subscription_id)) {
+    if (inv.subscription_id && !subscriptions.find((s: any) => s.id === inv.subscription_id)) {
       missing.push(`invoice ${inv.id} missing subscription ${inv.subscription_id}`);
     }
   }
 
   // Validate price foreign keys
-  for (const price of warehouse.prices) {
-    if (!warehouse.products.find(prod => prod.id === price.product_id)) {
+  const prices = getArray('price');
+  const products = getArray('product');
+  for (const price of prices) {
+    if (!products.find((prod: any) => prod.id === price.product_id)) {
       missing.push(`price ${price.id} missing product ${price.product_id}`);
     }
   }
 
   // Validate charge foreign keys
-  for (const charge of warehouse.charges) {
-    if (!warehouse.customers.find(c => c.id === charge.customer_id)) {
+  for (const charge of charges) {
+    if (!customers.find((c: any) => c.id === charge.customer_id)) {
       missing.push(`charge ${charge.id} missing customer ${charge.customer_id}`);
     }
   }

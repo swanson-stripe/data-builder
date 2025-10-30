@@ -86,6 +86,10 @@ export function buildDataListView(opts: {
 
   // Build lookup maps for related objects
   const relatedMaps = new Map<string, Map<string, any>>();
+  
+  // Build reverse lookup maps for bridge tables (e.g., subscription_item by subscription_id)
+  const bridgeMaps = new Map<string, Map<string, any[]>>();
+  
   for (const relatedObject of selectedObjects.slice(1)) {
     // @ts-ignore
     let relatedTable = store[relatedObject];
@@ -97,6 +101,31 @@ export function buildDataListView(opts: {
     if (relatedTable && Array.isArray(relatedTable)) {
       const lookupMap = new Map(relatedTable.map((r: any) => [r.id, r]));
       relatedMaps.set(relatedObject, lookupMap);
+      
+      // Build reverse indexes for foreign keys in this table
+      // This enables multi-hop joins (e.g., subscription -> subscription_item -> price)
+      if (relatedTable.length > 0) {
+        const sampleRecord = relatedTable[0];
+        for (const key of Object.keys(sampleRecord)) {
+          if (key.endsWith('_id') && key !== 'id') {
+            const foreignObject = key.replace(/_id$/, '');
+            const bridgeKey = `${relatedObject}_by_${foreignObject}`;
+            const reverseMap = new Map<string, any[]>();
+            
+            for (const r of relatedTable) {
+              const fkValue = r[key];
+              if (fkValue) {
+                if (!reverseMap.has(fkValue)) {
+                  reverseMap.set(fkValue, []);
+                }
+                reverseMap.get(fkValue)!.push(r);
+              }
+            }
+            
+            bridgeMaps.set(bridgeKey, reverseMap);
+          }
+        }
+      }
     }
   }
 
@@ -116,7 +145,7 @@ export function buildDataListView(opts: {
         // Direct field from primary object
         row.display[qualifiedKey] = record[f.field];
       } else {
-        // Join to related object
+        // Try 1-hop join first (direct foreign key)
         const foreignKey = `${f.object}_id`;
         const relatedId = record[foreignKey];
         const relatedMap = relatedMaps.get(f.object);
@@ -125,7 +154,77 @@ export function buildDataListView(opts: {
           const relatedRecord = relatedMap.get(relatedId);
           row.display[qualifiedKey] = relatedRecord ? relatedRecord[f.field] : null;
         } else {
-          row.display[qualifiedKey] = null;
+          // Try 2-hop join through bridge table
+          // e.g., subscription -> subscription_item -> price
+          let foundValue = null;
+          
+          // Look for bridge tables that connect primary object to target
+          const bridgeKey = `${f.object}_by_${primaryObject}`;
+          const bridgeRecords = bridgeMaps.get(bridgeKey);
+          
+          if (bridgeRecords) {
+            // Direct bridge: target_object has primary_object_id
+            const records = bridgeRecords.get(record.id);
+            if (records && records.length > 0) {
+              foundValue = records[0][f.field];
+            }
+          } else {
+            // Indirect bridge: look for intermediate table
+            // e.g., subscription -> subscription_item (bridge) -> price
+            for (const intermediateObject of selectedObjects.slice(1)) {
+              if (intermediateObject === f.object) continue;
+              
+              // Strategy 1: Use reverse bridge map (intermediate_by_primary)
+              const primaryToBridge = `${intermediateObject}_by_${primaryObject}`;
+              const bridgeToTarget = relatedMaps.get(f.object);
+              
+              const primaryBridgeRecords = bridgeMaps.get(primaryToBridge);
+              if (primaryBridgeRecords && bridgeToTarget) {
+                const bridgeRecords = primaryBridgeRecords.get(record.id);
+                if (bridgeRecords && bridgeRecords.length > 0) {
+                  // Check if bridge record has FK to target
+                  const targetFk = `${f.object}_id`;
+                  for (const bridgeRecord of bridgeRecords) {
+                    if (bridgeRecord[targetFk]) {
+                      const targetRecord = bridgeToTarget.get(bridgeRecord[targetFk]);
+                      if (targetRecord) {
+                        foundValue = targetRecord[f.field];
+                        break; // Use first match
+                      }
+                    }
+                  }
+                  if (foundValue !== null) break;
+                }
+              }
+              
+              // Strategy 2: Forward traversal (primary.intermediate_id -> intermediate -> target)
+              // e.g., refund.charge_id -> charge -> charge.customer_id -> customer
+              if (foundValue === null) {
+                const intermediateFk = `${intermediateObject}_id`;
+                const intermediateId = record[intermediateFk];
+                const intermediateMap = relatedMaps.get(intermediateObject);
+                
+                if (intermediateId && intermediateMap) {
+                  const intermediateRecord = intermediateMap.get(intermediateId);
+                  if (intermediateRecord) {
+                    const targetFk = `${f.object}_id`;
+                    const targetId = intermediateRecord[targetFk];
+                    const targetMap = relatedMaps.get(f.object);
+                    
+                    if (targetId && targetMap) {
+                      const targetRecord = targetMap.get(targetId);
+                      if (targetRecord) {
+                        foundValue = targetRecord[f.field];
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          
+          row.display[qualifiedKey] = foundValue;
         }
       }
     }

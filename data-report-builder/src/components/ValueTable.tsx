@@ -31,6 +31,7 @@ export function ValueTable() {
   };
 
   // Build PK include set from grid selection and field filters
+  // Value table SHOULD respond to grid selection (unlike the metric header)
   const includeSet = useMemo(() => {
     // If we have field filters, compute filtered PKs
     if (state.filters.conditions.length > 0 && state.selectedObjects.length > 0 && state.selectedFields.length > 0) {
@@ -175,10 +176,44 @@ export function ValueTable() {
     }
   }, [currentSeries, state.chart.comparison, state.chart.benchmark, state.start, state.end, state.granularity]);
 
-  // Get the most recent buckets to display (show last 6 periods)
-  const displayCount = Math.min(6, currentSeries.points.length);
-  const currentPoints = currentSeries.points.slice(-displayCount);
-  const comparisonPoints = comparisonSeries?.points.slice(-displayCount);
+  // Get buckets to display
+  // If data is selected (grid selection), show buckets containing selected data
+  // Otherwise, show last 6 periods
+  const { currentPoints, comparisonPoints: displayComparisonPoints } = useMemo(() => {
+    const displayCount = Math.min(6, currentSeries.points.length);
+    
+    // If no selection, show last N periods
+    if (!includeSet || includeSet.size === 0) {
+      return {
+        currentPoints: currentSeries.points.slice(-displayCount),
+        comparisonPoints: comparisonSeries?.points.slice(-displayCount),
+      };
+    }
+    
+    // Find buckets with non-zero values (containing selected data)
+    const bucketsWithData = currentSeries.points
+      .map((point, idx) => ({ point, idx }))
+      .filter(({ point }) => point.value > 0);
+    
+    // If we found buckets with data, show those (up to displayCount)
+    if (bucketsWithData.length > 0) {
+      // Take up to displayCount buckets, centered around the data
+      const startIdx = Math.max(0, bucketsWithData[0].idx - Math.floor(displayCount / 2));
+      const endIdx = Math.min(currentSeries.points.length, startIdx + displayCount);
+      const adjustedStartIdx = Math.max(0, endIdx - displayCount);
+      
+      return {
+        currentPoints: currentSeries.points.slice(adjustedStartIdx, endIdx),
+        comparisonPoints: comparisonSeries?.points.slice(adjustedStartIdx, endIdx),
+      };
+    }
+    
+    // Fallback to last N periods if no data found
+    return {
+      currentPoints: currentSeries.points.slice(-displayCount),
+      comparisonPoints: comparisonSeries?.points.slice(-displayCount),
+    };
+  }, [currentSeries, comparisonSeries, includeSet]);
 
   // Get comparison label
   const getComparisonLabel = () => {
@@ -230,8 +265,8 @@ export function ValueTable() {
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{currentSeries.label}</h3>
         <p className="text-xs text-gray-600 dark:text-gray-300">
           {comparisonSeries
-            ? `Current vs. ${getComparisonLabel()} • Last ${displayCount} periods`
-            : `Last ${displayCount} periods`}
+            ? `Current vs. ${getComparisonLabel()} • Last ${currentPoints.length} periods`
+            : `Last ${currentPoints.length} periods`}
         </p>
       </div>
 
@@ -286,12 +321,12 @@ export function ValueTable() {
             </tr>
 
             {/* Comparison row */}
-            {comparisonSeries && comparisonPoints && (
+            {comparisonSeries && displayComparisonPoints && (
               <tr className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 <td className="py-2 px-2 font-medium text-gray-500 dark:text-gray-400">
                   {getComparisonLabel()}
                 </td>
-                {comparisonPoints.map((point, idx) => (
+                {displayComparisonPoints.map((point, idx) => (
                   <td
                     key={idx}
                     className="text-right py-2 px-2 font-mono tabular-nums text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:bg-gray-100 dark:focus:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
@@ -304,11 +339,11 @@ export function ValueTable() {
             )}
 
             {/* Change row */}
-            {comparisonSeries && comparisonPoints && (
+            {comparisonSeries && displayComparisonPoints && (
               <tr className="hover:bg-green-50 dark:hover:bg-gray-700 transition-colors">
                 <td className="py-2 px-2 font-medium text-gray-700 dark:text-gray-300">Change</td>
                 {currentPoints.map((currentPoint, idx) => {
-                  const comparisonPoint = comparisonPoints[idx];
+                  const comparisonPoint = displayComparisonPoints[idx];
                   const change = percentageChange(
                     currentPoint.value,
                     comparisonPoint.value

@@ -140,6 +140,7 @@ export function ChartPanel() {
   }, [state.start, state.end, state.granularity]);
 
   // Build PK include set from grid selection and field filters
+  // Chart/table SHOULD respond to grid selection (unlike the metric header)
   const includeSet = useMemo(() => {
     // If we have field filters, compute filtered PKs
     if (state.filters.conditions.length > 0 && state.selectedObjects.length > 0 && state.selectedFields.length > 0) {
@@ -332,19 +333,28 @@ export function ChartPanel() {
       <div className="flex items-center justify-between mb-3 mt-3 gap-3">
         {/* Range presets */}
         <div className="flex gap-1" role="group" aria-label="Date range presets">
-          {rangePresets.map((preset) => (
-            <button
-              key={preset.label}
-              onClick={() => {
-                const range = preset.getValue();
-                dispatch(actions.setRange(range.start, range.end));
-              }}
-              className="px-2 py-1 text-xs border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label={`Set date range to ${preset.label}`}
-            >
-              {preset.label}
-            </button>
-          ))}
+          {rangePresets.map((preset) => {
+            const range = preset.getValue();
+            const isSelected = state.start === range.start && state.end === range.end;
+            
+            return (
+              <button
+                key={preset.label}
+                onClick={() => {
+                  dispatch(actions.setRange(range.start, range.end));
+                }}
+                className={`px-2 py-1 text-xs border rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  isSelected
+                    ? 'bg-blue-500 border-blue-500 text-white hover:bg-blue-600 dark:bg-blue-600 dark:border-blue-600 dark:hover:bg-blue-700'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                }`}
+                aria-label={`Set date range to ${preset.label}`}
+                aria-pressed={isSelected}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Granularity dropdown */}
@@ -426,6 +436,16 @@ export function ChartPanel() {
                   fontSize: '12px',
                 }}
                 wrapperClassName="dark:[&_.recharts-tooltip-wrapper]:bg-gray-800 dark:[&_.recharts-tooltip-wrapper]:border-gray-700"
+                formatter={(value: any) => {
+                  if (typeof value === 'number') {
+                    // Check if it's currency based on metric kind
+                    if (metricResult?.kind === 'currency') {
+                      return formatValue(value);
+                    }
+                    return value.toLocaleString();
+                  }
+                  return value;
+                }}
               />
               {comparisonSeries && <Legend />}
               <Line
@@ -500,6 +520,16 @@ export function ChartPanel() {
                   fontSize: '12px',
                 }}
                 wrapperClassName="dark:[&_.recharts-tooltip-wrapper]:bg-gray-800 dark:[&_.recharts-tooltip-wrapper]:border-gray-700"
+                formatter={(value: any) => {
+                  if (typeof value === 'number') {
+                    // Check if it's currency based on metric kind
+                    if (metricResult?.kind === 'currency') {
+                      return formatValue(value);
+                    }
+                    return value.toLocaleString();
+                  }
+                  return value;
+                }}
               />
               {comparisonSeries && <Legend />}
               {comparisonSeries && (
@@ -576,6 +606,16 @@ export function ChartPanel() {
                   fontSize: '12px',
                 }}
                 wrapperClassName="dark:[&_.recharts-tooltip-wrapper]:bg-gray-800 dark:[&_.recharts-tooltip-wrapper]:border-gray-700"
+                formatter={(value: any) => {
+                  if (typeof value === 'number') {
+                    // Check if it's currency based on metric kind
+                    if (metricResult?.kind === 'currency') {
+                      return formatValue(value);
+                    }
+                    return value.toLocaleString();
+                  }
+                  return value;
+                }}
               />
               {comparisonSeries && <Legend />}
               <Bar
