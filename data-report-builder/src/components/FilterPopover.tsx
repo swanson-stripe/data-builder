@@ -23,8 +23,25 @@ export function FilterPopover({
   hasActiveFilter,
 }: FilterPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [alignment, setAlignment] = useState<'left' | 'right'>('left');
   const popoverRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Determine optimal alignment based on viewport position
+  useEffect(() => {
+    if (!isOpen || !triggerRef.current) return;
+
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const popoverWidth = 320; // max-w-[320px]
+
+    // If there's not enough space on the right, align to the right
+    if (triggerRect.left + popoverWidth > viewportWidth - 20) {
+      setAlignment('right');
+    } else {
+      setAlignment('left');
+    }
+  }, [isOpen]);
 
   // Close popover when clicking outside
   useEffect(() => {
@@ -99,7 +116,9 @@ export function FilterPopover({
       {isOpen && (
         <div
           ref={popoverRef}
-          className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-[240px] max-w-[320px]"
+          className={`absolute top-full mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-[240px] max-w-[320px] ${
+            alignment === 'right' ? 'right-0' : 'left-0'
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="p-3 border-b border-gray-200 dark:border-gray-700">

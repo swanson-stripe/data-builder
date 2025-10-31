@@ -4,6 +4,7 @@ import { MetricDef, FilterCondition } from '@/types';
 import { AppAction } from '@/state/app';
 
 export type PresetKey =
+  | 'blank'
   | 'mrr'
   | 'gross_volume'
   | 'active_subscribers'
@@ -33,6 +34,20 @@ type PresetConfig = {
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
 export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
+  blank: {
+    key: 'blank',
+    label: '—', // Em dash for blank option
+    objects: [],
+    fields: [],
+    metric: {
+      name: 'Metric',
+      source: undefined,
+      op: 'sum',
+      type: 'sum_over_period',
+    },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
+  },
+
   mrr: {
     key: 'mrr',
     label: 'MRR',

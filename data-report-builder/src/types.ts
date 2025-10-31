@@ -32,6 +32,7 @@ export type SeriesPoint = {
 };
 
 export type ReportKey =
+  | 'blank'
   | 'mrr'
   | 'gross_volume'
   | 'active_subscribers'

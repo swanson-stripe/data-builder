@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useApp, actions } from '@/state/app';
 import {
   generateSeries,
@@ -16,7 +16,19 @@ import { applyFilters } from '@/lib/filters';
 
 export function ValueTable() {
   const { state, dispatch } = useApp();
-  const { store: warehouse, version } = useWarehouseStore();
+  const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
+
+  // Auto-load selected objects that aren't yet loaded
+  useEffect(() => {
+    state.selectedObjects.forEach((objectName) => {
+      if (!has(objectName as any)) {
+        console.log(`[ValueTable] Auto-loading missing entity: ${objectName}`);
+        loadEntity(objectName as any).catch((err) => {
+          console.error(`[ValueTable] Failed to load ${objectName}:`, err);
+        });
+      }
+    });
+  }, [state.selectedObjects, has, loadEntity]);
 
   // Handle bucket selection
   const handleBucketClick = (date: string) => {
@@ -167,55 +179,19 @@ export function ValueTable() {
         });
       }
 
-      case 'benchmark':
-        return createBenchmarkSeries(
-          currentSeries,
-          state.chart.benchmark || currentSeries.points[0]?.value || 0
-        );
-
       default:
         return null;
     }
-  }, [currentSeries, state.chart.comparison, state.chart.benchmark, state.start, state.end, state.granularity]);
+  }, [currentSeries, state.chart.comparison, state.start, state.end, state.granularity]);
 
-  // Get buckets to display
-  // If data is selected (grid selection), show buckets containing selected data
-  // Otherwise, show last 6 periods
+  // Get buckets to display - show ALL buckets in the selected date range
   const { currentPoints, comparisonPoints: displayComparisonPoints } = useMemo(() => {
-    const displayCount = Math.min(6, currentSeries.points.length);
-    
-    // If no selection, show last N periods
-    if (!includeSet || includeSet.size === 0) {
-      return {
-        currentPoints: currentSeries.points.slice(-displayCount),
-        comparisonPoints: comparisonSeries?.points.slice(-displayCount),
-      };
-    }
-    
-    // Find buckets with non-zero values (containing selected data)
-    const bucketsWithData = currentSeries.points
-      .map((point, idx) => ({ point, idx }))
-      .filter(({ point }) => point.value > 0);
-    
-    // If we found buckets with data, show those (up to displayCount)
-    if (bucketsWithData.length > 0) {
-      // Take up to displayCount buckets, centered around the data
-      const startIdx = Math.max(0, bucketsWithData[0].idx - Math.floor(displayCount / 2));
-      const endIdx = Math.min(currentSeries.points.length, startIdx + displayCount);
-      const adjustedStartIdx = Math.max(0, endIdx - displayCount);
-      
-      return {
-        currentPoints: currentSeries.points.slice(adjustedStartIdx, endIdx),
-        comparisonPoints: comparisonSeries?.points.slice(adjustedStartIdx, endIdx),
-      };
-    }
-    
-    // Fallback to last N periods if no data found
+    // Show all available points in the date range
     return {
-      currentPoints: currentSeries.points.slice(-displayCount),
-      comparisonPoints: comparisonSeries?.points.slice(-displayCount),
+      currentPoints: currentSeries.points,
+      comparisonPoints: comparisonSeries?.points,
     };
-  }, [currentSeries, comparisonSeries, includeSet]);
+  }, [currentSeries, comparisonSeries]);
 
   // Get comparison label
   const getComparisonLabel = () => {
@@ -226,8 +202,6 @@ export function ValueTable() {
         return 'Previous Period';
       case 'previous_year':
         return 'Previous Year';
-      case 'benchmark':
-        return 'Benchmark';
       default:
         return '';
     }
@@ -236,10 +210,10 @@ export function ValueTable() {
   // Get value kind from metric result
   const valueKind = metricResult.kind || 'number';
 
-  // Format value based on kind
+  // Format value based on kind (full values, not compact)
   const formatValue = (val: number) => {
     if (valueKind === 'currency') {
-      return currency(val, { compact: true });
+      return currency(val, { compact: false });
     } else {
       return number(val, { decimals: 0 });
     }
@@ -267,8 +241,8 @@ export function ValueTable() {
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{currentSeries.label}</h3>
         <p className="text-xs text-gray-600 dark:text-gray-300">
           {comparisonSeries
-            ? `Current vs. ${getComparisonLabel()} • Last ${currentPoints.length} periods`
-            : `Last ${currentPoints.length} periods`}
+            ? `Current vs. ${getComparisonLabel()} • ${currentPoints.length} periods`
+            : `${currentPoints.length} periods`}
         </p>
       </div>
 

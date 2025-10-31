@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useApp } from '@/state/app';
 import { computeMetric } from '@/lib/metrics';
 import { formatMetricValue, deltaCurrency, deltaNumber } from '@/lib/format';
@@ -11,6 +11,7 @@ import { applyFilters } from '@/lib/filters';
 
 // Map report keys to their full labels
 const REPORT_LABELS: Record<ReportKey, string> = {
+  blank: 'Custom Report',
   mrr: 'Monthly Recurring Revenue',
   gross_volume: 'Gross Volume',
   active_subscribers: 'Active Subscribers',
@@ -20,7 +21,19 @@ const REPORT_LABELS: Record<ReportKey, string> = {
 
 export function MetricHeader() {
   const { state } = useApp();
-  const { store: warehouse, version } = useWarehouseStore();
+  const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
+
+  // Auto-load selected objects that aren't yet loaded
+  useEffect(() => {
+    state.selectedObjects.forEach((objectName) => {
+      if (!has(objectName as any)) {
+        console.log(`[MetricHeader] Auto-loading missing entity: ${objectName}`);
+        loadEntity(objectName as any).catch((err) => {
+          console.error(`[MetricHeader] Failed to load ${objectName}:`, err);
+        });
+      }
+    });
+  }, [state.selectedObjects, has, loadEntity]);
 
   // Build PK include set from field filters only (exclude grid selection)
   // Grid selection should only affect chart/table, not the headline metric
@@ -73,21 +86,96 @@ export function MetricHeader() {
     state.selectedObjects,
   ]);
 
-  // Calculate delta (current vs previous bucket)
+  // Calculate delta based on selected comparison mode
   const delta = useMemo(() => {
-    if (!metricResult.series || metricResult.series.length < 2) {
+    // Only show delta if comparison is enabled
+    if (state.chart.comparison === 'none' || !metricResult.series || metricResult.series.length === 0) {
       return null;
     }
+
     const current = metricResult.series[metricResult.series.length - 1].value;
-    const previous = metricResult.series[metricResult.series.length - 2].value;
-    return current - previous;
-  }, [metricResult]);
+
+    switch (state.chart.comparison) {
+      case 'period_start': {
+        // Compare to first value in the period
+        if (metricResult.series.length < 1) return null;
+        const baseline = metricResult.series[0].value;
+        return { absolute: current - baseline, baseline };
+      }
+
+      case 'previous_period': {
+        // Compare to previous bucket
+        if (metricResult.series.length < 2) return null;
+        const previous = metricResult.series[metricResult.series.length - 2].value;
+        return { absolute: current - previous, baseline: previous };
+      }
+
+      case 'previous_year': {
+        // Compare to same bucket last year
+        // Find a bucket approximately 12 months ago
+        const currentBucket = metricResult.series[metricResult.series.length - 1];
+        const currentDate = new Date(currentBucket.date);
+        
+        // Go back one year
+        const targetDate = new Date(currentDate);
+        targetDate.setFullYear(targetDate.getFullYear() - 1);
+        
+        // Find closest bucket to target date
+        let closestBucket = null;
+        let minDiff = Infinity;
+        
+        for (const bucket of metricResult.series) {
+          const bucketDate = new Date(bucket.date);
+          const diff = Math.abs(bucketDate.getTime() - targetDate.getTime());
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestBucket = bucket;
+          }
+        }
+        
+        if (!closestBucket) return null;
+        return { absolute: current - closestBucket.value, baseline: closestBucket.value };
+      }
+
+      default:
+        return null;
+    }
+  }, [metricResult, state.chart.comparison]);
 
   // Get the display title
   const title = state.metric.name || REPORT_LABELS[state.report];
 
   // Get value kind from metric result
   const valueKind = metricResult.kind || 'number';
+
+  // Format the main value using the kind
+  const formattedValue = formatMetricValue(metricResult.value, valueKind);
+
+  // Format the delta: show both absolute and relative change
+  // MUST be before early return to maintain hooks order
+  const formattedDelta = useMemo(() => {
+    if (!delta) return null;
+
+    // Format absolute change based on value kind
+    const absoluteChange = valueKind === 'currency'
+      ? deltaCurrency(delta.absolute)
+      : deltaNumber(delta.absolute);
+
+    // Calculate percentage change (omit if baseline is zero to avoid infinity/undefined)
+    let percentDisplay = null;
+    if (delta.baseline !== 0) {
+      const percentChange = ((delta.absolute / delta.baseline) * 100).toFixed(1);
+      const percentSign = delta.absolute > 0 ? '+' : '';
+      percentDisplay = `${percentSign}${percentChange}%`;
+    }
+    
+    return {
+      absolute: absoluteChange,
+      percent: percentDisplay,
+      isPositive: delta.absolute > 0,
+      isNegative: delta.absolute < 0,
+    };
+  }, [delta, valueKind]);
 
   // Handle no metric configured
   if (metricResult.value === null || !state.metric.source) {
@@ -104,17 +192,6 @@ export function MetricHeader() {
     );
   }
 
-  // Format the main value using the kind
-  const formattedValue = formatMetricValue(metricResult.value, valueKind);
-
-  // Format the delta based on kind
-  const formattedDelta =
-    delta !== null
-      ? valueKind === 'currency'
-        ? deltaCurrency(delta)
-        : deltaNumber(delta)
-      : null;
-
   return (
     <div className="flex flex-col gap-2 pb-3 border-b border-gray-200 dark:border-gray-700">
       {/* Title */}
@@ -130,14 +207,14 @@ export function MetricHeader() {
         {formattedDelta && (
           <div
             className={`text-lg font-medium ${
-              delta && delta > 0
+              formattedDelta.isPositive
                 ? 'text-green-600 dark:text-green-400'
-                : delta && delta < 0
+                : formattedDelta.isNegative
                 ? 'text-red-600 dark:text-red-400'
                 : 'text-gray-500 dark:text-gray-400'
             }`}
           >
-            {formattedDelta}
+            {formattedDelta.absolute}{formattedDelta.percent && <span className="text-sm"> ({formattedDelta.percent})</span>}
           </div>
         )}
       </div>

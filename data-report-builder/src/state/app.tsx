@@ -4,14 +4,13 @@ import { Granularity } from '@/lib/time';
 import { ReportKey, MetricDef, MetricOp, MetricType, FilterGroup, FilterCondition } from '@/types';
 
 // Chart types
-export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year' | 'benchmark';
+export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year';
 export type ChartType = 'line' | 'area' | 'bar';
 export type YSourceMode = 'metric' | 'field';
 
 export type ChartSettings = {
   type: ChartType;
   comparison: Comparison;
-  benchmark?: number;
   xSource?: { object: string; field: string }; // optional override (timestamp-like)
   ySourceMode: YSourceMode;
   yField?: { object: string; field: string }; // only used when ySourceMode='field'
@@ -118,11 +117,6 @@ type SetComparisonAction = {
   payload: Comparison;
 };
 
-type SetBenchmarkAction = {
-  type: 'SET_BENCHMARK';
-  payload: number;
-};
-
 type SetMetricSourceAction = {
   type: 'SET_METRIC_SOURCE';
   payload: { object: string; field: string } | undefined;
@@ -200,7 +194,6 @@ export type AppAction =
   | SetYSourceModeAction
   | SetYFieldAction
   | SetComparisonAction
-  | SetBenchmarkAction
   | SetMetricSourceAction
   | SetMetricOpAction
   | SetMetricTypeAction
@@ -215,31 +208,65 @@ export type AppAction =
   | ClearFiltersAction
   | ResetAllAction;
 
-// Initial state
-const initialState: AppState = {
-  activeTab: 'data',
-  selectedObjects: [],
-  selectedFields: [],
-  fieldOrder: [],
-  report: 'mrr',
-  start: new Date(new Date().getFullYear() - 1, 0, 1).toISOString().split('T')[0], // Jan 1 last year
-  end: new Date().toISOString().split('T')[0], // Today
-  granularity: 'month',
-  chart: {
-    type: 'line',
-    comparison: 'none',
-    ySourceMode: 'metric',
-  },
-  metric: {
-    name: 'Metric',
-    op: 'sum',
-    type: 'sum_over_period',
-  },
-  filters: {
-    conditions: [],
-    logic: 'AND',
-  },
-};
+// Helper function to build initial state with preset applied
+function buildInitialState(): AppState {
+  const baseState: AppState = {
+    activeTab: 'data',
+    selectedObjects: [],
+    selectedFields: [],
+    fieldOrder: [],
+    report: 'mrr',
+    start: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0], // Jan 1 this year (YTD)
+    end: new Date().toISOString().split('T')[0], // Today
+    granularity: 'month',
+    chart: {
+      type: 'line',
+      comparison: 'none',
+      ySourceMode: 'metric',
+    },
+    metric: {
+      name: 'Metric',
+      op: 'sum',
+      type: 'sum_over_period',
+    },
+    filters: {
+      conditions: [],
+      logic: 'AND',
+    },
+  };
+
+  // Apply MRR preset synchronously to initial state
+  // Import PRESET_CONFIGS from presets to avoid circular deps
+  const { PRESET_CONFIGS } = require('@/lib/presets');
+  const preset = PRESET_CONFIGS['mrr'];
+  
+  if (preset) {
+    return {
+      ...baseState,
+      selectedObjects: [...preset.objects],
+      selectedFields: [...preset.fields],
+      fieldOrder: preset.fields.map((f: { object: string; field: string }) => `${f.object}.${f.field}`),
+      metric: {
+        name: preset.metric.name,
+        op: preset.metric.op,
+        type: preset.metric.type,
+        source: preset.metric.source,
+      },
+      start: preset.range?.start || baseState.start,
+      end: preset.range?.end || baseState.end,
+      granularity: preset.range?.granularity || baseState.granularity,
+      filters: {
+        conditions: preset.filters || [],
+        logic: 'AND',
+      },
+    };
+  }
+  
+  return baseState;
+}
+
+// Initial state with MRR preset applied
+const initialState: AppState = buildInitialState();
 
 // Reducer
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -422,15 +449,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
       };
 
-    case 'SET_BENCHMARK':
-      return {
-        ...state,
-        chart: {
-          ...state.chart,
-          benchmark: action.payload,
-        },
-      };
-
     case 'SET_METRIC_SOURCE':
       return {
         ...state,
@@ -533,10 +551,36 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
 
     case 'RESET_ALL':
-      // Reset to initial state, keeping activeTab to avoid jarring tab switch
+      // Reset to blank preset, keeping activeTab to avoid jarring tab switch
+      const { PRESET_CONFIGS } = require('@/lib/presets');
+      const blankPreset = PRESET_CONFIGS['blank'];
+      
       return {
-        ...initialState,
         activeTab: state.activeTab,
+        selectedObjects: [],
+        selectedFields: [],
+        fieldOrder: [],
+        report: 'blank',
+        start: blankPreset.range?.start || new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
+        end: blankPreset.range?.end || new Date().toISOString().split('T')[0],
+        granularity: blankPreset.range?.granularity || 'month',
+        selectedBucket: undefined, // Clear bucket selection
+        selectedGrid: undefined, // Clear grid selection
+        chart: {
+          type: 'line',
+          comparison: 'none',
+          ySourceMode: 'metric',
+        },
+        metric: {
+          name: 'Metric',
+          op: 'sum',
+          type: 'sum_over_period',
+          source: undefined,
+        },
+        filters: {
+          conditions: [],
+          logic: 'AND',
+        },
       };
 
     default:
@@ -646,11 +690,6 @@ export const actions = {
   setComparison: (comparison: Comparison): SetComparisonAction => ({
     type: 'SET_COMPARISON',
     payload: comparison,
-  }),
-
-  setBenchmark: (benchmark: number): SetBenchmarkAction => ({
-    type: 'SET_BENCHMARK',
-    payload: benchmark,
   }),
 
   setMetricSource: (

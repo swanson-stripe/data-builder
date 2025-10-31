@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useApp, actions } from '@/state/app';
 import {
   generateSeries,
@@ -114,7 +114,19 @@ const granularityOptions: Granularity[] = ['day', 'week', 'month', 'quarter', 'y
 
 export function ChartPanel() {
   const { state, dispatch } = useApp();
-  const { store: warehouse, version } = useWarehouseStore();
+  const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
+
+  // Auto-load selected objects that aren't yet loaded
+  useEffect(() => {
+    state.selectedObjects.forEach((objectName) => {
+      if (!has(objectName as any)) {
+        console.log(`[ChartPanel] Auto-loading missing entity: ${objectName}`);
+        loadEntity(objectName as any).catch((err) => {
+          console.error(`[ChartPanel] Failed to load ${objectName}:`, err);
+        });
+      }
+    });
+  }, [state.selectedObjects, has, loadEntity]);
 
   // Handle point click
   const handlePointClick = (data: any) => {
@@ -287,16 +299,10 @@ export function ChartPanel() {
         };
       }
 
-      case 'benchmark':
-        return createBenchmarkSeries(
-          series,
-          state.chart.benchmark || series.points[0]?.value || 0
-        );
-
       default:
         return null;
     }
-  }, [series, state.chart.comparison, state.chart.benchmark, state.start, state.end, state.granularity]);
+  }, [series, state.chart.comparison, state.start, state.end, state.granularity]);
 
   // Format chart data for Recharts - merge current and comparison series
   const chartData = useMemo(() => {
@@ -323,6 +329,15 @@ export function ChartPanel() {
         return `${(value / 1000).toFixed(1)}K`;
       }
       return formatNumber(value);
+    }
+  };
+
+  // Format for tooltips (full values, not compact)
+  const formatTooltipValue = (value: number) => {
+    if (valueKind === 'currency') {
+      return currency(value, { compact: false });
+    } else {
+      return value.toLocaleString();
     }
   };
 
@@ -440,11 +455,7 @@ export function ChartPanel() {
                 wrapperClassName="dark:[&_.recharts-tooltip-wrapper]:bg-gray-800 dark:[&_.recharts-tooltip-wrapper]:border-gray-700"
                 formatter={(value: any) => {
                   if (typeof value === 'number') {
-                    // Check if it's currency based on metric kind
-                    if (metricResult?.kind === 'currency') {
-                      return formatValue(value);
-                    }
-                    return value.toLocaleString();
+                    return formatTooltipValue(value);
                   }
                   return value;
                 }}
@@ -524,11 +535,7 @@ export function ChartPanel() {
                 wrapperClassName="dark:[&_.recharts-tooltip-wrapper]:bg-gray-800 dark:[&_.recharts-tooltip-wrapper]:border-gray-700"
                 formatter={(value: any) => {
                   if (typeof value === 'number') {
-                    // Check if it's currency based on metric kind
-                    if (metricResult?.kind === 'currency') {
-                      return formatValue(value);
-                    }
-                    return value.toLocaleString();
+                    return formatTooltipValue(value);
                   }
                   return value;
                 }}
@@ -610,11 +617,7 @@ export function ChartPanel() {
                 wrapperClassName="dark:[&_.recharts-tooltip-wrapper]:bg-gray-800 dark:[&_.recharts-tooltip-wrapper]:border-gray-700"
                 formatter={(value: any) => {
                   if (typeof value === 'number') {
-                    // Check if it's currency based on metric kind
-                    if (metricResult?.kind === 'currency') {
-                      return formatValue(value);
-                    }
-                    return value.toLocaleString();
+                    return formatTooltipValue(value);
                   }
                   return value;
                 }}

@@ -32,6 +32,14 @@ class SeededRandom {
  */
 function getReportConfig(key: ReportKey) {
   switch (key) {
+    case 'blank':
+      return {
+        label: 'Custom Report',
+        baseValue: 0,
+        growthRate: 0,
+        volatility: 0,
+        floor: 0,
+      };
     case 'mrr':
       return {
         label: 'Monthly Recurring Revenue',
@@ -487,7 +495,8 @@ export function shiftSeriesByPeriod(
 }
 
 /**
- * Create a baseline series relative to the first point
+ * Create a baseline series as a flat line at the first point's value
+ * (similar to stock charts that show a horizontal baseline)
  */
 export function createPeriodStartSeries(series: ReportSeries): ReportSeries {
   if (series.points.length === 0) return series;
@@ -499,7 +508,7 @@ export function createPeriodStartSeries(series: ReportSeries): ReportSeries {
     label: `${series.label} (vs. Start)`,
     points: series.points.map((point) => ({
       ...point,
-      value: point.value - baseline,
+      value: baseline, // Flat line at the starting value
     })),
   };
 }

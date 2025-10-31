@@ -17,7 +17,6 @@ export function ChartTab() {
     { value: 'period_start', label: 'Period Start Baseline' },
     { value: 'previous_period', label: 'Previous Period' },
     { value: 'previous_year', label: 'Previous Year' },
-    { value: 'benchmark', label: 'Benchmark' },
   ];
 
   // Filter timestamp-like fields for X axis
@@ -198,42 +197,21 @@ export function ChartTab() {
         </select>
       </div>
 
-      {/* Benchmark Value (conditional) */}
-      {state.chart.comparison === 'benchmark' && (
-        <div>
-          <label htmlFor="benchmark" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Benchmark Value
-          </label>
-          <input
-            id="benchmark"
-            type="number"
-            value={state.chart.benchmark || 0}
-            onChange={(e) => dispatch(actions.setBenchmark(Number(e.target.value)))}
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter benchmark value"
-          />
-        </div>
-      )}
-
       {/* Description */}
       <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
         <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Comparison Modes</h4>
         <dl className="space-y-2 text-xs">
           <div>
             <dt className="font-medium text-gray-700 dark:text-gray-300">Period Start Baseline</dt>
-            <dd className="text-gray-500 dark:text-gray-400">Compare all values to the first period</dd>
+            <dd className="text-gray-500 dark:text-gray-400">Compare current value to the first bucket in the period</dd>
           </div>
           <div>
             <dt className="font-medium text-gray-700 dark:text-gray-300">Previous Period</dt>
-            <dd className="text-gray-500 dark:text-gray-400">Compare with the same window shifted backward</dd>
+            <dd className="text-gray-500 dark:text-gray-400">Compare with the previous bucket (e.g., last month)</dd>
           </div>
           <div>
             <dt className="font-medium text-gray-700 dark:text-gray-300">Previous Year</dt>
-            <dd className="text-gray-500 dark:text-gray-400">Compare with the same period one year ago</dd>
-          </div>
-          <div>
-            <dt className="font-medium text-gray-700 dark:text-gray-300">Benchmark</dt>
-            <dd className="text-gray-500 dark:text-gray-400">Compare against a fixed reference value</dd>
+            <dd className="text-gray-500 dark:text-gray-400">Compare with the same bucket one year ago</dd>
           </div>
         </dl>
       </div>

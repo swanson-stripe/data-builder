@@ -68,6 +68,7 @@ interface WarehouseContextValue {
   loadEntity: (name: EntityName) => Promise<void>;
   has: (name: EntityName) => boolean;
   loadedEntities: Set<EntityName>;
+  isInitialLoadComplete: boolean;
 }
 
 const WarehouseContext = createContext<WarehouseContextValue | null>(null);
@@ -90,6 +91,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
   const storeRef = useRef<EntityMap>({});
   const [version, setVersion] = useState(0);
   const [loadedEntities, setLoadedEntities] = useState<Set<EntityName>>(new Set());
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   const loadingRef = useRef<Set<EntityName>>(new Set()); // Track in-progress loads
 
   // Determine initial entities based on preset or fallback
@@ -169,13 +171,16 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     return !!storeRef.current[name];
   };
 
-  // Initial load on mount
+  // Initial load on mount and when preset changes
   useEffect(() => {
     console.log('========================================');
     console.log('[Warehouse] ✅ useEffect TRIGGERED');
     console.log('[Warehouse] presetKey:', presetKey);
     console.log('[Warehouse] initial prop:', initial);
     console.log('========================================');
+    
+    // Reset loading state when preset changes
+    setIsInitialLoadComplete(false);
     
     perf.mark('app_start');
     perf.mark('warehouse_init');
@@ -185,7 +190,9 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     console.log('[Warehouse] initial entities length:', initialEntities.length);
 
     if (initialEntities.length === 0) {
-      console.error('[Warehouse] ⚠️ ERROR: No initial entities to load!');
+      console.log('[Warehouse] ℹ️ No initial entities to load (blank preset or no selection)');
+      perf.logSince('warehouse_init', 'Warehouse initialized (empty)');
+      setIsInitialLoadComplete(true); // Mark as complete even with no data
       return;
     }
 
@@ -197,6 +204,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       await Promise.all(initialEntities.map(ent => loadEntity(ent)));
 
       console.log('[Warehouse] ✅ All entities loaded successfully');
+      setIsInitialLoadComplete(true); // Mark initial load as complete
       perf.logSince('warehouse_init', 'Initial warehouse load');
 
       // Background preload remaining entities during idle time
@@ -247,9 +255,23 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     loadEntity,
     has,
     loadedEntities,
+    isInitialLoadComplete,
   };
 
-  // NO blocking loader - render children immediately!
+  // Show loading state until initial data is loaded
+  if (!isInitialLoadComplete) {
+    return (
+      <WarehouseContext.Provider value={contextValue}>
+        <div className="h-screen flex items-center justify-center bg-white dark:bg-gray-900">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading data...</p>
+          </div>
+        </div>
+      </WarehouseContext.Provider>
+    );
+  }
+
   return (
     <WarehouseContext.Provider value={contextValue}>
       {children}
@@ -274,8 +296,14 @@ export function useWarehouse() {
  */
 export function useWarehouseStore() {
   const ctx = useWarehouse();
-  // Return store ref and version for manual subscription
-  return { store: ctx.store.current, version: ctx.version };
+  // Return store ref, version, and loadEntity for manual subscription and on-demand loading
+  return { 
+    store: ctx.store.current, 
+    version: ctx.version,
+    loadEntity: ctx.loadEntity,
+    has: ctx.has,
+    isInitialLoadComplete: ctx.isInitialLoadComplete,
+  };
 }
 
 /**

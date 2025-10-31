@@ -1,5 +1,4 @@
 'use client';
-import { useEffect, useRef } from 'react';
 import { useApp, AppProvider, actions } from '@/state/app';
 import { useTheme, ThemeProvider } from '@/state/theme';
 import { SidebarTabs } from '@/components/SidebarTabs';
@@ -18,15 +17,6 @@ import { WarehouseProvider } from '@/lib/useWarehouse';
 function PageContent() {
   const { state, dispatch } = useApp();
   const { theme, setTheme } = useTheme();
-  const initializedRef = useRef(false);
-
-  // Apply initial preset on mount
-  useEffect(() => {
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-      applyPreset(state.report, dispatch);
-    }
-  }, [state.report, dispatch]);
 
   // Enable automatic report switching based on object selection
   useReportHeuristics();

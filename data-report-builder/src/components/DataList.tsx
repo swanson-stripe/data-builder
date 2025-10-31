@@ -19,7 +19,7 @@ type SelectionMode = 'cell' | 'row' | 'column' | 'multi-cell';
 
 export function DataList() {
   const { state, dispatch } = useApp();
-  const { store: warehouse, version } = useWarehouseStore();
+  const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
   const [sortState, setSortState] = useState<SortState>({
     column: null,
     direction: null,
@@ -31,6 +31,18 @@ export function DataList() {
   const [isSelecting, setIsSelecting] = useState(false);
   const [anchorCell, setAnchorCell] = useState<{ rowIndex: number; colKey: string } | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+
+  // Auto-load selected objects that aren't yet loaded
+  useEffect(() => {
+    state.selectedObjects.forEach((objectName) => {
+      if (!has(objectName as any)) {
+        console.log(`[DataList] Auto-loading missing entity: ${objectName}`);
+        loadEntity(objectName as any).catch((err) => {
+          console.error(`[DataList] Failed to load ${objectName}:`, err);
+        });
+      }
+    });
+  }, [state.selectedObjects, has, loadEntity]);
 
   // Derive columns from selectedFields with qualified names, ordered by fieldOrder
   const columns = useMemo(() => {

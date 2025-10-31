@@ -10,7 +10,8 @@
     "subscriptions": 789,
     "invoices": 2639,
     "charges": 1000,
-    "payouts": 58
+    "payouts": 58,
+    "balance_transactions": 2326
   },
   "entities": [
     "customers",
@@ -22,6 +23,7 @@
     "subscriptions",
     "invoices",
     "charges",
-    "payouts"
+    "payouts",
+    "balance_transactions"
   ]
 }
