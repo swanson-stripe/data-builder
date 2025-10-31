@@ -1,5 +1,5 @@
 'use client';
-import { useApp, actions, ChartType, YSourceMode, Comparison } from '@/state/app';
+import { useApp, actions, ChartType, XSourceMode, YSourceMode, Comparison } from '@/state/app';
 import { useMemo } from 'react';
 import schema from '@/data/schema';
 
@@ -100,26 +100,60 @@ export function ChartTab() {
 
       {/* X Axis Source */}
       <div>
-        <label htmlFor="x-source" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           X Axis Source
         </label>
-        <select
-          id="x-source"
-          value={currentXSourceValue}
-          onChange={(e) => handleXSourceChange(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">— Buckets (default) —</option>
-          {xAxisFields.map((field) => (
-            <option key={`${field.object}.${field.field}`} value={`${field.object}.${field.field}`}>
-              {field.object}.{field.field}
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Override time axis with a selected timestamp field
-        </p>
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="x-source-mode"
+              value="time"
+              checked={state.chart.xSourceMode === 'time'}
+              onChange={(e) => dispatch(actions.setXSourceMode(e.target.value as XSourceMode))}
+              className="text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-800 dark:text-gray-200">Time</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="x-source-mode"
+              value="field"
+              checked={state.chart.xSourceMode === 'field'}
+              onChange={(e) => dispatch(actions.setXSourceMode(e.target.value as XSourceMode))}
+              className="text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-800 dark:text-gray-200">Choose a field</span>
+          </label>
+        </div>
       </div>
+
+      {/* X Field Selector (when mode is 'field') */}
+      {state.chart.xSourceMode === 'field' && (
+        <div>
+          <label htmlFor="x-source" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            X Axis Field
+          </label>
+          <select
+            id="x-source"
+            value={currentXSourceValue}
+            onChange={(e) => handleXSourceChange(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={xAxisFields.length === 0}
+          >
+            <option value="">— Select a timestamp field —</option>
+            {xAxisFields.map((field) => (
+              <option key={`${field.object}.${field.field}`} value={`${field.object}.${field.field}`}>
+                {field.object}.{field.field}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Override time axis with a selected timestamp field
+          </p>
+        </div>
+      )}
 
       {/* Y Axis Source */}
       <div>
@@ -136,7 +170,7 @@ export function ChartTab() {
               onChange={(e) => dispatch(actions.setYSourceMode(e.target.value as YSourceMode))}
               className="text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-sm text-gray-800 dark:text-gray-200">Metric (computed)</span>
+            <span className="text-sm text-gray-800 dark:text-gray-200">Metric</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -147,7 +181,7 @@ export function ChartTab() {
               onChange={(e) => dispatch(actions.setYSourceMode(e.target.value as YSourceMode))}
               className="text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-sm text-gray-800 dark:text-gray-200">Field (select below)</span>
+            <span className="text-sm text-gray-800 dark:text-gray-200">Choose a field</span>
           </label>
         </div>
       </div>

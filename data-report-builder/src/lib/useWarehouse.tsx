@@ -131,15 +131,27 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
 
     try {
       const basePath = process.env.NODE_ENV === 'production' ? '/data-builder' : '';
-      const url = `${basePath}/data/${name}.json`;
+      let url = `${basePath}/data/${name}.json`;
       console.log('[Warehouse] Fetching:', url);
-      const res = await fetch(url);
+      let res = await fetch(url);
+      
+      // If singular form fails, try plural form as fallback
+      if (!res.ok && !name.endsWith('s')) {
+        const pluralUrl = `${basePath}/data/${name}s.json`;
+        console.log(`[Warehouse] Trying plural form: ${pluralUrl}`);
+        const pluralRes = await fetch(pluralUrl);
+        if (pluralRes.ok) {
+          res = pluralRes;
+          url = pluralUrl;
+        }
+      }
+      
       if (!res.ok) {
         throw new Error(`Failed to load ${name}: ${res.statusText}`);
       }
       const json = await res.json();
 
-      console.log(`[Warehouse] Fetch successful for ${name}:`, json.length, 'records');
+      console.log(`[Warehouse] Fetch successful for ${name} from ${url}:`, json.length, 'records');
 
       // Mutate ref directly - STABLE identity!
       storeRef.current[name] = json;

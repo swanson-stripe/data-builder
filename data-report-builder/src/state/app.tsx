@@ -6,12 +6,14 @@ import { ReportKey, MetricDef, MetricOp, MetricType, FilterGroup, FilterConditio
 // Chart types
 export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year';
 export type ChartType = 'line' | 'area' | 'bar';
+export type XSourceMode = 'time' | 'field';
 export type YSourceMode = 'metric' | 'field';
 
 export type ChartSettings = {
   type: ChartType;
   comparison: Comparison;
-  xSource?: { object: string; field: string }; // optional override (timestamp-like)
+  xSourceMode: XSourceMode;
+  xSource?: { object: string; field: string }; // only used when xSourceMode='field'
   ySourceMode: YSourceMode;
   yField?: { object: string; field: string }; // only used when ySourceMode='field'
 };
@@ -100,6 +102,11 @@ type SetChartTypeAction = {
 type SetXSourceAction = {
   type: 'SET_X_SOURCE';
   payload: { object: string; field: string } | undefined;
+};
+
+type SetXSourceModeAction = {
+  type: 'SET_X_SOURCE_MODE';
+  payload: XSourceMode;
 };
 
 type SetYSourceModeAction = {
@@ -191,6 +198,7 @@ export type AppAction =
   | ClearSelectedBucketAction
   | SetChartTypeAction
   | SetXSourceAction
+  | SetXSourceModeAction
   | SetYSourceModeAction
   | SetYFieldAction
   | SetComparisonAction
@@ -222,6 +230,7 @@ function buildInitialState(): AppState {
     chart: {
       type: 'line',
       comparison: 'none',
+      xSourceMode: 'time',
       ySourceMode: 'metric',
     },
     metric: {
@@ -420,6 +429,17 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
       };
 
+    case 'SET_X_SOURCE_MODE':
+      return {
+        ...state,
+        chart: {
+          ...state.chart,
+          xSourceMode: action.payload,
+          // Clear xSource when switching to time mode
+          xSource: action.payload === 'time' ? undefined : state.chart.xSource,
+        },
+      };
+
     case 'SET_Y_SOURCE_MODE':
       return {
         ...state,
@@ -569,6 +589,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         chart: {
           type: 'line',
           comparison: 'none',
+          xSourceMode: 'time',
           ySourceMode: 'metric',
         },
         metric: {
@@ -675,6 +696,11 @@ export const actions = {
   setXSource: (source: { object: string; field: string } | undefined): SetXSourceAction => ({
     type: 'SET_X_SOURCE',
     payload: source,
+  }),
+
+  setXSourceMode: (mode: XSourceMode): SetXSourceModeAction => ({
+    type: 'SET_X_SOURCE_MODE',
+    payload: mode,
   }),
 
   setYSourceMode: (mode: YSourceMode): SetYSourceModeAction => ({

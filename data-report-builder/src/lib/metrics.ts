@@ -213,48 +213,42 @@ export function computeMetric({
 
   // If source object is different from primary, perform join
   if (sourceObject !== primaryObject) {
-    // Get all selected objects for multi-hop join
-    const selectedObjects = objects || [primaryObject, sourceObject];
-    
-    // Build lookup maps for all related objects
+    // Build lookup maps for ALL loaded entities in warehouse (not just selected objects)
+    // This enables smart multi-hop joins even when intermediate tables aren't explicitly selected
+    const allLoadedEntities = Object.keys(store);
     const relatedMaps = new Map<string, Map<string, any>>();
     const bridgeMaps = new Map<string, Map<string, any[]>>();
     
-    for (const obj of selectedObjects) {
-      if (obj === primaryObject) continue;
-      
+    console.log(`[Metrics] Computing metric with join: ${primaryObject} -> ${sourceObject}.${field}`);
+    console.log(`[Metrics] Available entities in store:`, allLoadedEntities);
+    
+    for (const entityName of allLoadedEntities) {
       // @ts-ignore
-      let objTable = store[obj];
-      if (!objTable) {
-        const pluralKey = obj + 's' as keyof Warehouse;
-        objTable = store[pluralKey];
-      }
+      const entityTable = store[entityName];
       
-      if (objTable && Array.isArray(objTable)) {
+      if (entityTable && Array.isArray(entityTable) && entityTable.length > 0) {
         // Build direct lookup map
-        relatedMaps.set(obj, new Map(objTable.map((r: any) => [r.id, r])));
+        relatedMaps.set(entityName, new Map(entityTable.map((r: any) => [r.id, r])));
         
         // Build reverse indexes for foreign keys (bridge maps)
-        if (objTable.length > 0) {
-          const sampleRecord = objTable[0];
-          for (const key of Object.keys(sampleRecord)) {
-            if (key.endsWith('_id') && key !== 'id') {
-              const foreignObject = key.replace(/_id$/, '');
-              const bridgeKey = `${obj}_by_${foreignObject}`;
-              const reverseMap = new Map<string, any[]>();
-              
-              for (const r of objTable) {
-                const fkValue = r[key];
-                if (fkValue) {
-                  if (!reverseMap.has(fkValue)) {
-                    reverseMap.set(fkValue, []);
-                  }
-                  reverseMap.get(fkValue)!.push(r);
+        const sampleRecord = entityTable[0];
+        for (const key of Object.keys(sampleRecord)) {
+          if (key.endsWith('_id') && key !== 'id') {
+            const foreignObject = key.replace(/_id$/, '');
+            const bridgeKey = `${entityName}_by_${foreignObject}`;
+            const reverseMap = new Map<string, any[]>();
+            
+            for (const r of entityTable) {
+              const fkValue = r[key];
+              if (fkValue) {
+                if (!reverseMap.has(fkValue)) {
+                  reverseMap.set(fkValue, []);
                 }
+                reverseMap.get(fkValue)!.push(r);
               }
-              
-              bridgeMaps.set(bridgeKey, reverseMap);
             }
+            
+            bridgeMaps.set(bridgeKey, reverseMap);
           }
         }
       }
@@ -289,9 +283,10 @@ export function computeMetric({
         }
       }
       
-      // Strategy 3: Try 2-hop join through intermediate bridge table (reverse map)
+      // Strategy 3: Try 2-hop join through intermediate bridge table across ALL loaded entities
+      // e.g., subscription -> subscription_item (bridge) -> price
       if (joinedValue === null) {
-        for (const intermediateObj of selectedObjects) {
+        for (const intermediateObj of allLoadedEntities) {
           if (intermediateObj === sourceObject || intermediateObj === primaryObject) continue;
           
           const primaryToBridge = `${intermediateObj}_by_${primaryObject}`;
@@ -307,6 +302,7 @@ export function computeMetric({
                   const targetRecord = bridgeToTarget.get(bridgeRecord[targetFk]);
                   if (targetRecord) {
                     joinedValue = targetRecord[field];
+                    console.log(`[Metrics] Multi-hop join success: ${primaryObject} -> ${intermediateObj} -> ${sourceObject}.${field}`);
                     break;
                   }
                 }
@@ -316,7 +312,7 @@ export function computeMetric({
           }
           
           // Strategy 4: Forward traversal (primary.intermediate_id -> intermediate -> target)
-          // e.g., refund.charge_id -> charge -> charge.customer_id -> customer
+          // e.g., subscription.subscription_item_id -> subscription_item -> subscription_item.price_id -> price
           if (joinedValue === null) {
             const intermediateFk = `${intermediateObj}_id`;
             const intermediateId = row[intermediateFk];
@@ -333,10 +329,63 @@ export function computeMetric({
                   const targetRecord = targetMap.get(targetId);
                   if (targetRecord) {
                     joinedValue = targetRecord[field];
+                    console.log(`[Metrics] Multi-hop join success: ${primaryObject} -> ${intermediateObj} -> ${sourceObject}.${field}`);
                     break;
                   }
                 }
               }
+            }
+          }
+        }
+      }
+      
+      // Strategy 5: 3-hop join through TWO intermediate tables
+      // e.g., customer -> subscription -> subscription_item -> price
+      if (joinedValue === null) {
+        for (const intermediateObj of allLoadedEntities) {
+          if (intermediateObj === sourceObject || intermediateObj === primaryObject) continue;
+          
+          // Get all records of intermediate type that link to primary
+          const primaryToBridge1 = `${intermediateObj}_by_${primaryObject}`;
+          const bridge1Records = bridgeMaps.get(primaryToBridge1);
+          
+          if (bridge1Records) {
+            const intermediateRecords = bridge1Records.get(row.id);
+            if (intermediateRecords && intermediateRecords.length > 0) {
+              // For each intermediate record, try to find a path to target through another bridge
+              for (const intermediateRecord of intermediateRecords) {
+                // Try all possible second-level bridges
+                for (const secondIntermediate of allLoadedEntities) {
+                  if (secondIntermediate === sourceObject || secondIntermediate === primaryObject || secondIntermediate === intermediateObj) continue;
+                  
+                  const bridge2Key = `${secondIntermediate}_by_${intermediateObj}`;
+                  const bridge2Records = bridgeMaps.get(bridge2Key);
+                  
+                  if (bridge2Records) {
+                    const secondLevelRecords = bridge2Records.get(intermediateRecord.id);
+                    if (secondLevelRecords && secondLevelRecords.length > 0) {
+                      // Check if second-level bridge has FK to target
+                      const targetFk = `${sourceObject}_id`;
+                      for (const secondLevelRecord of secondLevelRecords) {
+                        if (secondLevelRecord[targetFk]) {
+                          const targetMap = relatedMaps.get(sourceObject);
+                          if (targetMap) {
+                            const targetRecord = targetMap.get(secondLevelRecord[targetFk]);
+                            if (targetRecord) {
+                              joinedValue = targetRecord[field];
+                              console.log(`[Metrics] 3-hop join success: ${primaryObject} -> ${intermediateObj} -> ${secondIntermediate} -> ${sourceObject}.${field}`);
+                              break;
+                            }
+                          }
+                        }
+                      }
+                      if (joinedValue !== null) break;
+                    }
+                  }
+                }
+                if (joinedValue !== null) break;
+              }
+              if (joinedValue !== null) break;
             }
           }
         }

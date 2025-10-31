@@ -65,7 +65,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       { object: 'price', field: 'currency' },
       { object: 'price', field: 'recurring_interval' },
     ],
-    // MRR metric - sum of subscription prices
+    // MRR metric - sum of subscription prices for active subscriptions only
     metric: {
       name: 'Monthly Recurring Revenue (MRR)',
       source: { object: 'price', field: 'unit_amount' },
@@ -73,6 +73,13 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       type: 'sum_over_period',
     },
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
+    filters: [
+      {
+        field: { object: 'subscription', field: 'status' },
+        operator: 'equals',
+        value: 'active',
+      },
+    ],
   },
 
   gross_volume: {

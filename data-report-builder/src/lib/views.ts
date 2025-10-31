@@ -90,40 +90,43 @@ export function buildDataListView(opts: {
   // Build reverse lookup maps for bridge tables (e.g., subscription_item by subscription_id)
   const bridgeMaps = new Map<string, Map<string, any[]>>();
   
-  for (const relatedObject of selectedObjects.slice(1)) {
+  console.log(`[Views] buildDataListView - selectedObjects:`, selectedObjects);
+  console.log(`[Views] buildDataListView - available in store:`, Object.keys(store));
+  
+  // Build lookup maps for ALL loaded entities in the warehouse (not just selected objects)
+  // This enables smart multi-hop joins even when intermediate tables aren't explicitly selected
+  const allLoadedEntities = Object.keys(store);
+  
+  for (const entityName of allLoadedEntities) {
     // @ts-ignore
-    let relatedTable = store[relatedObject];
-    if (!relatedTable) {
-      const pluralKey = relatedObject + 's' as keyof Warehouse;
-      relatedTable = store[pluralKey];
-    }
+    const entityTable = store[entityName];
     
-    if (relatedTable && Array.isArray(relatedTable)) {
-      const lookupMap = new Map(relatedTable.map((r: any) => [r.id, r]));
-      relatedMaps.set(relatedObject, lookupMap);
+    if (entityTable && Array.isArray(entityTable) && entityTable.length > 0) {
+      console.log(`[Views] Processing ${entityName}: ${entityTable.length} records`);
+      const lookupMap = new Map(entityTable.map((r: any) => [r.id, r]));
+      relatedMaps.set(entityName, lookupMap);
       
       // Build reverse indexes for foreign keys in this table
-      // This enables multi-hop joins (e.g., subscription -> subscription_item -> price)
-      if (relatedTable.length > 0) {
-        const sampleRecord = relatedTable[0];
-        for (const key of Object.keys(sampleRecord)) {
-          if (key.endsWith('_id') && key !== 'id') {
-            const foreignObject = key.replace(/_id$/, '');
-            const bridgeKey = `${relatedObject}_by_${foreignObject}`;
-            const reverseMap = new Map<string, any[]>();
-            
-            for (const r of relatedTable) {
-              const fkValue = r[key];
-              if (fkValue) {
-                if (!reverseMap.has(fkValue)) {
-                  reverseMap.set(fkValue, []);
-                }
-                reverseMap.get(fkValue)!.push(r);
+      // This enables multi-hop joins (e.g., subscription_item -> subscription -> customer)
+      const sampleRecord = entityTable[0];
+      for (const key of Object.keys(sampleRecord)) {
+        if (key.endsWith('_id') && key !== 'id') {
+          const foreignObject = key.replace(/_id$/, '');
+          const bridgeKey = `${entityName}_by_${foreignObject}`;
+          const reverseMap = new Map<string, any[]>();
+          
+          for (const r of entityTable) {
+            const fkValue = r[key];
+            if (fkValue) {
+              if (!reverseMap.has(fkValue)) {
+                reverseMap.set(fkValue, []);
               }
+              reverseMap.get(fkValue)!.push(r);
             }
-            
-            bridgeMaps.set(bridgeKey, reverseMap);
           }
+          
+          bridgeMaps.set(bridgeKey, reverseMap);
+          console.log(`[Views] Built bridge map: ${bridgeKey} with ${reverseMap.size} keys`);
         }
       }
     }
@@ -152,8 +155,20 @@ export function buildDataListView(opts: {
         
         if (relatedId && relatedMap) {
           const relatedRecord = relatedMap.get(relatedId);
-          row.display[qualifiedKey] = relatedRecord ? relatedRecord[f.field] : null;
+          if (relatedRecord) {
+            row.display[qualifiedKey] = relatedRecord[f.field];
+            // console.log(`[Views] 1-hop join: ${primaryObject}.${foreignKey}=${relatedId} -> ${f.object}.${f.field}=${relatedRecord[f.field]}`);
+          } else {
+            console.warn(`[Views] 1-hop join failed: ${f.object} record ${relatedId} not found in map (map has ${relatedMap.size} records)`);
+            row.display[qualifiedKey] = null;
+          }
         } else {
+          if (!relatedId) {
+            console.warn(`[Views] No FK value: ${primaryObject} record ${record.id} has no ${foreignKey}`);
+          }
+          if (!relatedMap) {
+            console.warn(`[Views] No lookup map for ${f.object} (available: ${Array.from(relatedMaps.keys()).join(', ')})`);
+          }
           // Try 2-hop join through bridge table
           // e.g., subscription -> subscription_item -> price
           let foundValue = null;
@@ -169,10 +184,11 @@ export function buildDataListView(opts: {
               foundValue = records[0][f.field];
             }
           } else {
-            // Indirect bridge: look for intermediate table
-            // e.g., subscription -> subscription_item (bridge) -> price
-            for (const intermediateObject of selectedObjects.slice(1)) {
+            // Indirect bridge: look for intermediate table across ALL loaded entities
+            // e.g., subscription_item -> subscription (bridge) -> customer
+            for (const intermediateObject of allLoadedEntities) {
               if (intermediateObject === f.object) continue;
+              if (intermediateObject === primaryObject) continue;
               
               // Strategy 1: Use reverse bridge map (intermediate_by_primary)
               const primaryToBridge = `${intermediateObject}_by_${primaryObject}`;
@@ -198,7 +214,7 @@ export function buildDataListView(opts: {
               }
               
               // Strategy 2: Forward traversal (primary.intermediate_id -> intermediate -> target)
-              // e.g., refund.charge_id -> charge -> charge.customer_id -> customer
+              // e.g., subscription_item.subscription_id -> subscription -> subscription.customer_id -> customer
               if (foundValue === null) {
                 const intermediateFk = `${intermediateObject}_id`;
                 const intermediateId = record[intermediateFk];
@@ -215,8 +231,56 @@ export function buildDataListView(opts: {
                       const targetRecord = targetMap.get(targetId);
                       if (targetRecord) {
                         foundValue = targetRecord[f.field];
+                        console.log(`[Views] Multi-hop join success: ${primaryObject} -> ${intermediateObject} -> ${f.object}.${f.field}`);
                         break;
                       }
+                    }
+                  }
+                }
+              }
+              
+              // Strategy 3: 3-hop join through TWO intermediate tables
+              // e.g., customer -> subscription -> subscription_item -> price
+              if (foundValue === null) {
+                // Get all records of intermediate type that link to primary
+                const primaryToBridge1 = `${intermediateObject}_by_${primaryObject}`;
+                const bridge1Records = bridgeMaps.get(primaryToBridge1);
+                
+                if (bridge1Records) {
+                  const intermediateRecords = bridge1Records.get(record.id);
+                  if (intermediateRecords && intermediateRecords.length > 0) {
+                    // For each intermediate record, try to find a path to target through another bridge
+                    for (const intermediateRecord of intermediateRecords) {
+                      // Try all possible second-level bridges
+                      for (const secondIntermediate of allLoadedEntities) {
+                        if (secondIntermediate === f.object || secondIntermediate === primaryObject || secondIntermediate === intermediateObject) continue;
+                        
+                        const bridge2Key = `${secondIntermediate}_by_${intermediateObject}`;
+                        const bridge2Records = bridgeMaps.get(bridge2Key);
+                        
+                        if (bridge2Records) {
+                          const secondLevelRecords = bridge2Records.get(intermediateRecord.id);
+                          if (secondLevelRecords && secondLevelRecords.length > 0) {
+                            // Check if second-level bridge has FK to target
+                            const targetFk = `${f.object}_id`;
+                            for (const secondLevelRecord of secondLevelRecords) {
+                              if (secondLevelRecord[targetFk]) {
+                                const targetMap = relatedMaps.get(f.object);
+                                if (targetMap) {
+                                  const targetRecord = targetMap.get(secondLevelRecord[targetFk]);
+                                  if (targetRecord) {
+                                    foundValue = targetRecord[f.field];
+                                    console.log(`[Views] 3-hop join success: ${primaryObject} -> ${intermediateObject} -> ${secondIntermediate} -> ${f.object}.${f.field}`);
+                                    break;
+                                  }
+                                }
+                              }
+                            }
+                            if (foundValue !== null) break;
+                          }
+                        }
+                      }
+                      if (foundValue !== null) break;
                     }
                   }
                 }
