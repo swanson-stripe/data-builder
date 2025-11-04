@@ -124,7 +124,8 @@ export function getBucketRange(
     case 'week':
       // Start on Sunday of that week
       start.setDate(start.getDate() - start.getDay());
-      end.setDate(start.getDate() + 7);
+      // Set end to 7 days after start
+      end.setTime(start.getTime() + 7 * 24 * 60 * 60 * 1000);
       break;
     case 'month':
       // First day of month to first day of next month

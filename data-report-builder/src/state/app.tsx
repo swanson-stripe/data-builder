@@ -4,7 +4,7 @@ import { Granularity } from '@/lib/time';
 import { ReportKey, MetricDef, MetricOp, MetricType, FilterGroup, FilterCondition } from '@/types';
 
 // Chart types
-export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year';
+export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year' | 'benchmarks';
 export type ChartType = 'line' | 'area' | 'bar';
 export type XSourceMode = 'time' | 'field';
 export type YSourceMode = 'metric' | 'field';

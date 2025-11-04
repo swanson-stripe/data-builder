@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { useApp, actions } from '@/state/app';
 import {
   generateSeries,
@@ -17,6 +17,8 @@ import { applyFilters } from '@/lib/filters';
 export function ValueTable() {
   const { state, dispatch } = useApp();
   const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
+  const firstColumnRef = useRef<HTMLTableCellElement>(null);
+  const [columnWidth, setColumnWidth] = useState(0);
 
   // Auto-load selected objects that aren't yet loaded
   useEffect(() => {
@@ -179,6 +181,10 @@ export function ValueTable() {
         });
       }
 
+      case 'benchmarks':
+        // Benchmarks not yet implemented
+        return null;
+
       default:
         return null;
     }
@@ -192,6 +198,14 @@ export function ValueTable() {
       comparisonPoints: comparisonSeries?.points,
     };
   }, [currentSeries, comparisonSeries]);
+
+  // Measure first column width for shadow positioning
+  useEffect(() => {
+    if (firstColumnRef.current) {
+      const width = firstColumnRef.current.offsetWidth;
+      setColumnWidth(width);
+    }
+  }, [currentPoints, state.chart.comparison]);
 
   // Get comparison label
   const getComparisonLabel = () => {
@@ -219,6 +233,61 @@ export function ValueTable() {
     }
   };
 
+  // Format column header based on granularity
+  const formatColumnHeader = (dateString: string) => {
+    const date = new Date(dateString);
+    
+    switch (state.granularity) {
+      case 'year':
+        return date.getFullYear().toString();
+      
+      case 'month':
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      
+      case 'week': {
+        // For week, show the date range like "Aug 2-8"
+        const { start, end } = getBucketRange(date, 'week');
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        // Subtract 1 day from end because getBucketRange returns exclusive end date
+        endDate.setDate(endDate.getDate() - 1);
+        
+        // If same month, show "Aug 2-8"
+        if (startDate.getMonth() === endDate.getMonth()) {
+          return `${startDate.toLocaleDateString('en-US', { month: 'short' })} ${startDate.getDate()}-${endDate.getDate()}`;
+        } else {
+          // If different months, show "Aug 30-Sep 5"
+          return `${startDate.toLocaleDateString('en-US', { month: 'short' })} ${startDate.getDate()}-${endDate.toLocaleDateString('en-US', { month: 'short' })} ${endDate.getDate()}`;
+        }
+      }
+      
+      case 'day':
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      case 'quarter': {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        return `Q${quarter} ${date.getFullYear()}`;
+      }
+      
+      default:
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+  };
+
+  // Format period label with complete date range
+  const formatPeriodLabel = (startDate: Date, endDate: Date) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // If same year, show "Jan 1 – Oct 30, 2025"
+    if (start.getFullYear() === end.getFullYear()) {
+      return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    } else {
+      // If different years, show "Nov 1, 2024 – Nov 1, 2025"
+      return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+  };
+
   // Show placeholder if metric not configured
   if (metricResult.series === null || !state.metric.source) {
     return (
@@ -235,50 +304,94 @@ export function ValueTable() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="mb-2">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{currentSeries.label}</h3>
-        <p className="text-xs text-gray-600 dark:text-gray-300">
-          {comparisonSeries
-            ? `Current vs. ${getComparisonLabel()} • ${currentPoints.length} periods`
-            : `${currentPoints.length} periods`}
-        </p>
-      </div>
-
+    <div className="flex flex-col">
       {/* Table */}
-      <div className="overflow-x-auto flex-1">
-        <table className="w-full text-xs border-collapse">
+      <div style={{ position: 'relative' }}>
+        {/* Shadow overlay for sticky column - fixed to viewport */}
+        {columnWidth > 0 && (
+          <div 
+            style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: columnWidth,
+              width: '1px',
+              boxShadow: '3px 0 6px 0 rgba(0, 0, 0, 0.12)',
+              pointerEvents: 'none',
+              zIndex: 15
+            }}
+          />
+        )}
+        <div className="overflow-x-auto hide-scrollbar" style={{ paddingRight: '10px', marginRight: '-10px' }}>
+          <table className="w-full border-collapse" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
-            <tr className="border-b border-gray-200 dark:border-gray-700">
-              <th className="text-left py-2 px-2 font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700">
-                Period
+            <tr>
+              <th 
+                ref={firstColumnRef}
+                className="text-left pt-2 pb-0 pl-2 pr-6 font-normal text-xs text-gray-500 whitespace-nowrap" 
+                style={{ 
+                  width: 'auto',
+                  position: 'sticky',
+                  left: 0,
+                  zIndex: 20,
+                  backgroundColor: 'white'
+                }}
+              >
+                Current period
               </th>
               {currentPoints.map((point, idx) => (
                 <th
                   key={idx}
-                  className="text-right py-2 px-2 font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 whitespace-nowrap"
+                  className="pt-2 pb-0 pl-2 pr-2 font-normal text-xs text-gray-500 bg-white whitespace-nowrap"
+                  style={{ textAlign: 'right' }}
                 >
-                  {shortDate(point.date)}
+                  {formatColumnHeader(point.date)}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {/* Current period row */}
-            <tr className="border-b border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
-              <td className="py-2 px-2 font-medium text-gray-700 dark:text-gray-300">Current</td>
+            <tr className="hover:bg-gray-50 transition-colors" style={{ borderBottom: comparisonSeries ? '1px solid #F5F6F8' : 'none' }}>
+              <td 
+                className="py-2 pl-2 pr-6 whitespace-nowrap"
+                style={{ 
+                  position: 'sticky',
+                  left: 0,
+                  zIndex: 10,
+                  backgroundColor: 'white'
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  {/* Legend marker - adapt based on chart type */}
+                  {state.chart.type === 'bar' ? (
+                    <div style={{ width: '12px', height: '10px', backgroundColor: '#9966FF', borderRadius: '2px', flexShrink: 0 }}></div>
+                  ) : (
+                    <div style={{ width: '12px', height: '2px', backgroundColor: '#9966FF', borderRadius: '1px', flexShrink: 0 }}></div>
+                  )}
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-gray-900">
+                      {state.metric.name}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {formatPeriodLabel(new Date(state.start), new Date(state.end))}
+                    </span>
+                  </div>
+                </div>
+              </td>
               {currentPoints.map((point, idx) => {
                 const isSelected =
                   state.selectedBucket?.label === point.date;
                 return (
                   <td
                     key={idx}
-                    className={`text-right py-2 px-2 font-mono tabular-nums transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-200 ${
-                      isSelected
-                        ? 'bg-blue-200 dark:bg-blue-900 hover:bg-blue-300 dark:hover:bg-blue-800 font-semibold'
-                        : 'hover:bg-blue-100 dark:hover:bg-gray-700 focus:bg-blue-100 dark:focus:bg-gray-700'
+                    className={`py-2 pl-2 pr-2 bg-white transition-colors cursor-pointer ${
+                      isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
                     }`}
+                    style={{
+                      textAlign: 'right',
+                      fontVariantNumeric: 'tabular-nums'
+                    }}
                     tabIndex={0}
                     onClick={() => handleBucketClick(point.date)}
                     onKeyDown={(e) => {
@@ -290,7 +403,9 @@ export function ValueTable() {
                     role="button"
                     aria-label={`Select period ${shortDate(point.date)}`}
                   >
-                    {formatValue(point.value)}
+                    <span className="text-sm text-gray-900 underline">
+                      {formatValue(point.value)}
+                    </span>
                   </td>
                 );
               })}
@@ -298,81 +413,91 @@ export function ValueTable() {
 
             {/* Comparison row */}
             {comparisonSeries && displayComparisonPoints && (
-              <tr className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <td className="py-2 px-2 font-medium text-gray-500 dark:text-gray-400">
-                  {getComparisonLabel()}
-                </td>
-                {displayComparisonPoints.map((point, idx) => (
-                  <td
-                    key={idx}
-                    className="text-right py-2 px-2 font-mono tabular-nums text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:bg-gray-100 dark:focus:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                    tabIndex={0}
+              <>
+                <tr>
+                  <th 
+                    className="text-left pt-2 pb-0 pl-2 pr-6 font-normal text-xs text-gray-500 whitespace-nowrap"
+                    style={{ 
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 20,
+                      backgroundColor: 'white'
+                    }}
                   >
-                    {formatValue(point.value)}
+                    Previous period
+                  </th>
+                  {displayComparisonPoints.map((point, idx) => (
+                    <th
+                      key={idx}
+                      className="pt-2 pb-0 pl-2 pr-2 font-normal text-xs text-gray-500 bg-white whitespace-nowrap"
+                      style={{ textAlign: 'right' }}
+                    >
+                      {formatColumnHeader(point.date)}
+                    </th>
+                  ))}
+                </tr>
+                <tr>
+                  <td 
+                    className="py-2 pl-2 pr-6 whitespace-nowrap"
+                    style={{ 
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 10,
+                      backgroundColor: 'white'
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      {/* Legend marker - dashed for comparison */}
+                      {state.chart.type === 'bar' ? (
+                        <div style={{ 
+                          width: '12px', 
+                          height: '10px', 
+                          backgroundColor: '#9ca3af',
+                          borderRadius: '2px',
+                          flexShrink: 0
+                        }}></div>
+                      ) : (
+                        <div style={{ 
+                          width: '12px', 
+                          height: '2px', 
+                          backgroundColor: 'transparent',
+                          backgroundImage: 'repeating-linear-gradient(to right, #9ca3af 0, #9ca3af 2px, transparent 2px, transparent 4px)',
+                          borderRadius: '1px',
+                          flexShrink: 0
+                        }}></div>
+                      )}
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {state.metric.name}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {comparisonSeries.points[0] && comparisonSeries.points[comparisonSeries.points.length - 1] && 
+                            formatPeriodLabel(new Date(comparisonSeries.points[0].date), new Date(comparisonSeries.points[comparisonSeries.points.length - 1].date))}
+                        </span>
+                      </div>
+                    </div>
                   </td>
-                ))}
-              </tr>
-            )}
-
-            {/* Change row */}
-            {comparisonSeries && displayComparisonPoints && (
-              <tr className="hover:bg-green-50 dark:hover:bg-gray-700 transition-colors">
-                <td className="py-2 px-2 font-medium text-gray-700 dark:text-gray-300">Change</td>
-                {currentPoints.map((currentPoint, idx) => {
-                  const comparisonPoint = displayComparisonPoints[idx];
-                  const change = percentageChange(
-                    currentPoint.value,
-                    comparisonPoint.value
-                  );
-                  const isPositive = currentPoint.value > comparisonPoint.value;
-                  const isNegative = currentPoint.value < comparisonPoint.value;
-
-                  return (
+                  {displayComparisonPoints.map((point, idx) => (
                     <td
                       key={idx}
-                      className={`text-right py-2 px-2 font-mono tabular-nums font-medium hover:bg-green-100 dark:hover:bg-gray-600 transition-colors focus:bg-green-100 dark:focus:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                        isPositive
-                          ? 'text-green-600'
-                          : isNegative
-                          ? 'text-red-600'
-                          : 'text-gray-600 dark:text-gray-400'
-                      }`}
-                      tabIndex={0}
+                      className="py-2 pl-2 pr-2 bg-white"
+                      style={{
+                        textAlign: 'right',
+                        fontVariantNumeric: 'tabular-nums'
+                      }}
                     >
-                      {change}
+                      <span className="text-sm text-gray-700">
+                        {formatValue(point.value)}
+                      </span>
                     </td>
-                  );
-                })}
-              </tr>
+                  ))}
+                </tr>
+              </>
             )}
+
           </tbody>
         </table>
-      </div>
-
-      {/* Legend */}
-      <div className="mt-2 flex gap-4 text-xs text-gray-500 dark:text-gray-400">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-blue-100 border border-blue-200 dark:border-gray-600 rounded"></div>
-          <span>Current</span>
         </div>
-        {comparisonSeries && (
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-gray-100 dark:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded"></div>
-            <span>{getComparisonLabel()}</span>
-          </div>
-        )}
-        {comparisonSeries && (
-          <>
-            <div className="flex items-center gap-1">
-              <span className="text-green-600 font-medium">+</span>
-              <span>Increase</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-red-600 font-medium">−</span>
-              <span>Decrease</span>
-            </div>
-          </>
-        )}
       </div>
     </div>
   );

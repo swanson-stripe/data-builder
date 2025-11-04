@@ -3,12 +3,95 @@
 @variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", "Courier New", monospace;
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 400;
+}
+
+button {
+  font-weight: 600;
+}
+
+/* Custom scrollbar - appears only when hovering or scrolling */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.2s ease;
+}
+
+.custom-scrollbar:hover,
+.custom-scrollbar:focus-within {
+  scrollbar-color: #f5f6f8 transparent;
+}
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+/* Show scrollbar on hover */
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #f5f6f8;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #e5e7eb;
+}
+
+/* Show scrollbar when actively scrolling */
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: #d1d5db;
+}
+
+/* Dark mode */
+.dark .custom-scrollbar {
+  scrollbar-color: transparent transparent;
+}
+
+.dark .custom-scrollbar:hover,
+.dark .custom-scrollbar:focus-within {
+  scrollbar-color: #4b5563 transparent;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.dark .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: #9ca3af;
+}
+
+/* Hide scrollbar completely */
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 /* Screen reader only utility class */

@@ -11,6 +11,7 @@ type FilterPopoverProps = {
   distinctValues?: string[];
   trigger: React.ReactNode;
   hasActiveFilter?: boolean;
+  asMenuItem?: boolean;
 };
 
 export function FilterPopover({
@@ -21,6 +22,7 @@ export function FilterPopover({
   distinctValues,
   trigger,
   hasActiveFilter,
+  asMenuItem = false,
 }: FilterPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [alignment, setAlignment] = useState<'left' | 'right'>('left');
@@ -87,7 +89,7 @@ export function FilterPopover({
   };
 
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-block" style={asMenuItem ? { width: '100%' } : undefined}>
       <button
         ref={triggerRef}
         onClick={(e) => {
@@ -101,11 +103,22 @@ export function FilterPopover({
             setIsOpen(!isOpen);
           }
         }}
-        className={`p-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-          hasActiveFilter
-            ? 'text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50'
-            : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
-        }`}
+        className={asMenuItem 
+          ? 'w-full focus:outline-none' 
+          : `p-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              hasActiveFilter
+                ? 'text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50'
+                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+            }`
+        }
+        style={asMenuItem ? { 
+          cursor: 'pointer',
+          background: 'transparent',
+          border: 'none',
+          padding: 0,
+          margin: 0,
+          textAlign: 'left'
+        } : undefined}
         aria-label={`Filter ${field.label}`}
         aria-expanded={isOpen}
         title={hasActiveFilter ? 'Filter active' : 'Add filter'}

@@ -91,58 +91,54 @@ const ObjectCard = forwardRef<HTMLDivElement, { object: SchemaObject; searchQuer
   ) : null;
 
   return (
-    <div ref={ref} className={`border border-gray-200 dark:border-gray-600 rounded p-3 bg-white dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors relative ${isObjectSelected ? 'mb-4' : 'mb-2'}`} style={{ zIndex: 2 }}>
+    <div ref={ref} className={`p-3 bg-white dark:bg-gray-700 hover:bg-[#f5f6f8] dark:hover:bg-gray-600 transition-colors relative ${isObjectSelected ? 'mb-4' : 'mb-2'}`} style={{ zIndex: 2, borderRadius: '8px' }}>
       {/* Object header */}
-      <div className="flex items-start gap-2">
-        <input
-          type="checkbox"
-          id={`object-${object.name}`}
-          checked={isObjectSelected}
-          onChange={() => dispatch(actions.toggleObject(object.name))}
-          className="mt-1"
-          aria-label={`Select ${object.label} object`}
-        />
+      <div className="flex items-start gap-1">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setExpanded(!expanded);
+            }
+          }}
+          className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-[#D8DEE4] p-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded flex-shrink-0 cursor-pointer transition-colors"
+          style={{ marginTop: '1px' }}
+          aria-label={`${shouldBeExpanded ? 'Collapse' : 'Expand'} ${object.label} fields`}
+          aria-expanded={shouldBeExpanded}
+        >
+          <svg 
+            className={`w-4 h-4 transition-transform ${shouldBeExpanded ? 'rotate-90' : ''}`}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 min-w-0 flex flex-col">
               {/* Title row */}
-              <div className="flex items-center gap-2">
-                <label htmlFor={`object-${object.name}`} className="font-medium text-sm text-gray-800 dark:text-gray-100 truncate cursor-pointer">
-                  {object.label}
-                </label>
-              </div>
+              <span className="font-medium text-sm text-gray-800 dark:text-gray-100 truncate">
+                {object.label}
+              </span>
               
-              {/* Metadata row */}
-              <div className="flex items-center gap-3 mt-1">
-                {isObjectSelected && selectedRelationships.length > 0 && (
-                  <span className="text-xs text-blue-600 dark:text-blue-400">
-                    {selectedRelationships.length} connection{selectedRelationships.length !== 1 ? 's' : ''}
-                  </span>
-                )}
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {object.fields.length} fields
-                  {selectedFieldCount > 0 && (
-                    <span className="ml-1 text-blue-600 dark:text-blue-400">
-                      ({selectedFieldCount} selected)
-                    </span>
-                  )}
-                </div>
-              </div>
             </div>
-            <button
-              onClick={() => setExpanded(!expanded)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setExpanded(!expanded);
-                }
+            <div 
+              className="flex items-center justify-center text-xs px-2.5 py-1 flex-shrink-0" 
+              style={{ 
+                backgroundColor: selectedFieldCount > 0 ? '#675DFF' : '#f5f6f8',
+                color: selectedFieldCount > 0 ? '#ffffff' : '#6b7280',
+                borderRadius: '12px', 
+                minWidth: '32px' 
               }}
-              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
-              aria-label={`${shouldBeExpanded ? 'Collapse' : 'Expand'} ${object.label} fields`}
-              aria-expanded={shouldBeExpanded}
             >
-              {shouldBeExpanded ? '▼' : '▶'}
-            </button>
+              {selectedFieldCount > 0 ? `${selectedFieldCount} of ${object.fields.length}` : object.fields.length}
+            </div>
           </div>
 
           {/* Relationship hints */}
@@ -150,12 +146,11 @@ const ObjectCard = forwardRef<HTMLDivElement, { object: SchemaObject; searchQuer
 
           {/* Expandable field list */}
           {shouldBeExpanded && (
-            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600 space-y-2" role="group" aria-label={`${object.label} fields`}>
+            <div className="mt-3 space-y-0" role="group" aria-label={`${object.label} fields`}>
               {filteredFields.map((field) => {
                 const isFieldSelected = state.selectedFields.some(
                   (f) => f.object === object.name && f.field === field.name
                 );
-                const fieldId = `field-${object.name}-${field.name}`;
                 const qualifiedName = `${object.name}.${field.name}`;
                 const isFilterExpanded = expandedFilters[field.name] || false;
                 
@@ -200,18 +195,21 @@ const ObjectCard = forwardRef<HTMLDivElement, { object: SchemaObject; searchQuer
                 
                 return (
                   <div key={field.name}>
-                    <div className="flex items-center gap-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
-                      {/* Expand/collapse filter button */}
+                    <div className="flex items-start justify-between py-2 text-xs group cursor-pointer transition-colors relative">
+                      {/* Expand/collapse chevron */}
                       <button
-                        onClick={() => setExpandedFilters(prev => ({
-                          ...prev,
-                          [field.name]: !prev[field.name],
-                        }))}
-                        className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-500 rounded transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedFilters(prev => ({
+                            ...prev,
+                            [field.name]: !prev[field.name],
+                          }));
+                        }}
+                        className="p-0.5 hover:bg-[#D8DEE4] rounded transition-colors mr-1 flex-shrink-0"
                         aria-label={`${isFilterExpanded ? 'Collapse' : 'Expand'} filter for ${qualifiedName}`}
                       >
                         <svg
-                          className={`w-3 h-3 text-gray-500 dark:text-gray-400 transition-transform ${isFilterExpanded ? 'rotate-90' : ''}`}
+                          className={`w-3 h-3 text-gray-400 dark:text-gray-500 transition-transform ${isFilterExpanded ? 'rotate-90' : ''}`}
                           fill="none"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -219,37 +217,77 @@ const ObjectCard = forwardRef<HTMLDivElement, { object: SchemaObject; searchQuer
                           viewBox="0 0 24 24"
                           stroke="currentColor"
                         >
-                          <path d="M9 5l7 7-7 7"></path>
+                          <path d="M9 5l7 7-7 7" />
                         </svg>
                       </button>
                       
-                      {/* Field checkbox */}
-                      <label
-                        htmlFor={fieldId}
-                        className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
+                      {/* Field info - clickable area */}
+                      <div 
+                        onClick={handleFieldToggle}
+                        className="flex-1 min-w-0 pr-2 cursor-pointer"
                       >
-                        <input
-                          type="checkbox"
-                          id={fieldId}
-                          checked={isFieldSelected}
-                          onChange={handleFieldToggle}
-                          className="text-xs"
-                          aria-label={`${qualifiedName} (${field.type})`}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <span className="font-mono text-[11px] text-gray-600 dark:text-gray-300">{qualifiedName}</span>
-                          <span className="text-gray-400 dark:text-gray-500 ml-2">
-                            · {field.type}
-                          </span>
+                        <div className="flex items-center gap-2">
+                          <div className={`font-mono text-[13px] truncate transition-colors ${
+                            isFieldSelected 
+                              ? 'text-[#533AFD] font-semibold' 
+                              : 'text-gray-600 dark:text-gray-300 group-hover:text-gray-800 dark:group-hover:text-gray-100'
+                          }`}>
+                            {qualifiedName}
+                          </div>
+                          
+                          {/* Selected checkmark */}
+                          {isFieldSelected && (
+                            <div className="relative w-4 h-4 flex-shrink-0">
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                                stroke="#675DFF"
+                              >
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M9 12l2 2 4-4" />
+                              </svg>
+                            </div>
+                          )}
+                          
+                          {/* Filter indicator */}
+                          {activeFilter && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedFilters(prev => ({
+                                  ...prev,
+                                  [field.name]: !prev[field.name],
+                                }));
+                              }}
+                              className="hover:opacity-80 transition-opacity flex-shrink-0"
+                              aria-label={`${isFilterExpanded ? 'Collapse' : 'Expand'} filter for ${qualifiedName}`}
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                                stroke="#675DFF"
+                              >
+                                <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                              </svg>
+                            </button>
+                          )}
                         </div>
-                      </label>
-                      
-                      {/* Filter indicator badge */}
-                      {activeFilter && (
-                        <span className="px-1.5 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded font-medium">
-                          ⚡
-                        </span>
-                      )}
+                        <div className={`text-[12px] mt-0.5 transition-colors ${
+                          isFieldSelected
+                            ? 'text-[#533AFD]'
+                            : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400'
+                        }`}>
+                          {field.type}
+                        </div>
+                      </div>
                     </div>
                     
                     {/* Filter controls when expanded */}
@@ -382,7 +420,7 @@ export function DataTab() {
   return (
     <div className="flex flex-col h-full">
       {/* Search input */}
-      <div className="mb-3 relative">
+      <div className="mb-3 relative pr-[11px]">
         <label htmlFor="object-search" className="sr-only">
           Search objects and fields
         </label>
@@ -392,7 +430,8 @@ export function DataTab() {
           placeholder="Search objects and fields..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-2 pr-10 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 pr-10 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-[#675DFF]"
+          style={{ borderRadius: '8px' }}
           aria-describedby="search-results-count"
         />
         {searchQuery && (
@@ -429,13 +468,13 @@ export function DataTab() {
 
       {/* Results count */}
       {searchQuery && (
-        <div id="search-results-count" className="text-xs text-gray-500 dark:text-gray-400 mb-2" role="status" aria-live="polite">
-          {filteredObjects.length} object(s) found
+        <div id="search-results-count" className="text-xs text-gray-500 dark:text-gray-400 mb-2 ml-3 pr-[11px]" role="status" aria-live="polite">
+          {filteredObjects.length} results
         </div>
       )}
 
       {/* Object list with SVG overlay for connections */}
-      <div ref={containerRef} className="flex-1 overflow-y-auto space-y-0 relative" role="list" aria-label="Data objects">
+      <div ref={containerRef} className="flex-1 overflow-y-auto relative custom-scrollbar" role="list" aria-label="Data objects">
         {/* SVG connections overlay */}
         {state.selectedObjects.length > 1 && Object.keys(cardPositions).length > 0 && (
           <svg 

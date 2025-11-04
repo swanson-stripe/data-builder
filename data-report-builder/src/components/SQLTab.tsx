@@ -44,14 +44,14 @@ export function SQLTab() {
   }, [lineCount]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       {/* Header */}
       <div className="mb-3 text-sm text-gray-600 dark:text-gray-400">
         SQL representation of your current query
       </div>
 
       {/* SQL Editor with line numbers and syntax highlighting */}
-      <div className="relative flex-1 rounded border border-gray-200 dark:border-gray-600 overflow-hidden flex">
+      <div className="relative rounded border border-gray-200 dark:border-gray-600 flex" style={{ minHeight: '400px', maxHeight: '80vh' }}>
         {/* Line numbers */}
         <div className="flex-shrink-0 w-12 bg-gray-100 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-600 overflow-hidden">
           <div className="p-4 pr-2 font-mono text-sm text-right text-gray-400 dark:text-gray-500 select-none whitespace-pre-wrap">
@@ -62,14 +62,14 @@ export function SQLTab() {
         </div>
 
         {/* SQL content area */}
-        <div className="relative flex-1 overflow-hidden">
+        <div className="relative flex-1">
           {/* Editable textarea (invisible but captures input) */}
           <textarea
             value={editableSQL}
             onChange={(e) => setEditableSQL(e.target.value)}
             className="absolute inset-0 w-full h-full p-4 pl-3 font-mono text-sm
                        bg-transparent text-transparent caret-gray-900 dark:caret-white
-                       resize-none overflow-auto z-10 outline-none whitespace-pre-wrap break-words"
+                       resize-none overflow-auto z-10 outline-none whitespace-pre-wrap break-words custom-scrollbar"
             spellCheck={false}
             aria-label="Editable SQL query"
             wrap="soft"
@@ -79,7 +79,7 @@ export function SQLTab() {
           <pre
             className="absolute inset-0 w-full h-full p-4 pl-3 font-mono text-sm overflow-auto
                        bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 
-                       pointer-events-none whitespace-pre-wrap break-words"
+                       pointer-events-none whitespace-pre-wrap break-words custom-scrollbar"
             dangerouslySetInnerHTML={{ __html: highlightedHTML }}
             aria-hidden="true"
           />

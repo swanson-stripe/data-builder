@@ -12,23 +12,39 @@ export function SidebarTabs() {
   ];
 
   return (
-    <div className="flex gap-1 mb-3" role="tablist" aria-label="Configuration tabs">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => dispatch(actions.setTab(tab.id))}
-          role="tab"
-          aria-selected={state.activeTab === tab.id}
-          aria-controls={`${tab.id}-panel`}
-          className={`px-2 py-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            state.activeTab === tab.id
-              ? 'bg-gray-900 dark:bg-gray-600 text-white'
-              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-          }`}
-        >
-          {tab.label}
-        </button>
-      ))}
+    <div className="p-1 mr-[11px]" style={{ backgroundColor: '#F5F6F8', borderRadius: '8px' }} role="tablist" aria-label="Configuration tabs">
+      <div className="flex gap-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => dispatch(actions.setTab(tab.id))}
+            role="tab"
+            aria-selected={state.activeTab === tab.id}
+            aria-controls={`${tab.id}-panel`}
+            className={`flex-1 px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+              state.activeTab === tab.id
+                ? 'text-gray-800 dark:text-gray-200'
+                : 'text-gray-600 dark:text-gray-400'
+            }`}
+            style={{ 
+              backgroundColor: state.activeTab === tab.id ? '#D8DEE4' : 'transparent',
+              borderRadius: '4px'
+            }}
+            onMouseEnter={(e) => {
+              if (state.activeTab !== tab.id) {
+                e.currentTarget.style.backgroundColor = '#D8DEE4';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (state.activeTab !== tab.id) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

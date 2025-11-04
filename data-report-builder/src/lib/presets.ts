@@ -36,7 +36,7 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   blank: {
     key: 'blank',
-    label: '—', // Em dash for blank option
+    label: 'None',
     objects: [],
     fields: [],
     metric: {
@@ -65,14 +65,14 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       { object: 'price', field: 'currency' },
       { object: 'price', field: 'recurring_interval' },
     ],
-    // MRR metric - sum of subscription prices for active subscriptions only
+    // MRR metric - latest value of subscription prices for active subscriptions only
     metric: {
       name: 'Monthly Recurring Revenue (MRR)',
       source: { object: 'price', field: 'unit_amount' },
       op: 'sum',
-      type: 'sum_over_period',
+      type: 'latest',
     },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
     filters: [
       {
         field: { object: 'subscription', field: 'status' },

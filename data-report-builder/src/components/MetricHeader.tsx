@@ -137,6 +137,10 @@ export function MetricHeader() {
         return { absolute: current - closestBucket.value, baseline: closestBucket.value };
       }
 
+      case 'benchmarks':
+        // Benchmarks not yet implemented
+        return null;
+
       default:
         return null;
     }
@@ -193,9 +197,9 @@ export function MetricHeader() {
   }
 
   return (
-    <div className="flex flex-col gap-2 pb-3 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex flex-col gap-2">
       {/* Title */}
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+      <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
         {title}
       </h3>
 
@@ -220,15 +224,15 @@ export function MetricHeader() {
       </div>
 
       {/* Metadata */}
-      <div className="text-xs text-gray-600 dark:text-gray-300">
+      <div className="text-sm text-gray-600 dark:text-gray-300">
         {state.metric.type === 'latest' ? (
-          <>Latest value • {metricResult.series?.length || 0} data points</>
+          <>Latest value</>
         ) : state.metric.type === 'first' ? (
-          <>First value • {metricResult.series?.length || 0} data points</>
+          <>First value</>
         ) : state.metric.type === 'sum_over_period' ? (
-          <>Sum over period • {metricResult.series?.length || 0} data points</>
+          <>Sum over period</>
         ) : (
-          <>Average over period • {metricResult.series?.length || 0} data points</>
+          <>Average over period</>
         )}
       </div>
     </div>

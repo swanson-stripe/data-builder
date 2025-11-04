@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SchemaField } from '@/types';
 import { FilterCondition, FilterOperator } from '@/types';
 
@@ -9,6 +9,7 @@ type FieldFilterProps = {
   currentFilter?: FilterCondition;
   onFilterChange: (condition: FilterCondition | null) => void;
   distinctValues?: string[]; // Dynamic distinct values from actual data
+  onCancel?: () => void;
 };
 
 export function FieldFilter({
@@ -17,6 +18,7 @@ export function FieldFilter({
   currentFilter,
   onFilterChange,
   distinctValues,
+  onCancel,
 }: FieldFilterProps) {
   // Initialize state from currentFilter if it exists
   const [operator, setOperator] = useState<FilterOperator>(
@@ -35,11 +37,58 @@ export function FieldFilter({
       ? String(currentFilter.value[1])
       : ''
   );
-  const [selectedEnumValues, setSelectedEnumValues] = useState<string[]>(
-    currentFilter?.operator === 'in' && Array.isArray(currentFilter.value) && currentFilter.value.every(v => typeof v === 'string')
-      ? (currentFilter.value as string[])
-      : []
-  );
+  const [selectedEnumValues, setSelectedEnumValues] = useState<string[]>(() => {
+    if (!currentFilter) return [];
+    if (currentFilter.operator === 'in' && Array.isArray(currentFilter.value) && currentFilter.value.every(v => typeof v === 'string')) {
+      return currentFilter.value as string[];
+    }
+    if (field.enum && typeof currentFilter.value === 'string') {
+      return [currentFilter.value];
+    }
+    return [];
+  });
+
+  // Sync state with currentFilter prop when it changes
+  useEffect(() => {
+    console.log('[FieldFilter] Syncing with currentFilter:', currentFilter);
+    if (currentFilter) {
+      setOperator(currentFilter.operator);
+      setValue(formatValue(currentFilter.value));
+      
+      if (currentFilter.operator === 'between' && Array.isArray(currentFilter.value)) {
+        setBetweenMin(String(currentFilter.value[0]));
+        setBetweenMax(String(currentFilter.value[1]));
+      } else {
+        setBetweenMin('');
+        setBetweenMax('');
+      }
+      
+      // Handle enum values - support both 'in' operator with array and 'equals' with single value
+      if (field.enum) {
+        if (currentFilter.operator === 'in' && Array.isArray(currentFilter.value)) {
+          console.log('[FieldFilter] Setting selectedEnumValues to (array):', currentFilter.value);
+          setSelectedEnumValues(currentFilter.value as string[]);
+        } else if (currentFilter.operator === 'equals' && typeof currentFilter.value === 'string') {
+          console.log('[FieldFilter] Setting selectedEnumValues to (single value):', [currentFilter.value]);
+          setSelectedEnumValues([currentFilter.value]);
+        } else if (typeof currentFilter.value === 'string') {
+          // Handle any other operator with string value for enum fields
+          setSelectedEnumValues([currentFilter.value]);
+        } else {
+          setSelectedEnumValues([]);
+        }
+      } else {
+        setSelectedEnumValues([]);
+      }
+    } else {
+      // Reset to defaults when no filter
+      setOperator(getDefaultOperator(field));
+      setValue('');
+      setBetweenMin('');
+      setBetweenMax('');
+      setSelectedEnumValues([]);
+    }
+  }, [currentFilter, field]);
 
   // Handle operator change
   const handleOperatorChange = (newOp: FilterOperator) => {
@@ -103,8 +152,11 @@ export function FieldFilter({
   // Render based on field type
   if (field.type === 'boolean') {
     return (
-      <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-        <div className="space-y-2">
+      <div className="mb-2">
+        <div className="space-y-4">
+          <div className="text-xs text-gray-600 dark:text-gray-400">
+            Apply a filter
+          </div>
           <div className="flex gap-2">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -126,19 +178,66 @@ export function FieldFilter({
             </label>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={handleApply}
-              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Apply
-            </button>
-            {currentFilter && (
-              <button
-                onClick={handleClear}
-                className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-              >
-                Clear
-              </button>
+            {currentFilter ? (
+              <>
+                <button
+                  onClick={handleClear}
+                  className="flex-1 text-sm font-semibold transition-colors"
+                  style={{ 
+                    backgroundColor: '#f5f6f8',
+                    border: 'none',
+                    borderRadius: '6px',
+                    height: '28px',
+                    color: '#374151',
+                    fontSize: '14px'
+                  }}
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleApply}
+                  className="flex-1 text-sm text-white font-semibold border transition-colors"
+                  style={{ 
+                    backgroundColor: '#675DFF', 
+                    borderColor: '#5949D8', 
+                    borderRadius: '6px',
+                    height: '28px',
+                    fontSize: '14px'
+                  }}
+                >
+                  Apply
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={onCancel}
+                  className="flex-1 text-sm font-semibold transition-colors"
+                  style={{ 
+                    backgroundColor: '#f5f6f8',
+                    border: 'none',
+                    borderRadius: '6px',
+                    height: '28px',
+                    color: '#374151',
+                    fontSize: '14px'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleApply}
+                  className="flex-1 text-sm text-white font-semibold border transition-colors"
+                  style={{ 
+                    backgroundColor: '#675DFF', 
+                    borderColor: '#5949D8', 
+                    borderRadius: '6px',
+                    height: '28px',
+                    fontSize: '14px'
+                  }}
+                >
+                  Apply
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -148,12 +247,16 @@ export function FieldFilter({
 
   if (field.type === 'number') {
     return (
-      <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-        <div className="space-y-2">
+      <div className="mb-2">
+        <div className="space-y-4">
+          <div className="text-xs text-gray-600 dark:text-gray-400">
+            Apply a filter
+          </div>
           <select
             value={operator}
             onChange={(e) => handleOperatorChange(e.target.value as FilterOperator)}
-            className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900"
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#675DFF]"
+            style={{ borderRadius: '8px' }}
           >
             <option value="equals">Equals</option>
             <option value="not_equals">Not Equals</option>
@@ -169,14 +272,16 @@ export function FieldFilter({
                 placeholder="Min"
                 value={betweenMin}
                 onChange={(e) => setBetweenMin(e.target.value)}
-                className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900"
+                className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#675DFF]"
+                style={{ borderRadius: '8px' }}
               />
               <input
                 type="number"
                 placeholder="Max"
                 value={betweenMax}
                 onChange={(e) => setBetweenMax(e.target.value)}
-                className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900"
+                className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#675DFF]"
+                style={{ borderRadius: '8px' }}
               />
             </div>
           ) : (
@@ -185,24 +290,72 @@ export function FieldFilter({
               placeholder="Value"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900"
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#675DFF]"
+              style={{ borderRadius: '8px' }}
             />
           )}
 
           <div className="flex gap-2">
-            <button
-              onClick={handleApply}
-              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Apply
-            </button>
-            {currentFilter && (
-              <button
-                onClick={handleClear}
-                className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-              >
-                Clear
-              </button>
+            {currentFilter ? (
+              <>
+                <button
+                  onClick={handleClear}
+                  className="flex-1 text-sm font-semibold transition-colors"
+                  style={{ 
+                    backgroundColor: '#f5f6f8',
+                    border: 'none',
+                    borderRadius: '6px',
+                    height: '28px',
+                    color: '#374151',
+                    fontSize: '14px'
+                  }}
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleApply}
+                  className="flex-1 text-sm text-white font-semibold border transition-colors"
+                  style={{ 
+                    backgroundColor: '#675DFF', 
+                    borderColor: '#5949D8', 
+                    borderRadius: '6px',
+                    height: '28px',
+                    fontSize: '14px'
+                  }}
+                >
+                  Apply
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={onCancel}
+                  className="flex-1 text-sm font-semibold transition-colors"
+                  style={{ 
+                    backgroundColor: '#f5f6f8',
+                    border: 'none',
+                    borderRadius: '6px',
+                    height: '28px',
+                    color: '#374151',
+                    fontSize: '14px'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleApply}
+                  className="flex-1 text-sm text-white font-semibold border transition-colors"
+                  style={{ 
+                    backgroundColor: '#675DFF', 
+                    borderColor: '#5949D8', 
+                    borderRadius: '6px',
+                    height: '28px',
+                    fontSize: '14px'
+                  }}
+                >
+                  Apply
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -223,13 +376,16 @@ export function FieldFilter({
       );
     };
 
+    console.log('[FieldFilter] Enum values:', enumValues);
+    console.log('[FieldFilter] Selected enum values:', selectedEnumValues);
+
     return (
-      <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-        <div className="space-y-2">
+      <div className="mb-2">
+        <div className="space-y-4">
           <div className="text-xs text-gray-600 dark:text-gray-400">
-            Select one or more:
+            Apply a filter
           </div>
-          <div className="space-y-1 max-h-40 overflow-y-auto">
+          <div className="space-y-1">
             {enumValues.map(enumValue => (
               <label
                 key={enumValue}
@@ -247,19 +403,66 @@ export function FieldFilter({
           </div>
 
           <div className="flex gap-2">
-            <button
-              onClick={handleApply}
-              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Apply
-            </button>
-            {currentFilter && (
-              <button
-                onClick={handleClear}
-                className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-              >
-                Clear
-              </button>
+            {currentFilter ? (
+              <>
+                <button
+                  onClick={handleClear}
+                  className="flex-1 text-sm font-semibold transition-colors"
+                  style={{ 
+                    backgroundColor: '#f5f6f8',
+                    border: 'none',
+                    borderRadius: '6px',
+                    height: '28px',
+                    color: '#374151',
+                    fontSize: '14px'
+                  }}
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleApply}
+                  className="flex-1 text-sm text-white font-semibold border transition-colors"
+                  style={{ 
+                    backgroundColor: '#675DFF', 
+                    borderColor: '#5949D8', 
+                    borderRadius: '6px',
+                    height: '28px',
+                    fontSize: '14px'
+                  }}
+                >
+                  Apply
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={onCancel}
+                  className="flex-1 text-sm font-semibold transition-colors"
+                  style={{ 
+                    backgroundColor: '#f5f6f8',
+                    border: 'none',
+                    borderRadius: '6px',
+                    height: '28px',
+                    color: '#374151',
+                    fontSize: '14px'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleApply}
+                  className="flex-1 text-sm text-white font-semibold border transition-colors"
+                  style={{ 
+                    backgroundColor: '#675DFF', 
+                    borderColor: '#5949D8', 
+                    borderRadius: '6px',
+                    height: '28px',
+                    fontSize: '14px'
+                  }}
+                >
+                  Apply
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -269,33 +472,81 @@ export function FieldFilter({
 
   // String or ID fields - single text input with comma-separated support
   return (
-    <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-      <div className="space-y-2">
+    <div className="mb-2">
+      <div className="space-y-4">
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          Apply a filter
+        </div>
         <input
           type="text"
           placeholder={field.type === 'id' ? 'Enter IDs (comma-separated)' : 'Contains text...'}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900"
+          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#675DFF]"
+          style={{ borderRadius: '8px' }}
         />
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          {field.type === 'id' ? 'Separate multiple IDs with commas' : 'Case-insensitive search'}
-        </div>
 
         <div className="flex gap-2">
-          <button
-            onClick={handleApply}
-            className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Apply
-          </button>
-          {currentFilter && (
-            <button
-              onClick={handleClear}
-              className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-            >
-              Clear
-            </button>
+          {currentFilter ? (
+            <>
+              <button
+                onClick={handleClear}
+                className="flex-1 text-sm font-semibold transition-colors"
+                style={{ 
+                  backgroundColor: '#f5f6f8',
+                  border: 'none',
+                  borderRadius: '6px',
+                  height: '28px',
+                  color: '#374151',
+                  fontSize: '14px'
+                }}
+              >
+                Clear
+              </button>
+              <button
+                onClick={handleApply}
+                className="flex-1 text-sm text-white font-semibold border transition-colors"
+                style={{ 
+                  backgroundColor: '#675DFF', 
+                  borderColor: '#5949D8', 
+                  borderRadius: '6px',
+                  height: '28px',
+                  fontSize: '14px'
+                }}
+              >
+                Apply
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={onCancel}
+                className="flex-1 text-sm font-semibold transition-colors"
+                style={{ 
+                  backgroundColor: '#f5f6f8',
+                  border: 'none',
+                  borderRadius: '6px',
+                  height: '28px',
+                  color: '#374151',
+                  fontSize: '14px'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApply}
+                className="flex-1 text-sm text-white font-semibold border transition-colors"
+                style={{ 
+                  backgroundColor: '#675DFF', 
+                  borderColor: '#5949D8', 
+                  borderRadius: '6px',
+                  height: '28px',
+                  fontSize: '14px'
+                }}
+              >
+                Apply
+              </button>
+            </>
           )}
         </div>
       </div>
