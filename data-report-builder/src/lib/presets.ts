@@ -65,14 +65,14 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       { object: 'price', field: 'currency' },
       { object: 'price', field: 'recurring_interval' },
     ],
-    // MRR metric - latest value of subscription prices for active subscriptions only
+    // MRR metric - sum of subscription prices for active subscriptions
     metric: {
       name: 'Monthly Recurring Revenue (MRR)',
       source: { object: 'price', field: 'unit_amount' },
       op: 'sum',
-      type: 'latest',
+      type: 'sum_over_period',
     },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
     filters: [
       {
         field: { object: 'subscription', field: 'status' },
@@ -123,12 +123,12 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       { object: 'invoice', field: 'amount_paid' },
       { object: 'invoice', field: 'created' },
     ],
-    // Snapshot metric — latest value per bucket (proxy via subscription count)
+    // Average count of active subscribers per period
     metric: {
       name: 'Active Subscribers',
-      source: { object: 'subscription', field: 'id' }, // treat as count proxy
+      source: { object: 'subscription', field: 'id' },
       op: 'count',
-      type: 'latest',
+      type: 'average_over_period',
     },
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
     // Only count subscriptions with status = 'active'
