@@ -1017,7 +1017,7 @@ export function ChartPanel() {
                           (state.metric.type === 'first' && props.index === 0);
                         
                         if (!shouldShowDot && !isSelected) {
-                          return <></>;
+                          return <g key={key} />;
                         }
                         
                   return (
@@ -1126,7 +1126,7 @@ export function ChartPanel() {
                           (state.metric.type === 'first' && props.index === 0);
                         
                         if (!shouldShowDot && !isSelected) {
-                          return <></>;
+                          return <g key={key} />;
                         }
                         
                   return (
