@@ -1,7 +1,7 @@
 // src/lib/presets.ts
 import { Granularity } from '@/lib/time';
 import { MetricDef, FilterCondition } from '@/types';
-import { AppAction } from '@/state/app';
+import { AppAction, ChartType } from '@/state/app';
 
 export type PresetKey =
   | 'blank'
@@ -28,6 +28,8 @@ type PresetConfig = {
   range?: { start: string; end: string; granularity: Granularity };
   // Optional filters to apply
   filters?: FilterCondition[];
+  // Optional chart settings
+  chartType?: ChartType;
 };
 
 // convenience generator for ISO "today"
@@ -65,12 +67,12 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       { object: 'price', field: 'currency' },
       { object: 'price', field: 'recurring_interval' },
     ],
-    // MRR metric - sum of subscription prices for active subscriptions
+    // MRR metric - latest snapshot of active subscription prices
     metric: {
       name: 'Monthly Recurring Revenue (MRR)',
       source: { object: 'price', field: 'unit_amount' },
       op: 'sum',
-      type: 'sum_over_period',
+      type: 'latest',
     },
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
     filters: [
@@ -123,12 +125,12 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       { object: 'invoice', field: 'amount_paid' },
       { object: 'invoice', field: 'created' },
     ],
-    // Average count of active subscribers per period
+    // Latest snapshot of active subscriber count
     metric: {
       name: 'Active Subscribers',
       source: { object: 'subscription', field: 'id' },
       op: 'count',
-      type: 'average_over_period',
+      type: 'latest',
     },
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
     // Only count subscriptions with status = 'active'
@@ -165,6 +167,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       type: 'sum_over_period',
     },
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
+    chartType: 'bar',
   },
 
   subscriber_ltv: {
@@ -182,12 +185,12 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       { object: 'invoice', field: 'status' },
       { object: 'invoice', field: 'created' },
     ],
-    // Average revenue per user - average invoice amount per subscriber
+    // Average revenue per user - latest snapshot
     metric: {
       name: 'Average Revenue Per User (ARPU)',
-      source: { object: 'invoice', field: 'amount_paid' }, // average revenue across subscribers
+      source: { object: 'invoice', field: 'amount_paid' },
       op: 'avg',
-      type: 'average_over_period',
+      type: 'latest',
     },
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
   },
@@ -253,5 +256,10 @@ export function applyPreset(
     for (const filter of p.filters) {
       dispatch({ type: 'ADD_FILTER', payload: filter });
     }
+  }
+
+  // Apply chart type if specified
+  if (p.chartType) {
+    dispatch({ type: 'SET_CHART_TYPE', payload: p.chartType });
   }
 }
