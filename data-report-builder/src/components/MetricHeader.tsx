@@ -84,6 +84,7 @@ export function MetricHeader() {
     state.granularity,
     includeSet,
     state.selectedObjects,
+    version, // Re-compute when warehouse data changes
   ]);
 
   // Calculate delta based on selected comparison mode
