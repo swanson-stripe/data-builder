@@ -215,6 +215,7 @@ export function ChartPanel() {
     state.granularity,
     includeSet,
     state.selectedObjects,
+    version, // Re-compute when warehouse data changes
   ]);
 
   // Extract series from metric result (for compatibility with existing code)
