@@ -397,6 +397,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
           conditions: [],
           logic: 'AND',
         },
+        chart: {
+          type: 'line',
+          comparison: 'none',
+          xSourceMode: 'time',
+          ySourceMode: 'metric',
+        },
       };
 
     case 'SET_SELECTED_BUCKET':
