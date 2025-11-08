@@ -52,14 +52,14 @@ function PageContent() {
 
 
   return (
-    <div className="h-screen flex flex-col bg-white dark:bg-gray-900">
-      <header className="flex items-center justify-between px-10 bg-white dark:bg-gray-800" style={{ height: '56px' }} role="banner">
-        <button className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center" style={{ backgroundColor: '#F5F6F8', borderRadius: '6px', width: '30px', height: '30px' }} aria-label="Close report builder">
+    <div className="h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <header className="flex items-center justify-between px-10" style={{ height: '56px', backgroundColor: 'var(--bg-primary)' }} role="banner">
+        <button className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '6px', width: '30px', height: '30px' }} aria-label="Close report builder">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
             <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <button className="flex items-center gap-2 text-white text-sm font-semibold px-2 py-1 border transition-colors" style={{ backgroundColor: '#675DFF', borderColor: '#5949D8', borderRadius: '6px' }} aria-label="Save report">
+        <button className="flex items-center gap-2 text-sm font-semibold px-2 py-1 border transition-colors" style={{ backgroundColor: 'var(--button-primary-bg)', borderColor: 'var(--button-primary-border)', color: 'var(--button-primary-text)', borderRadius: '6px' }} aria-label="Save report">
           Save
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-3 h-3">
             <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -98,16 +98,16 @@ function PageContent() {
           />
         </aside>
 
-        <section className="flex-1 py-6 bg-white dark:bg-gray-900 overflow-y-auto custom-scrollbar" style={{ paddingRight: '32px' }} role="region" aria-label="Report visualizations">
+        <section className="flex-1 py-6 overflow-y-auto custom-scrollbar" style={{ paddingRight: '32px', backgroundColor: 'var(--bg-primary)' }} role="region" aria-label="Report visualizations">
           {/* Chart Panel - now includes integrated summary table when comparison is enabled */}
-          <div className="flex flex-col bg-white dark:bg-gray-800" role="region" aria-label="Time series chart">
+          <div className="flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }} role="region" aria-label="Time series chart">
             <ChartPanel />
           </div>
 
           {/* Value Table - now integrated into ChartPanel, kept here for future use if needed */}
 
           {/* Data List */}
-          <div className="bg-white dark:bg-gray-800" style={{ marginTop: '40px' }} role="region" aria-label="Data preview">
+          <div style={{ marginTop: '40px', backgroundColor: 'var(--bg-primary)' }} role="region" aria-label="Data preview">
             <DataList />
           </div>
         </section>
@@ -115,7 +115,7 @@ function PageContent() {
 
       {/* Floating Dev Tools */}
       <div 
-        className="fixed bg-white dark:bg-gray-800 z-50" 
+        className="fixed z-50" 
         style={{ 
           bottom: '20px', 
           right: '40px', 
@@ -123,7 +123,8 @@ function PageContent() {
           padding: '8px 16px', 
           width: 'fit-content',
           cursor: devToolsExpanded ? 'default' : 'pointer',
-          boxShadow: '0 5px 15px rgba(0, 0, 0, 0.16)'
+          boxShadow: '0 5px 15px rgba(0, 0, 0, 0.16)',
+          backgroundColor: 'var(--bg-elevated)'
         }}
         onClick={() => !devToolsExpanded && setDevToolsExpanded(true)}
       >
@@ -145,8 +146,8 @@ function PageContent() {
               marginTop: devToolsExpanded ? '-4px' : '0',
               marginBottom: devToolsExpanded ? '-4px' : '0',
               cursor: 'pointer',
-              background: devToolsExpanded ? 'transparent' : 'white',
-              backgroundColor: devToolsExpanded ? 'transparent' : 'white',
+              background: devToolsExpanded ? 'transparent' : 'var(--bg-elevated)',
+              backgroundColor: devToolsExpanded ? 'transparent' : 'var(--bg-elevated)',
               padding: devToolsExpanded ? '4px 8px' : '0',
               border: 'none',
               outline: 'none',
@@ -161,7 +162,7 @@ function PageContent() {
             } as React.CSSProperties}
             onMouseEnter={(e) => {
               if (devToolsExpanded) {
-                e.currentTarget.style.backgroundColor = '#F5F6F8';
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
               }
             }}
             onMouseLeave={(e) => {
@@ -173,13 +174,13 @@ function PageContent() {
             {devToolsExpanded ? (
               // Inward arrows (collapse)
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fillRule="evenodd" clipRule="evenodd" d="M0.75 7.25C0.75 6.83578 1.08579 6.5 1.5 6.5H4.75C5.16421 6.5 5.5 6.83578 5.5 7.25V10.5C5.5 10.9142 5.16421 11.25 4.75 11.25C4.33579 11.25 4 10.9142 4 10.5V9.06066L1.53033 11.5303C1.23744 11.8232 0.762563 11.8232 0.46967 11.5303C0.176777 11.2374 0.176777 10.7626 0.46967 10.4697L2.93934 8H1.5C1.08579 8 0.75 7.66421 0.75 7.25Z" fill="#6C7688"/>
-                <path fillRule="evenodd" clipRule="evenodd" d="M11.5303 0.46967C11.8232 0.762563 11.8232 1.23744 11.5303 1.53033L9.06066 4H10.5C10.9142 4 11.25 4.33579 11.25 4.75C11.25 5.16421 10.9142 5.5 10.5 5.5H7.25C7.05109 5.5 6.86032 5.42098 6.71967 5.28033C6.57902 5.13968 6.5 4.94891 6.5 4.75V1.5C6.5 1.08579 6.83579 0.75 7.25 0.75C7.66421 0.75 8 1.08579 8 1.5V2.93934L10.4697 0.46967C10.7626 0.176777 11.2374 0.176777 11.5303 0.46967Z" fill="#6C7688"/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M0.75 7.25C0.75 6.83578 1.08579 6.5 1.5 6.5H4.75C5.16421 6.5 5.5 6.83578 5.5 7.25V10.5C5.5 10.9142 5.16421 11.25 4.75 11.25C4.33579 11.25 4 10.9142 4 10.5V9.06066L1.53033 11.5303C1.23744 11.8232 0.762563 11.8232 0.46967 11.5303C0.176777 11.2374 0.176777 10.7626 0.46967 10.4697L2.93934 8H1.5C1.08579 8 0.75 7.66421 0.75 7.25Z" fill="var(--text-muted)"/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M11.5303 0.46967C11.8232 0.762563 11.8232 1.23744 11.5303 1.53033L9.06066 4H10.5C10.9142 4 11.25 4.33579 11.25 4.75C11.25 5.16421 10.9142 5.5 10.5 5.5H7.25C7.05109 5.5 6.86032 5.42098 6.71967 5.28033C6.57902 5.13968 6.5 4.94891 6.5 4.75V1.5C6.5 1.08579 6.83579 0.75 7.25 0.75C7.66421 0.75 8 1.08579 8 1.5V2.93934L10.4697 0.46967C10.7626 0.176777 11.2374 0.176777 11.5303 0.46967Z" fill="var(--text-muted)"/>
               </svg>
             ) : (
               // Outward arrows (expand)
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fillRule="evenodd" clipRule="evenodd" d="M6.75 2.5C6.33579 2.5 6 2.16421 6 1.75C6 1.33579 6.33579 1 6.75 1H10.25C10.6642 1 11 1.33579 11 1.75V5.25C11 5.66421 10.6642 6 10.25 6C9.83579 6 9.5 5.66421 9.5 5.25V3.56066L3.56066 9.5H5.25C5.66421 9.5 6 9.83579 6 10.25C6 10.6642 5.66421 11 5.25 11H1.75C1.33579 11 1 10.6642 1 10.25V6.75C1 6.33579 1.33579 6 1.75 6C2.16421 6 2.5 6.33579 2.5 6.75V8.43934L8.43934 2.5H6.75Z" fill="#6C7688"/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M6.75 2.5C6.33579 2.5 6 2.16421 6 1.75C6 1.33579 6.33579 1 6.75 1H10.25C10.6642 1 11 1.33579 11 1.75V5.25C11 5.66421 10.6642 6 10.25 6C9.83579 6 9.5 5.66421 9.5 5.25V3.56066L3.56066 9.5H5.25C5.66421 9.5 6 9.83579 6 10.25C6 10.6642 5.66421 11 5.25 11H1.75C1.33579 11 1 10.6642 1 10.25V6.75C1 6.33579 1.33579 6 1.75 6C2.16421 6 2.5 6.33579 2.5 6.75V8.43934L8.43934 2.5H6.75Z" fill="var(--text-muted)"/>
               </svg>
             )}
           </button>
@@ -191,10 +192,16 @@ function PageContent() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setShowPresetOptions(true)}
-                  className="flex items-center gap-1 text-sm font-semibold text-gray-900 dark:text-gray-100 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer rounded px-2 py-1"
-                  style={{ whiteSpace: 'nowrap', margin: '-4px 0' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F6F8'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  className="flex items-center gap-1 text-sm font-medium transition-colors cursor-pointer rounded px-2 py-1"
+                  style={{ whiteSpace: 'nowrap', margin: '-4px 0', color: 'var(--text-secondary)' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
                 >
                   {PRESET_OPTIONS.find(p => p.key === state.report)?.label || 'Select preset'}
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -203,11 +210,17 @@ function PageContent() {
                 </button>
                 <button
                   onClick={() => dispatch(actions.resetAll())}
-                  className="flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer rounded px-2 py-1"
+                  className="flex items-center gap-1 text-sm font-medium transition-colors cursor-pointer rounded px-2 py-1"
                   aria-label="Start new report"
-                  style={{ margin: '-4px 0' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F6F8'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  style={{ margin: '-4px 0', color: 'var(--text-secondary)' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M6 2V10M2 6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -216,11 +229,17 @@ function PageContent() {
                 </button>
                 <button
                   onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                  className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer rounded px-2 py-1"
+                  className="transition-colors cursor-pointer rounded px-2 py-1"
                   aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-                  style={{ margin: '-4px 0' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F6F8'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  style={{ margin: '-4px 0', color: 'var(--text-secondary)' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
                 >
                   {theme === 'light' ? (
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -247,17 +266,17 @@ function PageContent() {
                     className="w-full text-left px-2 py-2 text-sm rounded transition-colors flex items-center justify-between"
                     style={{ 
                       whiteSpace: 'nowrap',
-                      color: preset.key === 'blank' ? '#99A5B8' : '#1a1a1a',
+                      color: preset.key === 'blank' ? 'var(--text-muted)' : 'var(--text-primary)',
                       fontWeight: preset.key === 'blank' ? 400 : 600,
                       gap: '16px'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F6F8'}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     {preset.label}
                     {state.report === preset.key && (
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="8" cy="8" r="8" fill="#374151"/>
+                        <circle cx="8" cy="8" r="8" fill="var(--text-primary)"/>
                         <path d="M11 5.5L7 10L5 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     )}

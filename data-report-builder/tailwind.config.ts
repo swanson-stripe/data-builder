@@ -18,6 +18,28 @@ const config: Config = {
         medium: '600',
         semibold: '600',
       },
+      colors: {
+        primary: 'var(--text-primary)',
+        secondary: 'var(--text-secondary)',
+        muted: 'var(--text-muted)',
+        link: 'var(--text-link)',
+        inverse: 'var(--text-inverse)',
+      },
+      backgroundColor: {
+        primary: 'var(--bg-primary)',
+        secondary: 'var(--bg-secondary)',
+        elevated: 'var(--bg-elevated)',
+        surface: 'var(--bg-surface)',
+        hover: 'var(--bg-hover)',
+        active: 'var(--bg-active)',
+        selected: 'var(--bg-selected)',
+      },
+      borderColor: {
+        default: 'var(--border-default)',
+        subtle: 'var(--border-subtle)',
+        medium: 'var(--border-medium)',
+        focus: 'var(--border-focus)',
+      },
     },
   },
 };

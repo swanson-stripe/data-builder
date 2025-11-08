@@ -200,13 +200,13 @@ export function MetricHeader() {
   return (
     <div className="flex flex-col gap-2">
       {/* Title */}
-      <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+      <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
         {title}
       </h3>
 
       {/* Value and Delta */}
       <div className="flex items-baseline gap-3">
-        <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
           {formattedValue}
         </div>
         {formattedDelta && (
@@ -225,16 +225,12 @@ export function MetricHeader() {
       </div>
 
       {/* Metadata */}
-      <div className="text-sm text-gray-600 dark:text-gray-300">
-        {state.metric.type === 'latest' ? (
-          <>Latest value</>
-        ) : state.metric.type === 'first' ? (
-          <>First value</>
-        ) : state.metric.type === 'sum_over_period' ? (
-          <>Sum over period</>
-        ) : (
-          <>Average over period</>
-        )}
+      <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+        <span>Private to you</span>
+        <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--border-subtle)' }} />
+        <button className="underline" style={{ fontWeight: 400, color: 'var(--text-primary)' }}>
+          Show version history
+        </button>
       </div>
     </div>
   );

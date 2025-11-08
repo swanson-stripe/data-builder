@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useEffect, useState, useRef } from 'react';
+import { useMemo, useEffect, useState, useRef, useCallback } from 'react';
 import { useApp, actions } from '@/state/app';
 import {
   generateSeries,
@@ -129,21 +129,6 @@ export function ChartPanel() {
     });
   }, [state.selectedObjects, has, loadEntity]);
 
-  // Handle point click
-  const handlePointClick = (data: any) => {
-    // Extract date - Recharts passes it in payload.date when clicking dots/bars
-    const dateStr = (data.payload?.date || data.date || data) as string;
-
-    const bucketDate = new Date(dateStr);
-    if (isNaN(bucketDate.getTime())) {
-      console.error('[ChartPanel] Invalid date:', dateStr);
-      return;
-    }
-
-    const { start, end } = getBucketRange(bucketDate, state.granularity);
-    dispatch(actions.setSelectedBucket(start, end, dateStr));
-  };
-
   // Validate granularity-range combination
   const validation = useMemo(() => {
     return validateGranularityRange(
@@ -229,6 +214,42 @@ export function ChartPanel() {
       points: metricResult.series,
     };
   }, [metricResult, state.report, state.metric.name]);
+
+  // Handle point click
+  const handlePointClick = useCallback((data: any) => {
+    // Extract date - Recharts passes it in payload.date when clicking dots/bars
+    let dateStr = (data.payload?.date || data.date || data) as string;
+
+    // For "latest" or "first" metrics, override the clicked bucket to show the bucket
+    // that actually contributes to the metric value (not the clicked bucket)
+    if (state.metric.type === 'latest' || state.metric.type === 'first') {
+      // Compute the appropriate bucket from the metric result series
+      if (metricResult.series && metricResult.series.length > 0) {
+        if (state.metric.type === 'latest') {
+          // Always select the last bucket for "latest" metrics
+          dateStr = metricResult.series[metricResult.series.length - 1].date;
+        } else if (state.metric.type === 'first') {
+          // Always select the first bucket for "first" metrics
+          dateStr = metricResult.series[0].date;
+        }
+      }
+    }
+
+    // Parse date in local time to avoid timezone shifts
+    // For "2025-11-02", create Nov 2 at midnight local time (not UTC)
+    const parts = dateStr.split('-');
+    const bucketDate = parts.length === 3
+      ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+      : new Date(dateStr);
+    
+    if (isNaN(bucketDate.getTime())) {
+      console.error('[ChartPanel] Invalid date:', dateStr);
+      return;
+    }
+
+    const { start, end } = getBucketRange(bucketDate, state.granularity);
+    dispatch(actions.setSelectedBucket(start, end, dateStr));
+  }, [state.metric.type, state.granularity, metricResult.series, dispatch]);
 
   // Generate comparison series based on comparison mode
   const comparisonSeries = useMemo(() => {
@@ -363,6 +384,47 @@ export function ChartPanel() {
     }
   };
 
+  // Format tooltip date label based on granularity
+  const formatTooltipDate = (dateString: string) => {
+    const date = new Date(dateString);
+    
+    switch (state.granularity) {
+      case 'year':
+        return date.getFullYear().toString();
+      
+      case 'month':
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      
+      case 'week': {
+        // For week, show the date range like "Aug 2-8, 2025"
+        const { start, end } = getBucketRange(date, 'week');
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        // Subtract 1 day from end because getBucketRange returns exclusive end date
+        endDate.setDate(endDate.getDate() - 1);
+        
+        // If same month, show "Aug 2-8, 2025"
+        if (startDate.getMonth() === endDate.getMonth()) {
+          return `${startDate.toLocaleDateString('en-US', { month: 'short' })} ${startDate.getDate()}-${endDate.getDate()}, ${startDate.getFullYear()}`;
+        } else {
+          // If different months, show "Aug 30-Sep 5, 2025"
+          return `${startDate.toLocaleDateString('en-US', { month: 'short' })} ${startDate.getDate()}-${endDate.toLocaleDateString('en-US', { month: 'short' })} ${endDate.getDate()}, ${endDate.getFullYear()}`;
+        }
+      }
+      
+      case 'day':
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      
+      case 'quarter': {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        return `Q${quarter} ${date.getFullYear()}`;
+      }
+      
+      default:
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+  };
+
   const comparisonOptions: { value: string; label: string }[] = [
     { value: 'period_start', label: 'Period start' },
     { value: 'previous_period', label: 'Previous period' },
@@ -384,6 +446,8 @@ export function ChartPanel() {
   const [shouldRenderDatePopover, setShouldRenderDatePopover] = useState(false);
   const [datePopoverOpacity, setDatePopoverOpacity] = useState(0);
   const [showGranularityOptions, setShowGranularityOptions] = useState(false);
+  const [isEditingPresets, setIsEditingPresets] = useState(false);
+  const [activePresets, setActivePresets] = useState<string[]>(['1D', '1W', '1M', '3M', '1Y', 'YTD']);
   const dateRangeButtonRef = useRef<HTMLButtonElement>(null);
   const dateRangePopoverRef = useRef<HTMLDivElement>(null);
   const dateCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -425,6 +489,7 @@ export function ChartPanel() {
     } else {
       setDatePopoverOpacity(0);
       setShowGranularityOptions(false); // Reset when closing
+      setIsEditingPresets(false); // Reset edit mode when closing
       if (dateCloseTimeoutRef.current) {
         clearTimeout(dateCloseTimeoutRef.current);
       }
@@ -519,6 +584,27 @@ export function ChartPanel() {
     },
   ];
 
+  // Handlers for preset editing
+  const handleRemovePreset = (label: string) => {
+    setActivePresets(prev => prev.filter(p => p !== label));
+  };
+
+  const handleAddPreset = (label: string) => {
+    setActivePresets(prev => [...prev, label]);
+  };
+
+  const handleReorderPresets = (startIndex: number, endIndex: number) => {
+    const result = Array.from(activePresets);
+    const [removed] = result.splice(startIndex, 1);
+    result.splice(endIndex, 0, removed);
+    setActivePresets(result);
+  };
+
+  // Get available presets for adding (those not currently active)
+  const availablePresetsToAdd = rangePresets
+    .filter(p => !activePresets.includes(p.label))
+    .concat(moreRangeOptions.filter(p => !activePresets.includes(p.code)).map(p => ({ label: p.code, getValue: p.getValue })));
+
   return (
     <div className="flex flex-col h-full">
       {/* Metric Header */}
@@ -528,29 +614,34 @@ export function ChartPanel() {
       <div className="flex items-center gap-2 mt-10">
         {/* Date Range Control */}
         <div className="relative inline-flex items-center">
-          <div className="flex items-center gap-2 px-1" style={{ backgroundColor: '#F5F6F8', borderRadius: '50px', height: '32px' }}>
-        {/* Range presets */}
-          {rangePresets.map((preset) => {
+          <div className="flex items-center gap-2 px-1" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '50px', height: '32px' }}>
+        {/* Range presets - use activePresets order */}
+          {activePresets.map((presetLabel) => {
+            const preset = rangePresets.find(p => p.label === presetLabel) ||
+                          moreRangeOptions.find(p => p.code === presetLabel);
+            if (!preset) return null;
+            
             const range = preset.getValue();
             const isSelected = state.start === range.start && state.end === range.end;
+            const displayLabel = ('code' in preset ? preset.code : preset.label) as string;
             
             return (
               <button
-                key={preset.label}
+                key={presetLabel}
                 onClick={() => {
                   dispatch(actions.setRange(range.start, range.end));
                 }}
                   className="px-3 text-sm font-medium transition-colors focus:outline-none flex items-center"
                   style={{
-                    backgroundColor: isSelected ? '#D8DEE4' : 'transparent',
+                    backgroundColor: isSelected ? 'var(--bg-hover)' : 'transparent',
                     borderRadius: '50px',
-                    color: isSelected ? '#000000' : '#6b7280',
+                    color: isSelected ? 'var(--text-primary)' : 'var(--text-muted)',
                     height: '24px',
                     cursor: 'pointer',
                   }}
                 onMouseEnter={(e) => {
                   if (!isSelected) {
-                    e.currentTarget.style.backgroundColor = '#D8DEE4';
+                    e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -558,16 +649,16 @@ export function ChartPanel() {
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }
                 }}
-                aria-label={`Set date range to ${preset.label}`}
+                aria-label={`Set date range to ${displayLabel}`}
                 aria-pressed={isSelected}
               >
-                {preset.label}
+                {displayLabel}
               </button>
             );
           })}
             
             {/* Divider */}
-            <div style={{ width: '1px', height: '20px', backgroundColor: '#D8DEE4' }} />
+            <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--bg-hover)' }} />
             
             {/* Chevron button for popover */}
             <button
@@ -575,14 +666,14 @@ export function ChartPanel() {
               onClick={() => setIsDateRangePopoverOpen(!isDateRangePopoverOpen)}
               className="flex items-center justify-center border-none focus:outline-none cursor-pointer transition-colors"
               style={{
-                backgroundColor: isDateRangePopoverOpen ? '#D8DEE4' : 'transparent',
+                backgroundColor: isDateRangePopoverOpen ? 'var(--bg-hover)' : 'transparent',
                 borderRadius: '50px',
                 width: '24px',
                 height: '24px',
               }}
               onMouseEnter={(e) => {
                 if (!isDateRangePopoverOpen) {
-                  e.currentTarget.style.backgroundColor = '#D8DEE4';
+                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
                 }
               }}
               onMouseLeave={(e) => {
@@ -602,7 +693,7 @@ export function ChartPanel() {
           {shouldRenderDatePopover && (
             <div
               ref={dateRangePopoverRef}
-              className="absolute bg-white py-1 z-50"
+              className="absolute py-1 z-50"
               style={{
                 top: '44px',
                 right: '-108px',
@@ -611,13 +702,41 @@ export function ChartPanel() {
                 width: '248px',
                 opacity: datePopoverOpacity,
                 transition: 'opacity 100ms ease-in-out',
+                backgroundColor: 'var(--bg-elevated)'
               }}
             >
+              {/* Header with Edit/Done button */}
+              <div className="flex items-center justify-between py-2" style={{ paddingLeft: '16px', paddingRight: '16px' }}>
+                <span className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  Preset list
+                </span>
+                {isEditingPresets ? (
+                  <button
+                    onClick={() => setIsEditingPresets(false)}
+                    className="text-sm font-semibold transition-colors"
+                    style={{ color: 'var(--text-link)', fontWeight: 600 }}
+                  >
+                    Done
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setIsEditingPresets(true)}
+                    className="flex items-center justify-center transition-colors"
+                    style={{ padding: '4px' }}
+                    aria-label="Edit presets"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M0.975123 7.87492C0.991235 7.63323 1.09452 7.40561 1.2658 7.23433L7.43946 1.06068C8.02524 0.474891 8.97499 0.474891 9.56078 1.06068L10.9395 2.43936C11.5252 3.02514 11.5252 3.97489 10.9395 4.56068L4.7658 10.7343C4.59452 10.9056 4.3669 11.0089 4.12521 11.025L1.0352 11.231C0.884277 11.2411 0.75906 11.1159 0.769122 10.9649L0.975123 7.87492ZM2.36083 9.63931L2.4593 8.16215L6.53043 4.09102L7.90911 5.4697L3.83798 9.54083L2.36083 9.63931ZM8.96977 4.40904L9.8788 3.50002L8.50012 2.12134L7.59109 3.03036L8.96977 4.40904Z" fill="var(--text-muted)"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+
               {showGranularityOptions ? (
                 /* Change Granularity View */
                 <>
                   {/* Change granularity label */}
-                  <div className="py-2 text-xs" style={{ paddingLeft: '16px', paddingRight: '16px', color: '#6b7280', fontWeight: 400 }}>
+                  <div className="py-2 text-xs" style={{ paddingLeft: '16px', paddingRight: '16px', color: 'var(--text-muted)', fontWeight: 400 }}>
                     Change granularity
                   </div>
                   
@@ -633,18 +752,18 @@ export function ChartPanel() {
                       style={{
                         paddingLeft: '16px',
                         paddingRight: '16px',
-                        color: '#374151',
+                        color: 'var(--text-primary)',
                         fontWeight: 600,
                         height: '32px',
                         cursor: 'pointer',
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f6f8'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <span>{option.charAt(0).toUpperCase() + option.slice(1)}</span>
                       {state.granularity === option && (
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="8" cy="8" r="8" fill="#374151"/>
+                          <circle cx="8" cy="8" r="8" fill="var(--text-primary)"/>
                           <path d="M11 5.5L7 10L5 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       )}
@@ -653,179 +772,356 @@ export function ChartPanel() {
                 </>
               ) : (
                 <>
-                  {/* Granularity Section */}
-                  <div>
-                    {/* Granularity label - not clickable */}
-                    <div className="py-2 text-xs" style={{ paddingLeft: '16px', paddingRight: '16px', color: '#6b7280', fontWeight: 400 }}>
-                      Granularity
-        </div>
-                    
-                    {/* Current granularity - clickable to toggle view */}
+                  {/* Granularity Section - hide when editing */}
+                  {!isEditingPresets && (
+                    <div>
+                      {/* Granularity label - not clickable */}
+                      <div className="py-2 text-xs" style={{ paddingLeft: '16px', paddingRight: '16px', color: 'var(--text-muted)', fontWeight: 400 }}>
+                        Granularity
+                      </div>
+                      
+                      {/* Current granularity - clickable to toggle view */}
+                      <button
+                        onClick={() => setShowGranularityOptions(true)}
+                        className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                        style={{
+                          paddingLeft: '16px',
+                          paddingRight: '16px',
+                          color: 'var(--text-primary)',
+                          fontWeight: 600,
+                          height: '32px',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <span>{state.granularity.charAt(0).toUpperCase() + state.granularity.slice(1)}</span>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path d="M3 4.5L6 2L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M3 7.5L6 10L9 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Preset List */}
+                  <div className="py-2 text-xs" style={{ paddingLeft: '16px', paddingRight: '16px', color: 'var(--text-muted)', fontWeight: 400 }}>
+                    Preset list
+                  </div>
+                  
+                  {isEditingPresets ? (
+                    /* Edit Mode */
+                    <>
+                      {activePresets.map((presetLabel, index) => {
+                        const preset = rangePresets.find(p => p.label === presetLabel) || 
+                                      moreRangeOptions.find(p => p.code === presetLabel);
+                        if (!preset) return null;
+                        
+                        const displayLabel = ('code' in preset ? preset.code : preset.label) as string;
+                        const displayName = ('code' in preset ? preset.label : (
+                          presetLabel === '1D' ? 'Last 24 hours' :
+                          presetLabel === '1W' ? 'Last week' :
+                          presetLabel === '1M' ? 'Last 4 weeks' :
+                          presetLabel === '3M' ? 'Last 3 months' :
+                          presetLabel === '1Y' ? 'Last 12 months' :
+                          presetLabel === 'YTD' ? 'Year to date' : presetLabel
+                        )) as string;
+
+                        return (
+                          <div
+                            key={presetLabel}
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.effectAllowed = 'move';
+                              e.dataTransfer.setData('text/plain', index.toString());
+                            }}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.dataTransfer.dropEffect = 'move';
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                              if (fromIndex !== index) {
+                                handleReorderPresets(fromIndex, index);
+                              }
+                            }}
+                            className="w-full text-left py-2 text-sm flex items-center justify-between"
+                            style={{
+                              paddingLeft: '16px',
+                              paddingRight: '16px',
+                              color: 'var(--text-primary)',
+                              fontWeight: 600,
+                              height: '32px',
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              {/* Drag handle */}
+                              <div className="flex flex-col gap-0.5" style={{ cursor: 'grab' }}>
+                                <div className="flex gap-0.5">
+                                  <div style={{ width: '2px', height: '2px', backgroundColor: 'var(--chart-axis)', borderRadius: '50%' }} />
+                                  <div style={{ width: '2px', height: '2px', backgroundColor: 'var(--chart-axis)', borderRadius: '50%' }} />
+                                </div>
+                                <div className="flex gap-0.5">
+                                  <div style={{ width: '2px', height: '2px', backgroundColor: 'var(--chart-axis)', borderRadius: '50%' }} />
+                                  <div style={{ width: '2px', height: '2px', backgroundColor: 'var(--chart-axis)', borderRadius: '50%' }} />
+                                </div>
+                                <div className="flex gap-0.5">
+                                  <div style={{ width: '2px', height: '2px', backgroundColor: 'var(--chart-axis)', borderRadius: '50%' }} />
+                                  <div style={{ width: '2px', height: '2px', backgroundColor: 'var(--chart-axis)', borderRadius: '50%' }} />
+                                </div>
+                              </div>
+                              <span
+                                className="flex items-center justify-center text-xs"
+                                style={{
+                                  minWidth: '42px',
+                                  height: '24px',
+                                  backgroundColor: 'transparent',
+                                  borderRadius: '50px',
+                                  color: 'var(--text-muted)',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {displayLabel}
+                              </span>
+                              <span>{displayName}</span>
+                            </div>
+                            {/* Minus button */}
+                            <button
+                              onClick={() => handleRemovePreset(presetLabel)}
+                              className="flex items-center justify-center transition-colors"
+                              style={{ padding: '4px' }}
+                              aria-label={`Remove ${displayName}`}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="8" cy="8" r="8" fill="#DC2626" stroke="#DC2626" strokeWidth="1.5"/>
+                                <path d="M5 8H11" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                              </svg>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    /* Normal Mode */
+                    <>
+                      {activePresets.map((presetLabel) => {
+                        const preset = rangePresets.find(p => p.label === presetLabel) ||
+                                      moreRangeOptions.find(p => p.code === presetLabel);
+                        if (!preset) return null;
+                        
+                        const range = preset.getValue();
+                        const isSelected = state.start === range.start && state.end === range.end;
+                        const displayLabel = ('code' in preset ? preset.code : preset.label) as string;
+                        const displayName = ('code' in preset ? preset.label : (
+                          presetLabel === '1D' ? 'Last 24 hours' :
+                          presetLabel === '1W' ? 'Last week' :
+                          presetLabel === '1M' ? 'Last 4 weeks' :
+                          presetLabel === '3M' ? 'Last 3 months' :
+                          presetLabel === '1Y' ? 'Last 12 months' :
+                          presetLabel === 'YTD' ? 'Year to date' : presetLabel
+                        )) as string;
+
+                        return (
+                          <button
+                            key={presetLabel}
+                            onClick={() => {
+                              dispatch(actions.setRange(range.start, range.end));
+                              setIsDateRangePopoverOpen(false);
+                            }}
+                            className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                            style={{
+                              paddingLeft: '16px',
+                              paddingRight: '16px',
+                              color: 'var(--text-primary)',
+                              fontWeight: 600,
+                              height: '32px',
+                              cursor: 'pointer',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="flex items-center justify-center text-xs"
+                                style={{
+                                  minWidth: '42px',
+                                  height: '24px',
+                                  backgroundColor: isSelected ? 'var(--bg-surface)' : 'transparent',
+                                  borderRadius: '50px',
+                                  color: isSelected ? 'var(--text-primary)' : 'var(--text-muted)',
+                                  fontWeight: isSelected ? 600 : 400,
+                                }}
+                              >
+                                {displayLabel}
+                              </span>
+                              <span>{displayName}</span>
+                            </div>
+                            {isSelected && (
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="8" cy="8" r="8" fill="var(--text-primary)"/>
+                                <path d="M11 5.5L7 10L5 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {/* More Section */}
+                  <div className="py-2 text-xs border-t border-gray-100" style={{ paddingLeft: '16px', paddingRight: '16px', color: 'var(--text-muted)', fontWeight: 400 }}>
+                    More
+                  </div>
+                  
+                  {isEditingPresets ? (
+                    /* Edit Mode - Show all options with add/remove buttons */
+                    <>
+                      {[...rangePresets, ...moreRangeOptions.map(m => ({ label: m.code, getValue: m.getValue }))].map((preset) => {
+                        const presetLabel = ('code' in preset ? preset.code : preset.label) as string;
+                        const isActive = activePresets.includes(presetLabel);
+                        
+                        const displayLabel = presetLabel;
+                        const displayName = (moreRangeOptions.find(m => m.code === presetLabel)?.label || (
+                          presetLabel === '1D' ? 'Last 24 hours' :
+                          presetLabel === '1W' ? 'Last week' :
+                          presetLabel === '1M' ? 'Last 4 weeks' :
+                          presetLabel === '3M' ? 'Last 3 months' :
+                          presetLabel === '1Y' ? 'Last 12 months' :
+                          presetLabel === 'YTD' ? 'Year to date' : presetLabel
+                        )) as string;
+
+                        // Don't show if it's in the active list
+                        if (isActive) return null;
+
+                        return (
+                          <div
+                            key={presetLabel}
+                            className="w-full text-left py-2 text-sm flex items-center justify-between"
+                            style={{
+                              paddingLeft: '16px',
+                              paddingRight: '16px',
+                              color: 'var(--text-primary)',
+                              fontWeight: 600,
+                              height: '32px',
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="flex items-center justify-center text-xs"
+                                style={{
+                                  minWidth: '42px',
+                                  height: '24px',
+                                  backgroundColor: 'transparent',
+                                  borderRadius: '50px',
+                                  color: 'var(--text-muted)',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {displayLabel}
+                              </span>
+                              <span>{displayName}</span>
+                            </div>
+                            {/* Plus button */}
+                            <button
+                              onClick={() => handleAddPreset(presetLabel)}
+                              className="flex items-center justify-center transition-colors"
+                              style={{ padding: '4px' }}
+                              aria-label={`Add ${displayName}`}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="8" cy="8" r="8" fill="#635BFF" stroke="#635BFF" strokeWidth="1.5"/>
+                                <path d="M8 5V11M5 8H11" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                              </svg>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    /* Normal Mode - Show all options */
+                    <>
+                      {moreRangeOptions.map((option) => {
+                        const range = option.getValue();
+                        const isSelected = state.start === range.start && state.end === range.end;
+                        
+                        return (
+                          <button
+                            key={option.code}
+                            onClick={() => {
+                              dispatch(actions.setRange(range.start, range.end));
+                              setIsDateRangePopoverOpen(false);
+                            }}
+                            className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                            style={{
+                              paddingLeft: '16px',
+                              paddingRight: '16px',
+                              color: 'var(--text-primary)',
+                              fontWeight: 600,
+                              height: '32px',
+                              cursor: 'pointer',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="flex items-center justify-center text-xs"
+                                style={{
+                                  minWidth: '42px',
+                                  height: '24px',
+                                  backgroundColor: isSelected ? '#f5f6f8' : 'transparent',
+                                  borderRadius: '50px',
+                                  color: isSelected ? '#000000' : '#6b7280',
+                                  fontWeight: isSelected ? 600 : 400,
+                                }}
+                              >
+                                {option.code}
+                              </span>
+                              <span>{option.label}</span>
+                            </div>
+                            {isSelected && (
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="8" cy="8" r="8" fill="var(--text-primary)"/>
+                                <path d="M11 5.5L7 10L5 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+                  
+                  {/* Custom option - only show when not editing */}
+                  {!isEditingPresets && (
                     <button
-                      onClick={() => setShowGranularityOptions(true)}
                       className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
                       style={{
                         paddingLeft: '16px',
                         paddingRight: '16px',
-                        color: '#374151',
+                        color: 'var(--text-primary)',
                         fontWeight: 600,
                         height: '32px',
                         cursor: 'pointer',
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f6f8'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
-                      <span>{state.granularity.charAt(0).toUpperCase() + state.granularity.slice(1)}</span>
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path d="M3 4.5L6 2L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M3 7.5L6 10L9 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <div className="flex items-center gap-2">
+                        <span style={{ minWidth: '42px' }}></span>
+                        <span>Custom</span>
+                      </div>
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </button>
-      </div>
-
-                  {/* Preset List */}
-                  <div className="py-2 text-xs" style={{ paddingLeft: '16px', paddingRight: '16px', color: '#6b7280', fontWeight: 400 }}>
-                    Preset list
-                  </div>
-                  
-                  {rangePresets.map((preset) => {
-                    const range = preset.getValue();
-                    const isSelected = state.start === range.start && state.end === range.end;
-                    
-                    return (
-                      <button
-                        key={preset.label}
-                        onClick={() => {
-                          dispatch(actions.setRange(range.start, range.end));
-                          setIsDateRangePopoverOpen(false);
-                        }}
-                        className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
-                        style={{
-                          paddingLeft: '16px',
-                          paddingRight: '16px',
-                          color: '#374151',
-                          fontWeight: 600,
-                          height: '32px',
-                          cursor: 'pointer',
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f6f8'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="flex items-center justify-center text-xs"
-                            style={{
-                              minWidth: '42px',
-                              height: '24px',
-                              backgroundColor: isSelected ? '#f5f6f8' : 'transparent',
-                              borderRadius: '50px',
-                              color: isSelected ? '#000000' : '#6b7280',
-                              fontWeight: isSelected ? 600 : 400,
-                            }}
-                          >
-                            {preset.label}
-                          </span>
-                          <span>
-                            {preset.label === '1D' && 'Last 24 hours'}
-                            {preset.label === '1W' && 'Last week'}
-                            {preset.label === '1M' && 'Last 4 weeks'}
-                            {preset.label === '3M' && 'Last 3 months'}
-                            {preset.label === '1Y' && 'Last 12 months'}
-                            {preset.label === 'YTD' && 'Year to date'}
-                          </span>
-                        </div>
-                        {isSelected && (
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="8" cy="8" r="8" fill="#374151"/>
-                            <path d="M11 5.5L7 10L5 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        )}
-                      </button>
-                    );
-                  })}
-
-                  {/* More Section */}
-                  <div className="py-2 text-xs border-t border-gray-100" style={{ paddingLeft: '16px', paddingRight: '16px', color: '#6b7280', fontWeight: 400 }}>
-                    More
-                  </div>
-                  
-                  {moreRangeOptions.map((option) => {
-                    const range = option.getValue();
-                    const isSelected = state.start === range.start && state.end === range.end;
-                    
-                    return (
-                      <button
-                        key={option.code}
-                        onClick={() => {
-                          dispatch(actions.setRange(range.start, range.end));
-                          setIsDateRangePopoverOpen(false);
-                        }}
-                        className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
-                        style={{
-                          paddingLeft: '16px',
-                          paddingRight: '16px',
-                          color: '#374151',
-                          fontWeight: 600,
-                          height: '32px',
-                          cursor: 'pointer',
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f6f8'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="flex items-center justify-center text-xs"
-                            style={{
-                              minWidth: '42px',
-                              height: '24px',
-                              backgroundColor: isSelected ? '#f5f6f8' : 'transparent',
-                              borderRadius: '50px',
-                              color: isSelected ? '#000000' : '#6b7280',
-                              fontWeight: isSelected ? 600 : 400,
-                            }}
-                          >
-                            {option.code}
-                          </span>
-                          <span>{option.label}</span>
-                        </div>
-                        {isSelected && (
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="8" cy="8" r="8" fill="#374151"/>
-                            <path d="M11 5.5L7 10L5 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        )}
-                      </button>
-                    );
-                  })}
-                  
-                  {/* Custom option */}
-                  <button
-                    className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
-                    style={{
-                      paddingLeft: '16px',
-                      paddingRight: '16px',
-                      color: '#374151',
-                      fontWeight: 600,
-                      height: '32px',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f6f8'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span style={{ minWidth: '42px' }}></span>
-                      <span>Custom</span>
-                    </div>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
+                  )}
                 </>
               )}
             </div>
@@ -839,8 +1135,8 @@ export function ChartPanel() {
             onClick={() => setIsComparisonPopoverOpen(!isComparisonPopoverOpen)}
             className="text-sm border-none focus:outline-none cursor-pointer flex items-center transition-colors"
             style={{
-              backgroundColor: '#F5F6F8',
-              color: isComparisonSelected ? '#374151' : '#99A5B8',
+              backgroundColor: 'var(--bg-surface)',
+              color: isComparisonSelected ? 'var(--text-primary)' : 'var(--text-muted)',
               fontWeight: 400,
               borderRadius: '50px',
               padding: '6px 12px',
@@ -851,8 +1147,8 @@ export function ChartPanel() {
           >
             {!isComparisonSelected && (
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="#99A5B8"/>
-                <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="#99A5B8"/>
+                <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="var(--text-muted)"/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="var(--text-muted)"/>
               </svg>
             )}
             <span>{currentComparisonLabel}</span>
@@ -867,7 +1163,7 @@ export function ChartPanel() {
           {shouldRenderPopover && (
             <div
               ref={comparisonPopoverRef}
-              className="absolute bg-white py-1 z-50"
+              className="absolute py-1 z-50"
               style={{
                 top: 0,
                 left: 0,
@@ -876,11 +1172,12 @@ export function ChartPanel() {
                 width: isComparisonSelected ? '248px' : 'auto',
                 opacity: popoverOpacity,
                 transition: 'opacity 100ms ease-in-out',
+                backgroundColor: 'var(--bg-elevated)'
               }}
             >
               {/* Current selection label */}
               {isComparisonSelected && (
-                <div className="py-2 text-sm" style={{ paddingLeft: '16px', paddingRight: '16px', color: '#374151', fontWeight: 400 }}>
+                <div className="py-2 text-sm" style={{ paddingLeft: '16px', paddingRight: '16px', color: 'var(--text-primary)', fontWeight: 400 }}>
                   {currentComparisonLabel}
                 </div>
               )}
@@ -893,19 +1190,21 @@ export function ChartPanel() {
                     dispatch(actions.setComparison(option.value as any));
                     setIsComparisonPopoverOpen(false);
                   }}
-                  className="w-full text-left py-2 text-sm hover:bg-gray-100 transition-colors flex items-center gap-4"
+                  className="w-full text-left py-2 text-sm transition-colors flex items-center gap-4"
                   style={{
                     paddingLeft: '16px',
                     paddingRight: '16px',
-                    color: '#374151',
+                    color: 'var(--text-primary)',
                     fontWeight: 600,
                     whiteSpace: 'nowrap',
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
                   <span>{option.label}</span>
                   {state.chart.comparison === option.value && (
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="8" cy="8" r="8" fill="#374151"/>
+                      <circle cx="8" cy="8" r="8" fill="var(--text-primary)"/>
                       <path d="M11 5.5L7 10L5 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   )}
@@ -920,9 +1219,9 @@ export function ChartPanel() {
           <button
             className="flex items-center justify-center transition-colors"
             style={{
-              backgroundColor: '#F5F6F8',
+              backgroundColor: 'var(--bg-surface)',
               borderRadius: '50px',
-              color: '#6b7280',
+              color: 'var(--text-muted)',
               width: '32px',
               height: '32px',
             }}
@@ -943,7 +1242,7 @@ export function ChartPanel() {
         )}
 
       {/* Chart and Table Container */}
-      <div className="mt-3 p-2" style={{ backgroundColor: '#F5F6F8', borderRadius: '8px' }}>
+      <div className="mt-3 p-2" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '8px' }}>
         {metricResult.series === null || !state.metric.source ? (
           <div className="flex flex-col items-center justify-center" style={{ height: '280px' }}>
             <div className="text-gray-400 dark:text-gray-500 text-center">
@@ -957,42 +1256,50 @@ export function ChartPanel() {
         ) : (
           <>
             {/* Chart */}
-            <div style={{ height: '280px', backgroundColor: '#ffffff', borderRadius: '8px', paddingTop: '8px', paddingLeft: '8px' }}>
+            <div className="focus:outline-none" style={{ height: '280px', backgroundColor: 'var(--bg-elevated)', borderRadius: '8px', paddingTop: '8px', paddingLeft: '8px' }}>
           <ResponsiveContainer width="100%" height="100%">
           {state.chart.type === 'line' && (
-            <LineChart data={chartData}>
+            <LineChart data={chartData} onMouseMove={(data: any) => {
+              if (data && data.activeLabel) {
+                dispatch(actions.setHoveredBucket(data.activeLabel));
+              }
+            }} onMouseLeave={() => {
+              dispatch(actions.clearHoveredBucket());
+            }}>
                     <CartesianGrid 
                       horizontal={true} 
                       vertical={false}
-                      stroke="#d1d5db"
+                      stroke="var(--chart-grid)"
                       strokeDasharray="2 2"
                       strokeOpacity={0.5}
                     />
               <XAxis
                 dataKey="date"
-                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
                       stroke="none"
-                      axisLine={{ stroke: '#e5e7eb' }}
+                      axisLine={{ stroke: 'var(--border-subtle)' }}
                       ticks={xAxisTicks}
                 tickFormatter={(value) => {
                         const date = new Date(value);
-                        return date.toLocaleDateString('en-US', { month: 'short' });
+                        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                 }}
               />
               <YAxis
-                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
                       stroke="none"
                       axisLine={false}
                 tickFormatter={formatValue}
                       orientation="right"
               />
               <Tooltip
+                cursor={{ stroke: 'var(--border-medium)', strokeWidth: 1, strokeDasharray: '4 4' }}
                 contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'var(--chart-tooltip-bg)',
+                  border: '1px solid var(--chart-tooltip-border)',
                   borderRadius: '4px',
                   fontSize: '12px',
                 }}
+                labelFormatter={formatTooltipDate}
                 formatter={(value: any) => {
                   if (typeof value === 'number') {
                           return formatTooltipValue(value);
@@ -1004,10 +1311,12 @@ export function ChartPanel() {
                       type="linear"
                 dataKey="current"
                 name={series.label}
-                      stroke="#9966FF"
+                      stroke="var(--chart-line-primary)"
                       strokeWidth={2.5}
+                      isAnimationActive={false}
                 dot={(props: any) => {
                   const isSelected = state.selectedBucket?.label === props.payload.date;
+                  const isHovered = state.hoveredBucket === props.payload.date;
                   const { key, ...dotProps } = props;
                         
                         // For latest/first value metrics, only show dot on the relevant bucket
@@ -1017,7 +1326,7 @@ export function ChartPanel() {
                           (state.metric.type === 'latest' && props.index === chartData.length - 1) ||
                           (state.metric.type === 'first' && props.index === 0);
                         
-                        if (!shouldShowDot && !isSelected) {
+                        if (!shouldShowDot && !isSelected && !isHovered) {
                           return <g key={key} />;
                         }
                         
@@ -1025,9 +1334,9 @@ export function ChartPanel() {
                     <Dot
                       key={key}
                       {...dotProps}
-                            r={isSelected ? 6 : 4}
-                            fill={isSelected ? '#8052D9' : '#9966FF'}
-                      stroke={isSelected ? '#fff' : 'none'}
+                            r={isSelected ? 6 : isHovered ? 5 : 4}
+                            fill={isSelected ? 'var(--chart-line-primary)' : isHovered ? 'var(--chart-line-primary)' : 'var(--chart-line-primary)'}
+                      stroke={isSelected ? 'var(--bg-elevated)' : 'none'}
                       strokeWidth={isSelected ? 2 : 0}
                       style={{ cursor: 'pointer' }}
                       onClick={() => handlePointClick(props.payload)}
@@ -1045,7 +1354,7 @@ export function ChartPanel() {
                         type="linear"
                   dataKey="comparison"
                   name={comparisonSeries.label}
-                        stroke="#9ca3af"
+                        stroke="var(--chart-line-secondary)"
                   strokeWidth={2}
                         strokeDasharray="4 4"
                   dot={false}
@@ -1055,39 +1364,47 @@ export function ChartPanel() {
           )}
 
           {state.chart.type === 'area' && (
-            <AreaChart data={chartData}>
+            <AreaChart data={chartData} onMouseMove={(data: any) => {
+              if (data && data.activeLabel) {
+                dispatch(actions.setHoveredBucket(data.activeLabel));
+              }
+            }} onMouseLeave={() => {
+              dispatch(actions.clearHoveredBucket());
+            }}>
                     <CartesianGrid 
                       horizontal={true} 
                       vertical={false}
-                      stroke="#d1d5db"
+                      stroke="var(--chart-grid)"
                       strokeDasharray="2 2"
                       strokeOpacity={0.5}
                     />
               <XAxis
                 dataKey="date"
-                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
                       stroke="none"
-                      axisLine={{ stroke: '#e5e7eb' }}
+                      axisLine={{ stroke: 'var(--border-subtle)' }}
                       ticks={xAxisTicks}
                 tickFormatter={(value) => {
                         const date = new Date(value);
-                        return date.toLocaleDateString('en-US', { month: 'short' });
+                        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                 }}
               />
               <YAxis
-                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
                       stroke="none"
                       axisLine={false}
                 tickFormatter={formatValue}
                       orientation="right"
               />
               <Tooltip
+                cursor={{ stroke: 'var(--border-medium)', strokeWidth: 1, strokeDasharray: '4 4' }}
                 contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'var(--chart-tooltip-bg)',
+                  border: '1px solid var(--chart-tooltip-border)',
                   borderRadius: '4px',
                   fontSize: '12px',
                 }}
+                labelFormatter={formatTooltipDate}
                 formatter={(value: any) => {
                   if (typeof value === 'number') {
                           return formatTooltipValue(value);
@@ -1100,9 +1417,9 @@ export function ChartPanel() {
                   type="monotone"
                   dataKey="comparison"
                   name={comparisonSeries.label}
-                        fill="#d1d5db"
+                        fill="var(--chart-area-fill-secondary)"
                         fillOpacity={0.2}
-                        stroke="#9ca3af"
+                        stroke="var(--chart-line-secondary)"
                   strokeWidth={2}
                         strokeDasharray="4 4"
                 />
@@ -1111,12 +1428,14 @@ export function ChartPanel() {
                 type="monotone"
                 dataKey="current"
                 name={series.label}
-                      fill="#CCAAFF"
+                      fill="var(--chart-area-fill)"
                       fillOpacity={0.3}
-                      stroke="#9966FF"
+                      stroke="var(--chart-line-primary)"
                       strokeWidth={2.5}
+                      isAnimationActive={false}
                 dot={(props: any) => {
                   const isSelected = state.selectedBucket?.label === props.payload.date;
+                  const isHovered = state.hoveredBucket === props.payload.date;
                   const { key, ...dotProps } = props;
                         
                         // For latest/first value metrics, only show dot on the relevant bucket
@@ -1126,7 +1445,7 @@ export function ChartPanel() {
                           (state.metric.type === 'latest' && props.index === chartData.length - 1) ||
                           (state.metric.type === 'first' && props.index === 0);
                         
-                        if (!shouldShowDot && !isSelected) {
+                        if (!shouldShowDot && !isSelected && !isHovered) {
                           return <g key={key} />;
                         }
                         
@@ -1134,9 +1453,9 @@ export function ChartPanel() {
                     <Dot
                       key={key}
                       {...dotProps}
-                            r={isSelected ? 6 : 4}
-                            fill={isSelected ? '#8052D9' : '#9966FF'}
-                      stroke={isSelected ? '#fff' : 'none'}
+                            r={isSelected ? 6 : isHovered ? 5 : 4}
+                            fill={isSelected ? 'var(--chart-line-primary)' : isHovered ? 'var(--chart-line-primary)' : 'var(--chart-line-primary)'}
+                      stroke={isSelected ? 'var(--bg-elevated)' : 'none'}
                       strokeWidth={isSelected ? 2 : 0}
                       style={{ cursor: 'pointer' }}
                       onClick={() => handlePointClick(props.payload)}
@@ -1153,39 +1472,47 @@ export function ChartPanel() {
           )}
 
           {state.chart.type === 'bar' && (
-            <BarChart data={chartData}>
+            <BarChart data={chartData} onMouseMove={(data: any) => {
+              if (data && data.activeLabel) {
+                dispatch(actions.setHoveredBucket(data.activeLabel));
+              }
+            }} onMouseLeave={() => {
+              dispatch(actions.clearHoveredBucket());
+            }}>
                     <CartesianGrid 
                       horizontal={true} 
                       vertical={false}
-                      stroke="#d1d5db"
+                      stroke="var(--chart-grid)"
                       strokeDasharray="2 2"
                       strokeOpacity={0.5}
                     />
               <XAxis
                 dataKey="date"
-                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
                       stroke="none"
-                      axisLine={{ stroke: '#e5e7eb' }}
+                      axisLine={{ stroke: 'var(--border-subtle)' }}
                       ticks={xAxisTicks}
                 tickFormatter={(value) => {
                         const date = new Date(value);
-                        return date.toLocaleDateString('en-US', { month: 'short' });
+                        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                 }}
               />
               <YAxis
-                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
                       stroke="none"
                       axisLine={false}
                 tickFormatter={formatValue}
                       orientation="right"
               />
               <Tooltip
+                cursor={{ fill: 'var(--bg-surface)', opacity: 0.5 }}
                 contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'var(--chart-tooltip-bg)',
+                  border: '1px solid var(--chart-tooltip-border)',
                   borderRadius: '4px',
                   fontSize: '12px',
                 }}
+                labelFormatter={formatTooltipDate}
                 formatter={(value: any) => {
                   if (typeof value === 'number') {
                           return formatTooltipValue(value);
@@ -1196,18 +1523,20 @@ export function ChartPanel() {
               <Bar
                 dataKey="current"
                 name={series.label}
-                      fill="#9966FF"
+                      fill="var(--chart-line-primary)"
+                      isAnimationActive={false}
                 shape={(props: any) => {
                   const { x, y, width, height, payload } = props;
                   const isSelected = state.selectedBucket?.label === payload.date;
+                  const isHovered = state.hoveredBucket === payload.date;
                   return (
                     <rect
                       x={x}
                       y={y}
                       width={width}
                       height={height}
-                            fill={isSelected ? '#8052D9' : '#9966FF'}
-                      stroke={isSelected ? '#fff' : 'none'}
+                            fill={isSelected ? 'var(--chart-line-primary)' : isHovered ? 'var(--chart-line-primary)' : 'var(--chart-line-primary)'}
+                      stroke={isSelected ? 'var(--bg-elevated)' : 'none'}
                       strokeWidth={isSelected ? 2 : 0}
                       style={{ cursor: 'pointer' }}
                       onClick={() => handlePointClick(payload)}
@@ -1228,7 +1557,7 @@ export function ChartPanel() {
             </div>
 
             {/* Summary Table - Integrated ValueTable with full functionality */}
-            <div className="mt-2 px-3" style={{ backgroundColor: '#ffffff', borderRadius: '8px' }}>
+            <div className="mt-2 px-3" style={{ backgroundColor: 'var(--bg-elevated)', borderRadius: '8px' }}>
               <ValueTable />
             </div>
           </>

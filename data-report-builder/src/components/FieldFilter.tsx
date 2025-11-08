@@ -154,7 +154,7 @@ export function FieldFilter({
     return (
       <div className="mb-2">
         <div className="space-y-4">
-          <div className="text-xs text-gray-600 dark:text-gray-400">
+          <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>
             Apply a filter
           </div>
           <div className="flex gap-2">
@@ -163,7 +163,6 @@ export function FieldFilter({
                 type="radio"
                 checked={operator === 'is_true'}
                 onChange={() => setOperator('is_true')}
-                className="text-blue-600 focus:ring-blue-500"
               />
               <span className="text-sm">True</span>
             </label>
@@ -172,7 +171,6 @@ export function FieldFilter({
                 type="radio"
                 checked={operator === 'is_false'}
                 onChange={() => setOperator('is_false')}
-                className="text-blue-600 focus:ring-blue-500"
               />
               <span className="text-sm">False</span>
             </label>
@@ -184,11 +182,11 @@ export function FieldFilter({
                   onClick={handleClear}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: '#f5f6f8',
+                    backgroundColor: 'var(--bg-surface)',
                     border: 'none',
                     borderRadius: '6px',
                     height: '28px',
-                    color: '#374151',
+                    color: 'var(--text-primary)',
                     fontSize: '14px'
                   }}
                 >
@@ -198,8 +196,8 @@ export function FieldFilter({
                   onClick={handleApply}
                   className="flex-1 text-sm text-white font-semibold border transition-colors"
                   style={{ 
-                    backgroundColor: '#675DFF', 
-                    borderColor: '#5949D8', 
+                    backgroundColor: 'var(--button-primary-bg)', 
+                    borderColor: 'var(--button-primary-border)', 
                     borderRadius: '6px',
                     height: '28px',
                     fontSize: '14px'
@@ -214,11 +212,11 @@ export function FieldFilter({
                   onClick={onCancel}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: '#f5f6f8',
+                    backgroundColor: 'var(--bg-surface)',
                     border: 'none',
                     borderRadius: '6px',
                     height: '28px',
-                    color: '#374151',
+                    color: 'var(--text-primary)',
                     fontSize: '14px'
                   }}
                 >
@@ -228,8 +226,8 @@ export function FieldFilter({
                   onClick={handleApply}
                   className="flex-1 text-sm text-white font-semibold border transition-colors"
                   style={{ 
-                    backgroundColor: '#675DFF', 
-                    borderColor: '#5949D8', 
+                    backgroundColor: 'var(--button-primary-bg)', 
+                    borderColor: 'var(--button-primary-border)', 
                     borderRadius: '6px',
                     height: '28px',
                     fontSize: '14px'
@@ -249,7 +247,7 @@ export function FieldFilter({
     return (
       <div className="mb-2">
         <div className="space-y-4">
-          <div className="text-xs text-gray-600 dark:text-gray-400">
+          <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>
             Apply a filter
           </div>
           <select
@@ -302,11 +300,11 @@ export function FieldFilter({
                   onClick={handleClear}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: '#f5f6f8',
+                    backgroundColor: 'var(--bg-surface)',
                     border: 'none',
                     borderRadius: '6px',
                     height: '28px',
-                    color: '#374151',
+                    color: 'var(--text-primary)',
                     fontSize: '14px'
                   }}
                 >
@@ -316,8 +314,8 @@ export function FieldFilter({
                   onClick={handleApply}
                   className="flex-1 text-sm text-white font-semibold border transition-colors"
                   style={{ 
-                    backgroundColor: '#675DFF', 
-                    borderColor: '#5949D8', 
+                    backgroundColor: 'var(--button-primary-bg)', 
+                    borderColor: 'var(--button-primary-border)', 
                     borderRadius: '6px',
                     height: '28px',
                     fontSize: '14px'
@@ -332,11 +330,11 @@ export function FieldFilter({
                   onClick={onCancel}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: '#f5f6f8',
+                    backgroundColor: 'var(--bg-surface)',
                     border: 'none',
                     borderRadius: '6px',
                     height: '28px',
-                    color: '#374151',
+                    color: 'var(--text-primary)',
                     fontSize: '14px'
                   }}
                 >
@@ -346,8 +344,8 @@ export function FieldFilter({
                   onClick={handleApply}
                   className="flex-1 text-sm text-white font-semibold border transition-colors"
                   style={{ 
-                    backgroundColor: '#675DFF', 
-                    borderColor: '#5949D8', 
+                    backgroundColor: 'var(--button-primary-bg)', 
+                    borderColor: 'var(--button-primary-border)', 
                     borderRadius: '6px',
                     height: '28px',
                     fontSize: '14px'
@@ -380,41 +378,52 @@ export function FieldFilter({
     console.log('[FieldFilter] Selected enum values:', selectedEnumValues);
 
     return (
-      <div className="mb-2">
-        <div className="space-y-4">
-          <div className="text-xs text-gray-600 dark:text-gray-400">
+      <div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)', paddingLeft: '16px', paddingRight: '16px', marginBottom: '8px' }}>
             Apply a filter
           </div>
-          <div className="space-y-1">
+          <div>
             {enumValues.map(enumValue => (
               <label
                 key={enumValue}
-                className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded"
+                className="flex items-center cursor-pointer transition-colors"
+                style={{
+                  paddingLeft: '16px',
+                  paddingRight: '16px',
+                  height: '32px',
+                  fontSize: '14px',
+                  color: 'var(--text-primary)',
+                  fontWeight: 400
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <input
                   type="checkbox"
                   checked={selectedEnumValues.includes(enumValue)}
                   onChange={() => handleToggleEnum(enumValue)}
-                  className="text-blue-600 focus:ring-blue-500"
+                  style={{ marginRight: '8px' }}
                 />
                 <span className="text-sm">{enumValue}</span>
               </label>
             ))}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2" style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px' }}>
             {currentFilter ? (
               <>
                 <button
                   onClick={handleClear}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: '#f5f6f8',
+                    backgroundColor: 'var(--bg-surface)',
                     border: 'none',
                     borderRadius: '6px',
-                    height: '28px',
-                    color: '#374151',
-                    fontSize: '14px'
+                    height: '32px',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    cursor: 'pointer'
                   }}
                 >
                   Clear
@@ -423,11 +432,12 @@ export function FieldFilter({
                   onClick={handleApply}
                   className="flex-1 text-sm text-white font-semibold border transition-colors"
                   style={{ 
-                    backgroundColor: '#675DFF', 
-                    borderColor: '#5949D8', 
+                    backgroundColor: 'var(--button-primary-bg)', 
+                    borderColor: 'var(--button-primary-border)', 
                     borderRadius: '6px',
-                    height: '28px',
-                    fontSize: '14px'
+                    height: '32px',
+                    fontSize: '14px',
+                    cursor: 'pointer'
                   }}
                 >
                   Apply
@@ -439,12 +449,13 @@ export function FieldFilter({
                   onClick={onCancel}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: '#f5f6f8',
+                    backgroundColor: 'var(--bg-surface)',
                     border: 'none',
                     borderRadius: '6px',
-                    height: '28px',
-                    color: '#374151',
-                    fontSize: '14px'
+                    height: '32px',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    cursor: 'pointer'
                   }}
                 >
                   Cancel
@@ -453,11 +464,12 @@ export function FieldFilter({
                   onClick={handleApply}
                   className="flex-1 text-sm text-white font-semibold border transition-colors"
                   style={{ 
-                    backgroundColor: '#675DFF', 
-                    borderColor: '#5949D8', 
+                    backgroundColor: 'var(--button-primary-bg)', 
+                    borderColor: 'var(--button-primary-border)', 
                     borderRadius: '6px',
-                    height: '28px',
-                    fontSize: '14px'
+                    height: '32px',
+                    fontSize: '14px',
+                    cursor: 'pointer'
                   }}
                 >
                   Apply
@@ -474,7 +486,7 @@ export function FieldFilter({
   return (
     <div className="mb-2">
       <div className="space-y-4">
-        <div className="text-xs text-gray-500 dark:text-gray-400">
+        <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>
           Apply a filter
         </div>
         <input
@@ -493,11 +505,11 @@ export function FieldFilter({
                 onClick={handleClear}
                 className="flex-1 text-sm font-semibold transition-colors"
                 style={{ 
-                  backgroundColor: '#f5f6f8',
+                  backgroundColor: 'var(--bg-surface)',
                   border: 'none',
                   borderRadius: '6px',
                   height: '28px',
-                  color: '#374151',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}
               >
@@ -507,8 +519,8 @@ export function FieldFilter({
                 onClick={handleApply}
                 className="flex-1 text-sm text-white font-semibold border transition-colors"
                 style={{ 
-                  backgroundColor: '#675DFF', 
-                  borderColor: '#5949D8', 
+                  backgroundColor: 'var(--button-primary-bg)', 
+                  borderColor: 'var(--button-primary-border)', 
                   borderRadius: '6px',
                   height: '28px',
                   fontSize: '14px'
@@ -523,11 +535,11 @@ export function FieldFilter({
                 onClick={onCancel}
                 className="flex-1 text-sm font-semibold transition-colors"
                 style={{ 
-                  backgroundColor: '#f5f6f8',
+                  backgroundColor: 'var(--bg-surface)',
                   border: 'none',
                   borderRadius: '6px',
                   height: '28px',
-                  color: '#374151',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}
               >
@@ -537,8 +549,8 @@ export function FieldFilter({
                 onClick={handleApply}
                 className="flex-1 text-sm text-white font-semibold border transition-colors"
                 style={{ 
-                  backgroundColor: '#675DFF', 
-                  borderColor: '#5949D8', 
+                  backgroundColor: 'var(--button-primary-bg)', 
+                  borderColor: 'var(--button-primary-border)', 
                   borderRadius: '6px',
                   height: '28px',
                   fontSize: '14px'

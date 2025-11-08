@@ -40,6 +40,7 @@ export type AppState = {
     end: string;
     label: string;
   };
+  hoveredBucket?: string; // Date label of the currently hovered bucket
   selectedGrid?: GridSelection;
   chart: ChartSettings;
   metric: MetricDef;
@@ -92,6 +93,15 @@ type SetSelectedBucketAction = {
 
 type ClearSelectedBucketAction = {
   type: 'CLEAR_SELECTED_BUCKET';
+};
+
+type SetHoveredBucketAction = {
+  type: 'SET_HOVERED_BUCKET';
+  payload: string; // Date label
+};
+
+type ClearHoveredBucketAction = {
+  type: 'CLEAR_HOVERED_BUCKET';
 };
 
 type SetChartTypeAction = {
@@ -196,6 +206,8 @@ export type AppAction =
   | ResetSelectionsAction
   | SetSelectedBucketAction
   | ClearSelectedBucketAction
+  | SetHoveredBucketAction
+  | ClearHoveredBucketAction
   | SetChartTypeAction
   | SetXSourceAction
   | SetXSourceModeAction
@@ -415,6 +427,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         selectedBucket: undefined,
+      };
+
+    case 'SET_HOVERED_BUCKET':
+      return {
+        ...state,
+        hoveredBucket: action.payload,
+      };
+
+    case 'CLEAR_HOVERED_BUCKET':
+      return {
+        ...state,
+        hoveredBucket: undefined,
       };
 
     case 'SET_CHART_TYPE':
@@ -692,6 +716,15 @@ export const actions = {
 
   clearSelectedBucket: (): ClearSelectedBucketAction => ({
     type: 'CLEAR_SELECTED_BUCKET',
+  }),
+
+  setHoveredBucket: (label: string): SetHoveredBucketAction => ({
+    type: 'SET_HOVERED_BUCKET',
+    payload: label,
+  }),
+
+  clearHoveredBucket: (): ClearHoveredBucketAction => ({
+    type: 'CLEAR_HOVERED_BUCKET',
   }),
 
   setChartType: (chartType: ChartType): SetChartTypeAction => ({

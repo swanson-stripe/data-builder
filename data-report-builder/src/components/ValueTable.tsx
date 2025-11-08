@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useEffect, useRef, useState } from 'react';
+import { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { useApp, actions } from '@/state/app';
 import {
   generateSeries,
@@ -31,19 +31,6 @@ export function ValueTable() {
       }
     });
   }, [state.selectedObjects, has, loadEntity]);
-
-  // Handle bucket selection
-  const handleBucketClick = (date: string) => {
-    // Parse the bucket label as a local date to avoid timezone shifts
-    // For "2025-07", create July 1st in local time, not UTC
-    const parts = date.split('-');
-    const bucketDate = parts.length === 2
-      ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1) // Year-month: create first of month
-      : new Date(date); // Full date string
-    
-    const { start, end } = getBucketRange(bucketDate, state.granularity);
-    dispatch(actions.setSelectedBucket(start, end, date));
-  };
 
   // Build PK include set from grid selection and field filters
   // Value table SHOULD respond to grid selection (unlike the metric header)
@@ -108,6 +95,36 @@ export function ValueTable() {
     includeSet,
     state.selectedObjects,
   ]);
+
+  // Handle bucket selection
+  const handleBucketClick = useCallback((date: string) => {
+    let dateStr = date;
+
+    // For "latest" or "first" metrics, override the clicked bucket to show the bucket
+    // that actually contributes to the metric value (not the clicked bucket)
+    if (state.metric.type === 'latest' || state.metric.type === 'first') {
+      // Compute the appropriate bucket from the metric result series
+      if (metricResult.series && metricResult.series.length > 0) {
+        if (state.metric.type === 'latest') {
+          // Always select the last bucket for "latest" metrics
+          dateStr = metricResult.series[metricResult.series.length - 1].date;
+        } else if (state.metric.type === 'first') {
+          // Always select the first bucket for "first" metrics
+          dateStr = metricResult.series[0].date;
+        }
+      }
+    }
+
+    // Parse the bucket label as a local date to avoid timezone shifts
+    // For "2025-07", create July 1st in local time, not UTC
+    const parts = dateStr.split('-');
+    const bucketDate = parts.length === 2
+      ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1) // Year-month: create first of month
+      : new Date(dateStr); // Full date string
+    
+    const { start, end } = getBucketRange(bucketDate, state.granularity);
+    dispatch(actions.setSelectedBucket(start, end, dateStr));
+  }, [state.metric.type, state.granularity, metricResult.series, dispatch]);
 
   // Generate current period data (from metric result)
   const currentSeries = useMemo(() => {
@@ -334,7 +351,7 @@ export function ValueTable() {
                   position: 'sticky',
                   left: 0,
                   zIndex: 20,
-                  backgroundColor: 'white'
+                  backgroundColor: 'var(--bg-elevated)'
                 }}
               >
                 Current period
@@ -342,8 +359,8 @@ export function ValueTable() {
               {currentPoints.map((point, idx) => (
                 <th
                   key={idx}
-                  className="pt-2 pb-0 pl-2 pr-2 font-normal text-xs text-gray-500 bg-white whitespace-nowrap"
-                  style={{ textAlign: 'right' }}
+                  className="pt-2 pb-0 pl-3 pr-3 font-normal text-xs text-gray-500 whitespace-nowrap"
+                  style={{ textAlign: 'right', minWidth: '100px', backgroundColor: 'var(--bg-elevated)' }}
                 >
                   {formatColumnHeader(point.date)}
                 </th>
@@ -352,28 +369,28 @@ export function ValueTable() {
           </thead>
           <tbody>
             {/* Current period row */}
-            <tr className="hover:bg-gray-50 transition-colors" style={{ borderBottom: comparisonSeries ? '1px solid #F5F6F8' : 'none' }}>
+            <tr className="transition-colors" style={{ borderBottom: comparisonSeries ? '1px solid var(--border-default)' : 'none' }}>
               <td 
                 className="py-2 pl-2 pr-6 whitespace-nowrap"
                 style={{ 
                   position: 'sticky',
                   left: 0,
                   zIndex: 10,
-                  backgroundColor: 'white'
+                  backgroundColor: 'var(--bg-elevated)'
                 }}
               >
                 <div className="flex items-center gap-2">
                   {/* Legend marker - adapt based on chart type */}
                   {state.chart.type === 'bar' ? (
-                    <div style={{ width: '12px', height: '10px', backgroundColor: '#9966FF', borderRadius: '2px', flexShrink: 0 }}></div>
+                    <div style={{ width: '12px', height: '10px', backgroundColor: 'var(--chart-line-primary)', borderRadius: '2px', flexShrink: 0 }}></div>
                   ) : (
-                    <div style={{ width: '12px', height: '2px', backgroundColor: '#9966FF', borderRadius: '1px', flexShrink: 0 }}></div>
+                    <div style={{ width: '12px', height: '2px', backgroundColor: 'var(--chart-line-primary)', borderRadius: '1px', flexShrink: 0 }}></div>
                   )}
                   <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                       {state.metric.name}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                       {formatPeriodLabel(new Date(state.start), new Date(state.end))}
                     </span>
                   </div>
@@ -382,18 +399,21 @@ export function ValueTable() {
               {currentPoints.map((point, idx) => {
                 const isSelected =
                   state.selectedBucket?.label === point.date;
+                const isHovered = state.hoveredBucket === point.date;
                 return (
                   <td
                     key={idx}
-                    className={`py-2 pl-2 pr-2 bg-white transition-colors cursor-pointer ${
-                      isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
-                    }`}
+                    className="py-2 pl-3 pr-3 transition-colors cursor-pointer"
                     style={{
                       textAlign: 'right',
-                      fontVariantNumeric: 'tabular-nums'
+                      fontVariantNumeric: 'tabular-nums',
+                      minWidth: '100px',
+                      backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-hover)' : 'var(--bg-elevated)'
                     }}
                     tabIndex={0}
                     onClick={() => handleBucketClick(point.date)}
+                    onMouseEnter={() => dispatch(actions.setHoveredBucket(point.date))}
+                    onMouseLeave={() => dispatch(actions.clearHoveredBucket())}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
@@ -403,7 +423,7 @@ export function ValueTable() {
                     role="button"
                     aria-label={`Select period ${shortDate(point.date)}`}
                   >
-                    <span className="text-sm text-gray-900 underline">
+                    <span className="text-sm underline" style={{ color: 'var(--text-primary)' }}>
                       {formatValue(point.value)}
                     </span>
                   </td>
@@ -421,7 +441,7 @@ export function ValueTable() {
                       position: 'sticky',
                       left: 0,
                       zIndex: 20,
-                      backgroundColor: 'white'
+                      backgroundColor: 'var(--bg-elevated)'
                     }}
                   >
                     Previous period
@@ -429,8 +449,8 @@ export function ValueTable() {
                   {displayComparisonPoints.map((point, idx) => (
                     <th
                       key={idx}
-                      className="pt-2 pb-0 pl-2 pr-2 font-normal text-xs text-gray-500 bg-white whitespace-nowrap"
-                      style={{ textAlign: 'right' }}
+                      className="pt-2 pb-0 pl-3 pr-3 font-normal text-xs text-gray-500 whitespace-nowrap"
+                      style={{ textAlign: 'right', minWidth: '100px', backgroundColor: 'var(--bg-elevated)' }}
                     >
                       {formatColumnHeader(point.date)}
                     </th>
@@ -443,7 +463,7 @@ export function ValueTable() {
                       position: 'sticky',
                       left: 0,
                       zIndex: 10,
-                      backgroundColor: 'white'
+                      backgroundColor: 'var(--bg-elevated)'
                     }}
                   >
                     <div className="flex items-center gap-2">
@@ -452,7 +472,7 @@ export function ValueTable() {
                         <div style={{ 
                           width: '12px', 
                           height: '10px', 
-                          backgroundColor: '#9ca3af',
+                          backgroundColor: 'var(--chart-line-secondary)',
                           borderRadius: '2px',
                           flexShrink: 0
                         }}></div>
@@ -461,16 +481,16 @@ export function ValueTable() {
                           width: '12px', 
                           height: '2px', 
                           backgroundColor: 'transparent',
-                          backgroundImage: 'repeating-linear-gradient(to right, #9ca3af 0, #9ca3af 2px, transparent 2px, transparent 4px)',
+                          backgroundImage: 'repeating-linear-gradient(to right, var(--chart-line-secondary) 0, var(--chart-line-secondary) 2px, transparent 2px, transparent 4px)',
                           borderRadius: '1px',
                           flexShrink: 0
                         }}></div>
                       )}
                       <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-gray-900">
+                        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                           {state.metric.name}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                           {comparisonSeries.points[0] && comparisonSeries.points[comparisonSeries.points.length - 1] && 
                             formatPeriodLabel(new Date(comparisonSeries.points[0].date), new Date(comparisonSeries.points[comparisonSeries.points.length - 1].date))}
                         </span>
@@ -480,13 +500,15 @@ export function ValueTable() {
                   {displayComparisonPoints.map((point, idx) => (
                     <td
                       key={idx}
-                      className="py-2 pl-2 pr-2 bg-white"
+                      className="py-2 pl-3 pr-3"
                       style={{
                         textAlign: 'right',
-                        fontVariantNumeric: 'tabular-nums'
+                        fontVariantNumeric: 'tabular-nums',
+                        minWidth: '100px',
+                        backgroundColor: 'var(--bg-elevated)'
                       }}
                     >
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                         {formatValue(point.value)}
                       </span>
                     </td>

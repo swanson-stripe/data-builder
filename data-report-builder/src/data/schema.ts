@@ -661,4 +661,11 @@ export const getRelated = (name: string): Relationship[] => {
   );
 };
 
+export const getFieldLabel = (objectName: string, fieldName: string): string => {
+  const obj = schema.objects.find(o => o.name === objectName);
+  if (!obj) return fieldName;
+  const field = obj.fields.find(f => f.name === fieldName);
+  return field?.label || fieldName;
+};
+
 export default schema;

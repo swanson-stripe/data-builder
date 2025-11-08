@@ -90,8 +90,8 @@ export function buildDataListView(opts: {
   // Build reverse lookup maps for bridge tables (e.g., subscription_item by subscription_id)
   const bridgeMaps = new Map<string, Map<string, any[]>>();
   
-  console.log(`[Views] buildDataListView - selectedObjects:`, selectedObjects);
-  console.log(`[Views] buildDataListView - available in store:`, Object.keys(store));
+  // console.log(`[Views] buildDataListView - selectedObjects:`, selectedObjects);
+  // console.log(`[Views] buildDataListView - available in store:`, Object.keys(store));
   
   // Build lookup maps for ALL loaded entities in the warehouse (not just selected objects)
   // This enables smart multi-hop joins even when intermediate tables aren't explicitly selected
@@ -102,7 +102,7 @@ export function buildDataListView(opts: {
     const entityTable = store[entityName];
     
     if (entityTable && Array.isArray(entityTable) && entityTable.length > 0) {
-      console.log(`[Views] Processing ${entityName}: ${entityTable.length} records`);
+      // console.log(`[Views] Processing ${entityName}: ${entityTable.length} records`);
       const lookupMap = new Map(entityTable.map((r: any) => [r.id, r]));
       relatedMaps.set(entityName, lookupMap);
       
@@ -126,7 +126,7 @@ export function buildDataListView(opts: {
           }
           
           bridgeMaps.set(bridgeKey, reverseMap);
-          console.log(`[Views] Built bridge map: ${bridgeKey} with ${reverseMap.size} keys`);
+          // console.log(`[Views] Built bridge map: ${bridgeKey} with ${reverseMap.size} keys`);
         }
       }
     }
@@ -163,12 +163,8 @@ export function buildDataListView(opts: {
             row.display[qualifiedKey] = null;
           }
         } else {
-          if (!relatedId) {
-            console.warn(`[Views] No FK value: ${primaryObject} record ${record.id} has no ${foreignKey}`);
-          }
-          if (!relatedMap) {
-            console.warn(`[Views] No lookup map for ${f.object} (available: ${Array.from(relatedMaps.keys()).join(', ')})`);
-          }
+          // Silently skip missing FK values - they're expected for many-to-many relationships
+          // and will be resolved through bridge tables below
           // Try 2-hop join through bridge table
           // e.g., subscription -> subscription_item -> price
           let foundValue = null;

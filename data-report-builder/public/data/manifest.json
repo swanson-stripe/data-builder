@@ -1,18 +1,16 @@
 {
-  "version": 1761845029572,
+  "version": 1762303687437,
   "counts": {
     "customers": 1000,
-    "payment_methods": 1478,
+    "payment_methods": 1477,
     "products": 15,
-    "prices": 33,
+    "prices": 28,
     "payments": 10000,
-    "refunds": 257,
-    "subscriptions": 789,
-    "subscription_item": 1008,
-    "invoices": 2639,
+    "refunds": 254,
+    "subscriptions": 783,
+    "invoices": 2686,
     "charges": 1000,
-    "payouts": 58,
-    "balance_transactions": 2326
+    "payouts": 69
   },
   "entities": [
     "customers",
@@ -22,10 +20,8 @@
     "payments",
     "refunds",
     "subscriptions",
-    "subscription_item",
     "invoices",
     "charges",
-    "payouts",
-    "balance_transactions"
+    "payouts"
   ]
 }

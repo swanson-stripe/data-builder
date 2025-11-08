@@ -1,7 +1,7 @@
 'use client';
 import { useApp, actions, ChartType, XSourceMode, YSourceMode, Comparison } from '@/state/app';
 import { useMemo } from 'react';
-import schema from '@/data/schema';
+import schema, { getFieldLabel } from '@/data/schema';
 
 export function ChartTab() {
   const { state, dispatch } = useApp();
@@ -88,7 +88,16 @@ export function ChartTab() {
           id="chart-type"
           value={state.chart.type}
           onChange={(e) => dispatch(actions.setChartType(e.target.value as ChartType))}
-          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none"
+          style={{ 
+            borderColor: 'var(--border-default)',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = '#675DFF';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--border-default)';
+          }}
         >
           {chartTypes.map((option) => (
             <option key={option.value} value={option.value}>
@@ -111,9 +120,8 @@ export function ChartTab() {
               value="time"
               checked={state.chart.xSourceMode === 'time'}
               onChange={(e) => dispatch(actions.setXSourceMode(e.target.value as XSourceMode))}
-              className="text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-sm text-gray-800 dark:text-gray-200">Time</span>
+            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Time</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -122,9 +130,8 @@ export function ChartTab() {
               value="field"
               checked={state.chart.xSourceMode === 'field'}
               onChange={(e) => dispatch(actions.setXSourceMode(e.target.value as XSourceMode))}
-              className="text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-sm text-gray-800 dark:text-gray-200">Choose a field</span>
+            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Choose a field</span>
           </label>
         </div>
       </div>
@@ -139,13 +146,22 @@ export function ChartTab() {
             id="x-source"
             value={currentXSourceValue}
             onChange={(e) => handleXSourceChange(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none"
+          style={{ 
+            borderColor: 'var(--border-default)',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = '#675DFF';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--border-default)';
+          }}
             disabled={xAxisFields.length === 0}
           >
             <option value="">— Select a timestamp field —</option>
             {xAxisFields.map((field) => (
               <option key={`${field.object}.${field.field}`} value={`${field.object}.${field.field}`}>
-                {field.object}.{field.field}
+                {getFieldLabel(field.object, field.field)}
               </option>
             ))}
           </select>
@@ -168,9 +184,8 @@ export function ChartTab() {
               value="metric"
               checked={state.chart.ySourceMode === 'metric'}
               onChange={(e) => dispatch(actions.setYSourceMode(e.target.value as YSourceMode))}
-              className="text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-sm text-gray-800 dark:text-gray-200">Metric</span>
+            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Metric</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -179,9 +194,8 @@ export function ChartTab() {
               value="field"
               checked={state.chart.ySourceMode === 'field'}
               onChange={(e) => dispatch(actions.setYSourceMode(e.target.value as YSourceMode))}
-              className="text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-sm text-gray-800 dark:text-gray-200">Choose a field</span>
+            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Choose a field</span>
           </label>
         </div>
       </div>
@@ -196,13 +210,22 @@ export function ChartTab() {
             id="y-field"
             value={currentYFieldValue}
             onChange={(e) => handleYFieldChange(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none"
+          style={{ 
+            borderColor: 'var(--border-default)',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = '#675DFF';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--border-default)';
+          }}
             disabled={yAxisFields.length === 0}
           >
             <option value="">— Select a numeric field —</option>
             {yAxisFields.map((field) => (
               <option key={`${field.object}.${field.field}`} value={`${field.object}.${field.field}`}>
-                {field.object}.{field.field}
+                {getFieldLabel(field.object, field.field)}
               </option>
             ))}
           </select>
@@ -221,7 +244,16 @@ export function ChartTab() {
           id="comparison"
           value={state.chart.comparison}
           onChange={(e) => dispatch(actions.setComparison(e.target.value as Comparison))}
-          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none"
+          style={{ 
+            borderColor: 'var(--border-default)',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = '#675DFF';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--border-default)';
+          }}
         >
           {comparisonOptions.map((option) => (
             <option key={option.value} value={option.value}>

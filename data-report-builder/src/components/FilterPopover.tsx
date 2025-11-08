@@ -105,9 +105,9 @@ export function FilterPopover({
         }}
         className={asMenuItem 
           ? 'w-full focus:outline-none' 
-          : `p-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          : `p-1 rounded transition-colors focus:outline-none ${
               hasActiveFilter
-                ? 'text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50'
+                ? 'hover:bg-purple-100 dark:bg-purple-900/30 dark:hover:bg-purple-900/50'
                 : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
             }`
         }
@@ -118,6 +118,10 @@ export function FilterPopover({
           padding: 0,
           margin: 0,
           textAlign: 'left'
+        } : hasActiveFilter ? {
+          color: '#675DFF',
+          outline: isOpen ? '2px solid #675DFF' : 'none',
+          outlineOffset: '2px'
         } : undefined}
         aria-label={`Filter ${field.label}`}
         aria-expanded={isOpen}
@@ -129,20 +133,20 @@ export function FilterPopover({
       {isOpen && (
         <div
           ref={popoverRef}
-          className={`absolute top-full mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-[240px] max-w-[320px] ${
-            alignment === 'right' ? 'right-0' : 'left-0'
-          }`}
+          className="absolute top-full z-50 py-1"
+          style={{
+            marginTop: '2px',
+            borderRadius: '16px',
+            boxShadow: '0 5px 15px rgba(0, 0, 0, 0.16)',
+            minWidth: '240px',
+            maxWidth: '320px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'var(--bg-elevated)'
+          }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {objectName}.{field.name}
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              {field.type}
-            </div>
-          </div>
-          <div className="p-2">
+          <div style={{ paddingLeft: '0', paddingRight: '0', paddingTop: '8px', paddingBottom: '12px' }}>
             <FieldFilter
               field={field}
               objectName={objectName}

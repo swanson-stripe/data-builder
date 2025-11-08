@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useRef, useEffect, forwardRef } from 'react';
 import { useApp, actions } from '@/state/app';
-import schema, { getRelated } from '@/data/schema';
+import schema, { getRelated, getFieldLabel } from '@/data/schema';
 import { SchemaObject } from '@/types';
 import { FieldFilter } from './FieldFilter';
 import { FilterLogicToggle } from './FilterLogicToggle';
@@ -91,7 +91,7 @@ const ObjectCard = forwardRef<HTMLDivElement, { object: SchemaObject; searchQuer
   ) : null;
 
   return (
-    <div ref={ref} className={`p-3 bg-white dark:bg-gray-700 hover:bg-[#f5f6f8] dark:hover:bg-gray-600 transition-colors relative ${isObjectSelected ? 'mb-4' : 'mb-2'}`} style={{ zIndex: 2, borderRadius: '8px' }}>
+    <div ref={ref} className={`p-3 transition-colors relative ${isObjectSelected ? 'mb-4' : 'mb-2'}`} style={{ zIndex: 2, borderRadius: '8px', backgroundColor: 'var(--bg-elevated)' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-elevated)'}>
       {/* Object header */}
       <div className="flex items-start gap-1">
         <button
@@ -102,7 +102,7 @@ const ObjectCard = forwardRef<HTMLDivElement, { object: SchemaObject; searchQuer
               setExpanded(!expanded);
             }
           }}
-          className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-[#D8DEE4] p-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded flex-shrink-0 cursor-pointer transition-colors"
+          className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-hover p-0.5 focus:outline-none rounded flex-shrink-0 cursor-pointer transition-colors"
           style={{ marginTop: '1px' }}
           aria-label={`${shouldBeExpanded ? 'Collapse' : 'Expand'} ${object.label} fields`}
           aria-expanded={shouldBeExpanded}
@@ -123,7 +123,7 @@ const ObjectCard = forwardRef<HTMLDivElement, { object: SchemaObject; searchQuer
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0 flex flex-col">
               {/* Title row */}
-              <span className="font-medium text-sm text-gray-800 dark:text-gray-100 truncate">
+              <span className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>
                 {object.label}
               </span>
               
@@ -131,8 +131,8 @@ const ObjectCard = forwardRef<HTMLDivElement, { object: SchemaObject; searchQuer
             <div 
               className="flex items-center justify-center text-xs px-2.5 py-1 flex-shrink-0" 
               style={{ 
-                backgroundColor: selectedFieldCount > 0 ? '#675DFF' : '#f5f6f8',
-                color: selectedFieldCount > 0 ? '#ffffff' : '#6b7280',
+                backgroundColor: selectedFieldCount > 0 ? 'var(--button-primary-bg)' : 'var(--bg-surface)',
+                color: selectedFieldCount > 0 ? 'var(--button-primary-text)' : 'var(--text-muted)',
                 borderRadius: '12px', 
                 minWidth: '32px' 
               }}
@@ -205,7 +205,7 @@ const ObjectCard = forwardRef<HTMLDivElement, { object: SchemaObject; searchQuer
                             [field.name]: !prev[field.name],
                           }));
                         }}
-                        className="p-0.5 hover:bg-[#D8DEE4] rounded transition-colors mr-1 flex-shrink-0"
+                        className="p-0.5 hover:bg-hover rounded transition-colors mr-1 flex-shrink-0"
                         aria-label={`${isFilterExpanded ? 'Collapse' : 'Expand'} filter for ${qualifiedName}`}
                       >
                         <svg
@@ -227,12 +227,17 @@ const ObjectCard = forwardRef<HTMLDivElement, { object: SchemaObject; searchQuer
                         className="flex-1 min-w-0 pr-2 cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          <div className={`font-mono text-[13px] truncate transition-colors ${
-                            isFieldSelected 
-                              ? 'text-[#533AFD] font-semibold' 
-                              : 'text-gray-600 dark:text-gray-300 group-hover:text-gray-800 dark:group-hover:text-gray-100'
-                          }`}>
-                            {qualifiedName}
+                          <div className="text-[13px] truncate transition-colors" style={{
+                            color: isFieldSelected ? 'var(--text-link)' : 'var(--text-primary)',
+                            fontWeight: isFieldSelected ? 600 : 400
+                          }}>
+                            {getFieldLabel(object.name, field.name)}
+                            <span className="font-mono" style={{
+                              color: isFieldSelected ? 'var(--text-link)' : 'var(--text-secondary)'
+                            }}> · {qualifiedName} · </span>
+                            <span style={{
+                              color: isFieldSelected ? 'var(--text-link)' : 'var(--text-muted)'
+                            }}>{field.type}</span>
                           </div>
                           
                           {/* Selected checkmark */}
@@ -279,13 +284,6 @@ const ObjectCard = forwardRef<HTMLDivElement, { object: SchemaObject; searchQuer
                               </svg>
                             </button>
                           )}
-                        </div>
-                        <div className={`text-[12px] mt-0.5 transition-colors ${
-                          isFieldSelected
-                            ? 'text-[#533AFD]'
-                            : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400'
-                        }`}>
-                          {field.type}
                         </div>
                       </div>
                     </div>

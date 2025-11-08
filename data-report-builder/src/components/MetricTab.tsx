@@ -1,6 +1,7 @@
 'use client';
 import { useApp, actions } from '@/state/app';
 import { MetricOp, MetricType } from '@/types';
+import { getFieldLabel } from '@/data/schema';
 
 export function MetricTab() {
   const { state, dispatch } = useApp();
@@ -41,6 +42,7 @@ export function MetricTab() {
   const fieldOptions = state.selectedFields.map((field) => ({
     value: `${field.object}.${field.field}`,
     label: `${field.object}.${field.field}`,
+    plainName: getFieldLabel(field.object, field.field),
     object: field.object,
     field: field.field,
   }));
@@ -77,7 +79,16 @@ export function MetricTab() {
           type="text"
           value={state.metric.name}
           onChange={(e) => dispatch(actions.setMetricName(e.target.value))}
-          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none"
+          style={{ 
+            borderColor: 'var(--border-default)',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = '#675DFF';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--border-default)';
+          }}
           placeholder="Enter metric name"
         />
       </div>
@@ -91,13 +102,22 @@ export function MetricTab() {
           id="metric-source"
           value={currentSourceValue}
           onChange={(e) => handleSourceChange(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none"
+          style={{ 
+            borderColor: 'var(--border-default)',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = '#675DFF';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--border-default)';
+          }}
           disabled={fieldOptions.length === 0}
         >
           <option value="">— Select a field —</option>
           {fieldOptions.map((option) => (
             <option key={option.value} value={option.value}>
-              {option.label}
+              {option.plainName}
             </option>
           ))}
         </select>
@@ -117,7 +137,16 @@ export function MetricTab() {
           id="metric-op"
           value={state.metric.op}
           onChange={(e) => dispatch(actions.setMetricOp(e.target.value as MetricOp))}
-          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none"
+          style={{ 
+            borderColor: 'var(--border-default)',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = '#675DFF';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--border-default)';
+          }}
         >
           {metricOps.map((option) => (
             <option key={option.value} value={option.value}>
@@ -139,7 +168,12 @@ export function MetricTab() {
           {metricTypes.map((option) => (
             <label
               key={option.value}
-              className="flex items-start gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-start gap-2 cursor-pointer p-2 rounded transition-colors"
+              style={{
+                backgroundColor: 'transparent'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               <input
                 type="radio"
@@ -147,13 +181,13 @@ export function MetricTab() {
                 value={option.value}
                 checked={state.metric.type === option.value}
                 onChange={(e) => dispatch(actions.setMetricType(e.target.value as MetricType))}
-                className="mt-0.5 text-blue-600 focus:ring-blue-500 focus:ring-2"
+                className="mt-0.5"
               />
               <div className="flex-1">
-                <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                   {option.label}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                   {option.description}
                 </div>
               </div>

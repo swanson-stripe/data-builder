@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useApp } from '@/state/app';
 import { useTheme } from '@/state/theme';
 import { generateSQL } from '@/lib/generateSQL';
@@ -10,6 +10,8 @@ export function SQLTab() {
   const { state } = useApp();
   const { theme } = useTheme();
   const [editableSQL, setEditableSQL] = useState('');
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Generate SQL from app state
   const generatedSQL = useMemo(() => {
@@ -43,6 +45,13 @@ export function SQLTab() {
     return Array.from({ length: lineCount }, (_, i) => i + 1);
   }, [lineCount]);
 
+  // Sync scroll position between textarea and line numbers
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
+  };
+
   return (
     <div className="flex flex-col">
       {/* Header */}
@@ -51,10 +60,20 @@ export function SQLTab() {
       </div>
 
       {/* SQL Editor with line numbers and syntax highlighting */}
-      <div className="relative rounded border border-gray-200 dark:border-gray-600 flex" style={{ minHeight: '400px', maxHeight: '80vh' }}>
+      <div className="relative rounded flex" style={{ minHeight: '400px', maxHeight: '80vh', border: '1px solid var(--border-default)' }}>
         {/* Line numbers */}
-        <div className="flex-shrink-0 w-12 bg-gray-100 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-600 overflow-hidden">
-          <div className="p-4 pr-2 font-mono text-sm text-right text-gray-400 dark:text-gray-500 select-none whitespace-pre-wrap">
+        <div 
+          ref={lineNumbersRef}
+          className="flex-shrink-0 w-12 overflow-y-scroll" 
+          style={{ 
+            backgroundColor: 'var(--bg-surface)', 
+            borderRight: '1px solid var(--border-default)',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
+          <div className="p-4 pr-2 font-mono text-sm text-right select-none whitespace-pre-wrap" style={{ color: 'var(--text-muted)' }}>
             {lineNumbers.map((num) => (
               <div key={num}>{num}</div>
             ))}
@@ -65,8 +84,10 @@ export function SQLTab() {
         <div className="relative flex-1">
           {/* Editable textarea (invisible but captures input) */}
           <textarea
+            ref={textareaRef}
             value={editableSQL}
             onChange={(e) => setEditableSQL(e.target.value)}
+            onScroll={handleScroll}
             className="absolute inset-0 w-full h-full p-4 pl-3 font-mono text-sm
                        bg-transparent text-transparent caret-gray-900 dark:caret-white
                        resize-none overflow-auto z-10 outline-none whitespace-pre-wrap break-words custom-scrollbar"
@@ -78,8 +99,8 @@ export function SQLTab() {
           {/* Syntax-highlighted display (visible, non-interactive) */}
           <pre
             className="absolute inset-0 w-full h-full p-4 pl-3 font-mono text-sm overflow-auto
-                       bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 
                        pointer-events-none whitespace-pre-wrap break-words custom-scrollbar"
+            style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
             dangerouslySetInnerHTML={{ __html: highlightedHTML }}
             aria-hidden="true"
           />
