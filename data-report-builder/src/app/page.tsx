@@ -9,6 +9,8 @@ import { SQLTab } from '@/components/SQLTab';
 import { ChartPanel } from '@/components/ChartPanel';
 import { ValueTable } from '@/components/ValueTable';
 import { DataList } from '@/components/DataList';
+import { SavePopover } from '@/components/SavePopover';
+import { Toast } from '@/components/Toast';
 import { useReportHeuristics } from '@/hooks/useReportHeuristics';
 import { PRESET_OPTIONS, applyPreset } from '@/lib/presets';
 import { ReportKey } from '@/types';
@@ -23,7 +25,10 @@ function PageContent() {
   const [isHoveringHandle, setIsHoveringHandle] = useState(false);
   const [devToolsExpanded, setDevToolsExpanded] = useState(true);
   const [showPresetOptions, setShowPresetOptions] = useState(false);
+  const [showSavePopover, setShowSavePopover] = useState(false);
+  const [showToast, setShowToast] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
+  const saveButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // Enable automatic report switching based on object selection
   useReportHeuristics();
@@ -51,21 +56,50 @@ function PageContent() {
   }, [isResizing]);
 
 
+  const handleSave = () => {
+    setShowToast(true);
+  };
+
+  // Determine if current metric is a preset (not 'blank')
+  const isPreset = state.report !== 'blank';
+  const buttonText = isPreset ? 'Duplicate' : 'Save';
+
   return (
     <div className="h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      <header className="flex items-center justify-between px-10" style={{ height: '56px', backgroundColor: 'var(--bg-primary)' }} role="banner">
+      <header className="flex items-center justify-between px-10 relative" style={{ height: '56px', backgroundColor: 'var(--bg-primary)' }} role="banner">
         <button className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '6px', width: '30px', height: '30px' }} aria-label="Close report builder">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
             <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <button className="flex items-center gap-2 text-sm font-semibold px-2 py-1 border transition-colors" style={{ backgroundColor: 'var(--button-primary-bg)', borderColor: 'var(--button-primary-border)', color: 'var(--button-primary-text)', borderRadius: '6px' }} aria-label="Save report">
-          Save
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-3 h-3">
-            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
+        <div className="relative">
+          <button
+            ref={saveButtonRef}
+            onClick={() => setShowSavePopover(!showSavePopover)}
+            className="flex items-center gap-2 text-sm font-semibold px-2 py-1 border transition-colors"
+            style={{ backgroundColor: 'var(--button-primary-bg)', borderColor: 'var(--button-primary-border)', color: 'var(--button-primary-text)', borderRadius: '6px' }}
+            aria-label={`${buttonText} report`}
+          >
+            {buttonText}
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-3 h-3">
+              <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <SavePopover
+            isOpen={showSavePopover}
+            onClose={() => setShowSavePopover(false)}
+            buttonRef={saveButtonRef}
+            onSave={handleSave}
+          />
+        </div>
       </header>
+      
+      {showToast && (
+        <Toast
+          message="Metric saved successfully"
+          onClose={() => setShowToast(false)}
+        />
+      )}
 
       <main className="flex flex-1 overflow-hidden pl-10 gap-10" role="main">
         <aside 

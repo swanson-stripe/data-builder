@@ -63,6 +63,9 @@
   --border-focus: #675DFF;
   --border-error: #dc2626;
   
+  /* Semantic Tokens - Shadows */
+  --shadow-popover: 0 5px 15px rgba(0, 0, 0, 0.16);
+  
   /* Semantic Tokens - Interactive (Buttons) */
   --button-primary-bg: #675DFF;
   --button-primary-bg-hover: #5949D8;
@@ -162,6 +165,9 @@
   --border-medium: #374151;
   --border-focus: #C4BBFF;
   --border-error: #f87171;
+  
+  /* Semantic Tokens - Shadows (Dark) */
+  --shadow-popover: 0 5px 15px rgba(0, 0, 0, 0.5);
   
   /* Semantic Tokens - Interactive (Buttons Dark) */
   --button-primary-bg: #675DFF;
@@ -308,6 +314,22 @@ input[type="checkbox"]:focus {
   to {
     opacity: 1;
   }
+}
+
+/* Slide up animation for toast */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
 }
 
 /* WebKit browsers (Chrome, Safari, Edge) */
