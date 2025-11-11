@@ -5,12 +5,15 @@ export type SchemaField = {
   label: string;
   type: FieldType;
   enum?: string[]; // Valid values for categorical string fields
+  definition?: string; // Field description from Stripe docs
 };
 
 export type SchemaObject = {
   name: string;
   label: string;
   fields: SchemaField[];
+  definition?: string; // Table description from Stripe docs
+  group?: string; // Category like "Billing", "Core", "Connect", etc.
 };
 
 export type Relationship = {

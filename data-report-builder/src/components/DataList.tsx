@@ -183,6 +183,20 @@ export function DataList() {
     return sortRowsByField(fieldFilteredRows, sortState.column, sortState.direction);
   }, [fieldFilteredRows, sortState]);
 
+  // Paginated rows (moved before early returns to fix hook order)
+  const paginatedRows = useMemo(() => {
+    const startIndex = currentPage * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return sortedRows.slice(startIndex, endIndex);
+  }, [sortedRows, currentPage, rowsPerPage]);
+
+  const totalPages = Math.ceil(sortedRows.length / rowsPerPage);
+
+  // Reset to first page when sorting or filtering changes (moved before early returns to fix hook order)
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [sortState.column, sortState.direction, state.filters, state.selectedBucket]);
+
   // Check if cell is selected
   const isCellSelected = useCallback((rowIndex: number, colKey: string): boolean => {
     if (!state.selectedGrid) return false;
@@ -801,20 +815,6 @@ export function DataList() {
     );
   }
 
-  // Paginated rows
-  const paginatedRows = useMemo(() => {
-    const startIndex = currentPage * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    return sortedRows.slice(startIndex, endIndex);
-  }, [sortedRows, currentPage, rowsPerPage]);
-
-  const totalPages = Math.ceil(sortedRows.length / rowsPerPage);
-
-  // Reset to first page when sorting or filtering changes
-  useEffect(() => {
-    setCurrentPage(0);
-  }, [sortState.column, sortState.direction, state.filters, state.selectedBucket]);
-
   // Format selected bucket label to match the period display format
   const formatBucketLabel = (bucket: typeof state.selectedBucket): string => {
     if (!bucket) return '';
@@ -1003,22 +1003,22 @@ export function DataList() {
         </div>
 
         {/* Search Input */}
-        <div className="relative" style={{ marginBottom: '12px' }}>
-          <div className="absolute left-1 top-1 flex items-center justify-center" style={{ width: '32px', height: '32px', backgroundColor: 'var(--bg-surface)', borderRadius: '50%' }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2" y="2" width="10" height="1.5" rx="0.75" fill="#6b7280"/>
-              <rect x="3.5" y="5.5" width="7" height="1.5" rx="0.75" fill="#6b7280"/>
-              <rect x="5" y="9" width="4" height="1.5" rx="0.75" fill="#6b7280"/>
+        <div className="flex items-center" style={{ marginBottom: '12px', gap: '12px' }}>
+          <div className="flex items-center justify-center flex-shrink-0" style={{ width: '32px', height: '32px', backgroundColor: 'var(--bg-surface)', borderRadius: '50%' }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="#474E5A"/>
+              <rect x="3" y="7" width="10" height="1.5" rx="0.75" fill="#474E5A"/>
+              <rect x="5" y="11" width="6" height="1.5" rx="0.75" fill="#474E5A"/>
             </svg>
           </div>
           <input
             type="text"
             placeholder="Filter table using natural language"
-            className="w-full text-sm focus:outline-none"
+            className="flex-1 text-sm focus:outline-none"
             style={{ 
               fontSize: '14px', 
               borderRadius: '50px',
-              paddingLeft: '44px',
+              paddingLeft: '16px',
               paddingRight: '16px',
               paddingTop: '4px',
               paddingBottom: '4px',
@@ -1187,9 +1187,9 @@ export function DataList() {
                               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
                             >
                               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect x="2.286" y="2.286" width="11.428" height="1.714" rx="0.857" fill="var(--text-primary)"/>
-                                <rect x="4" y="6.286" width="8" height="1.714" rx="0.857" fill="var(--text-primary)"/>
-                                <rect x="5.714" y="10.286" width="4.572" height="1.714" rx="0.857" fill="var(--text-primary)"/>
+                                <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="#474E5A"/>
+                                <rect x="3" y="7" width="10" height="1.5" rx="0.75" fill="#474E5A"/>
+                                <rect x="5" y="11" width="6" height="1.5" rx="0.75" fill="#474E5A"/>
                               </svg>
                             </div>
                           }
@@ -1297,10 +1297,10 @@ export function DataList() {
                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         >
                           <span>Add filter</span>
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="2" y="2" width="10" height="1.5" rx="0.75" fill="var(--text-muted)"/>
-                            <rect x="3.5" y="5.5" width="7" height="1.5" rx="0.75" fill="var(--text-muted)"/>
-                            <rect x="5" y="9" width="4" height="1.5" rx="0.75" fill="var(--text-muted)"/>
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="#474E5A"/>
+                            <rect x="3" y="7" width="10" height="1.5" rx="0.75" fill="#474E5A"/>
+                            <rect x="5" y="11" width="6" height="1.5" rx="0.75" fill="#474E5A"/>
                           </svg>
                         </button>
                       )}

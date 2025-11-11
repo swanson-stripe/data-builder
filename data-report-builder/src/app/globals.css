@@ -16,6 +16,7 @@
   --color-gray-100: #f3f4f6;
   --color-gray-200: #e5e7eb;
   --color-gray-300: #d1d5db;
+  --color-gray-350: #99A5B8; /* Medium gray for icons */
   --color-gray-400: #9ca3af;
   --color-gray-500: #6b7280;
   --color-gray-600: #596171;
@@ -50,6 +51,7 @@
   --text-primary: #374151;
   --text-secondary: #596171;
   --text-muted: #6b7280;
+  --text-icon: #99A5B8; /* Medium gray for unselected icons */
   --text-link: #675DFF;
   --text-inverse: #ffffff;
   --text-error: #dc2626;
@@ -86,6 +88,37 @@
   --syntax-function: #3b82f6;
   --syntax-comment: #9ca3af;
   --syntax-number: #f59e0b;
+  
+  /* Semantic Tokens - Connection Chips */
+  --chip-table: #D1FAE5;
+  --chip-field: #DBEAFE;
+  --chip-filter: #FEF3C7;
+  
+  /* Semantic Tokens - Connection Lines */
+  --connection-line: #6DC9FC;
+  --connection-arrow: #6DC9FC;
+  
+  /* Semantic Tokens - Data Tab Specific */
+  --data-chip-table-bg: #0B46AD;
+  --data-chip-table-icon: #088EF9;
+  --data-chip-table-text: #FFFFFF;
+  --data-chip-table-counter-bg: #6DC9FC;
+  --data-chip-table-counter-text: #0B46AD;
+  --data-chip-table-hover-stroke: #0A2156;
+  
+  --data-chip-field-bg: #0072E9;
+  --data-chip-field-icon: #6DC9FC;
+  --data-chip-field-text: #FFFFFF;
+  --data-chip-field-counter-bg: #6DC9FC;
+  --data-chip-field-counter-text: #0B46AD;
+  --data-chip-field-hover-stroke: #0B46AD;
+  
+  --data-chip-filter-bg: #E2FBFE;
+  --data-chip-filter-border: #6DC9FC;
+  --data-chip-filter-text: #045AD0;
+  --data-chip-filter-icon: #0072E9;
+  
+  --data-tab-link: #0B46AD;
 }
 
 /* ============================================
@@ -118,6 +151,7 @@
   --text-primary: #e5e7eb;
   --text-secondary: #9ca3af;
   --text-muted: #6b7280;
+  --text-icon: #6b7280; /* Slightly lighter for dark mode unselected icons */
   --text-link: #C4BBFF;
   --text-inverse: #111827;
   --text-error: #f87171;
@@ -154,6 +188,37 @@
   --syntax-function: #82aaff;
   --syntax-comment: #6b7280;
   --syntax-number: #f78c6c;
+  
+  /* Semantic Tokens - Connection Chips (Dark) */
+  --chip-table: #065F46;
+  --chip-field: #1E40AF;
+  --chip-filter: #92400E;
+  
+  /* Semantic Tokens - Connection Lines (Dark) */
+  --connection-line: #6DC9FC;
+  --connection-arrow: #6DC9FC;
+  
+  /* Semantic Tokens - Data Tab Specific (Dark) */
+  --data-chip-table-bg: #0B46AD;
+  --data-chip-table-icon: #088EF9;
+  --data-chip-table-text: #FFFFFF;
+  --data-chip-table-counter-bg: #6DC9FC;
+  --data-chip-table-counter-text: #0B46AD;
+  --data-chip-table-hover-stroke: #1E5BB8;
+  
+  --data-chip-field-bg: #0072E9;
+  --data-chip-field-icon: #6DC9FC;
+  --data-chip-field-text: #FFFFFF;
+  --data-chip-field-counter-bg: #6DC9FC;
+  --data-chip-field-counter-text: #0B46AD;
+  --data-chip-field-hover-stroke: #1E5BB8;
+  
+  --data-chip-filter-bg: #1A3A4A;
+  --data-chip-filter-border: #088EF9;
+  --data-chip-filter-text: #6DC9FC;
+  --data-chip-filter-icon: #088EF9;
+  
+  --data-tab-link: #0B46AD;
 }
 
 body {
@@ -233,6 +298,16 @@ input[type="checkbox"]:focus {
 /* Hide scrollbar completely for line numbers */
 .overflow-y-scroll::-webkit-scrollbar {
   display: none;
+}
+
+/* Fade in animation for info icon */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* WebKit browsers (Chrome, Safari, Edge) */

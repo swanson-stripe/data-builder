@@ -26,22 +26,64 @@ export function matchesCondition(
     return false;
   }
 
+  // Helper to normalize dates for comparison
+  const normalizeDate = (val: any): Date | null => {
+    if (val instanceof Date) return val;
+    if (typeof val === 'string') {
+      const parsed = new Date(val);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    }
+    if (typeof val === 'number') return new Date(val * 1000); // Unix timestamp
+    return null;
+  };
+
   switch (operator) {
     case 'equals':
+      // Check if we're comparing dates
+      const rowDate = normalizeDate(rowValue);
+      const valueDate = normalizeDate(value);
+      if (rowDate && valueDate) {
+        // Compare dates by day (ignore time)
+        return rowDate.toISOString().split('T')[0] === valueDate.toISOString().split('T')[0];
+      }
       return rowValue === value;
 
     case 'not_equals':
       return rowValue !== value;
 
     case 'greater_than':
+      // Handle date comparison
+      const rowDateGt = normalizeDate(rowValue);
+      const valueDateGt = normalizeDate(value);
+      if (rowDateGt && valueDateGt) {
+        return rowDateGt.getTime() > valueDateGt.getTime();
+      }
       return typeof rowValue === 'number' && rowValue > (value as number);
 
     case 'less_than':
+      // Handle date comparison
+      const rowDateLt = normalizeDate(rowValue);
+      const valueDateLt = normalizeDate(value);
+      if (rowDateLt && valueDateLt) {
+        return rowDateLt.getTime() < valueDateLt.getTime();
+      }
       return typeof rowValue === 'number' && rowValue < (value as number);
 
     case 'between':
-      if (typeof rowValue === 'number' && Array.isArray(value) && value.length === 2 && typeof value[0] === 'number' && typeof value[1] === 'number') {
-        return rowValue >= value[0] && rowValue <= value[1];
+      // Handle date range
+      if (Array.isArray(value) && value.length === 2) {
+        const rowDateBt = normalizeDate(rowValue);
+        const startDate = normalizeDate(value[0]);
+        const endDate = normalizeDate(value[1]);
+        
+        if (rowDateBt && startDate && endDate) {
+          return rowDateBt.getTime() >= startDate.getTime() && rowDateBt.getTime() <= endDate.getTime();
+        }
+        
+        // Handle numeric range
+        if (typeof rowValue === 'number' && typeof value[0] === 'number' && typeof value[1] === 'number') {
+          return rowValue >= value[0] && rowValue <= value[1];
+        }
       }
       return false;
 
