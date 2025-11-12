@@ -285,49 +285,54 @@ export function FieldFilter({
     return (
       <div className="mb-2">
         <div className="space-y-4">
-          {renderFilterTypeSelector()}
+          <div>{renderFilterTypeSelector()}</div>
           
           <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>
             Apply a filter
           </div>
-          <select
-            value={operator}
-            onChange={(e) => handleOperatorChange(e.target.value as FilterOperator)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#675DFF]"
-            style={{ borderRadius: '8px' }}
-          >
-            <option value="equals">On</option>
-            <option value="less_than">Before</option>
-            <option value="greater_than">After</option>
-            <option value="between">Between</option>
-          </select>
-
-          {operator === 'between' ? (
-            <div className="flex gap-2">
-              <input
-                type="date"
-                value={betweenMin}
-                onChange={(e) => setBetweenMin(e.target.value)}
-                className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#675DFF]"
-                style={{ borderRadius: '8px' }}
-              />
-              <input
-                type="date"
-                value={betweenMax}
-                onChange={(e) => setBetweenMax(e.target.value)}
-                className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#675DFF]"
-                style={{ borderRadius: '8px' }}
-              />
-            </div>
-          ) : (
-            <input
-              type="date"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
+          
+          <div>
+            <select
+              value={operator}
+              onChange={(e) => handleOperatorChange(e.target.value as FilterOperator)}
               className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#675DFF]"
               style={{ borderRadius: '8px' }}
-            />
-          )}
+            >
+              <option value="equals">On</option>
+              <option value="less_than">Before</option>
+              <option value="greater_than">After</option>
+              <option value="between">Between</option>
+            </select>
+          </div>
+
+          <div>
+            {operator === 'between' ? (
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={betweenMin}
+                  onChange={(e) => setBetweenMin(e.target.value)}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#675DFF]"
+                  style={{ borderRadius: '8px' }}
+                />
+                <input
+                  type="date"
+                  value={betweenMax}
+                  onChange={(e) => setBetweenMax(e.target.value)}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#675DFF]"
+                  style={{ borderRadius: '8px' }}
+                />
+              </div>
+            ) : (
+              <input
+                type="date"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:border-[#675DFF]"
+                style={{ borderRadius: '8px' }}
+              />
+            )}
+          </div>
 
           <div className="flex gap-2">
             {currentFilter ? (
