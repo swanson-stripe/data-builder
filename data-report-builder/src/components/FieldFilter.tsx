@@ -329,7 +329,7 @@ export function FieldFilter({
             />
           )}
 
-          <div className="flex gap-2" style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px' }}>
+          <div className="flex gap-2">
             {currentFilter ? (
               <>
                 <button
