@@ -30,6 +30,11 @@ type PresetConfig = {
   filters?: FilterCondition[];
   // Optional chart settings
   chartType?: ChartType;
+  // Optional default sort for data list
+  defaultSort?: {
+    column: string; // Qualified field name: "object.field"
+    direction: 'asc' | 'desc';
+  };
 };
 
 // convenience generator for ISO "today"
@@ -82,6 +87,10 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
         value: 'active',
       },
     ],
+    defaultSort: {
+      column: 'customer.email',
+      direction: 'asc',
+    },
   },
 
   gross_volume: {
@@ -105,6 +114,10 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       type: 'sum_over_period',
     },
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
+    defaultSort: {
+      column: 'charge.created',
+      direction: 'desc',
+    },
   },
 
   active_subscribers: {
@@ -138,6 +151,10 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
         value: ['active'],
       },
     ],
+    defaultSort: {
+      column: 'customer.email',
+      direction: 'asc',
+    },
   },
 
   refund_count: {
@@ -166,6 +183,10 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     },
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
     chartType: 'bar',
+    defaultSort: {
+      column: 'refund.created',
+      direction: 'desc',
+    },
   },
 
   subscriber_ltv: {
@@ -191,6 +212,10 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       type: 'latest',
     },
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
+    defaultSort: {
+      column: 'invoice.amount_paid',
+      direction: 'desc',
+    },
   },
 };
 
@@ -299,5 +324,16 @@ export function applyPreset(
   // Apply chart type if specified
   if (p.chartType) {
     dispatch({ type: 'SET_CHART_TYPE', payload: p.chartType });
+  }
+
+  // Apply default sort if specified
+  if (p.defaultSort) {
+    dispatch({ 
+      type: 'SET_DATA_LIST_SORT', 
+      payload: {
+        column: p.defaultSort.column,
+        direction: p.defaultSort.direction,
+      }
+    });
   }
 }

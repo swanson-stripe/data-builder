@@ -22,10 +22,25 @@ type SelectionMode = 'cell' | 'row' | 'column' | 'multi-cell';
 export function DataList() {
   const { state, dispatch } = useApp();
   const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
-  const [sortState, setSortState] = useState<SortState>({
+  
+  // Use sort from global state if available, otherwise use local state for backwards compatibility
+  const [localSortState, setLocalSortState] = useState<SortState>({
     column: null,
     direction: null,
   });
+  
+  // Determine which sort state to use
+  const sortState = state.dataListSort 
+    ? { column: state.dataListSort.column, direction: state.dataListSort.direction }
+    : localSortState;
+  
+  // Function to update sort state (updates global state if it exists)
+  const setSortState = (newSort: SortState) => {
+    if (newSort.column && newSort.direction) {
+      dispatch(actions.setDataListSort(newSort.column, newSort.direction));
+    }
+    setLocalSortState(newSort);
+  };
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [columnDropdownOpen, setColumnDropdownOpen] = useState<string | null>(null);
@@ -252,20 +267,16 @@ export function DataList() {
 
   // Handle column header click for sorting
   const handleSort = (columnKey: string) => {
-    setSortState((prev) => {
-      if (prev.column !== columnKey) {
-        // New column, start with ascending
-        return { column: columnKey, direction: 'asc' };
-      }
-
-      if (prev.direction === 'asc') {
-        // Toggle to descending
-        return { column: columnKey, direction: 'desc' };
-      }
-
+    if (sortState.column !== columnKey) {
+      // New column, start with ascending
+      setSortState({ column: columnKey, direction: 'asc' });
+    } else if (sortState.direction === 'asc') {
+      // Toggle to descending
+      setSortState({ column: columnKey, direction: 'desc' });
+    } else {
       // Reset sorting
-      return { column: null, direction: null };
-    });
+      setSortState({ column: null, direction: null });
+    }
   };
 
   // Get sort indicator for column

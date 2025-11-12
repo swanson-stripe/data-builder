@@ -46,6 +46,10 @@ export type AppState = {
   metric: MetricDef; // Keep for backward compatibility with existing code
   metricFormula: MetricFormula; // New multi-block calculation system
   filters: FilterGroup;
+  dataListSort?: {
+    column: string; // Qualified field name: "object.field"
+    direction: 'asc' | 'desc';
+  };
 };
 
 // Action types
@@ -223,6 +227,14 @@ type ClearFiltersAction = {
   type: 'CLEAR_FILTERS';
 };
 
+type SetDataListSortAction = {
+  type: 'SET_DATA_LIST_SORT';
+  payload: {
+    column: string;
+    direction: 'asc' | 'desc';
+  };
+};
+
 type ResetAllAction = {
   type: 'RESET_ALL';
 };
@@ -263,6 +275,7 @@ export type AppAction =
   | RemoveFilterAction
   | SetFilterLogicAction
   | ClearFiltersAction
+  | SetDataListSortAction
   | ResetAllAction;
 
 // Helper function to build initial state with preset applied
@@ -761,6 +774,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
       };
 
+    case 'SET_DATA_LIST_SORT':
+      return {
+        ...state,
+        dataListSort: action.payload,
+      };
+
     case 'RESET_ALL': {
       // Reset to blank preset, keeping activeTab to avoid jarring tab switch
       const { PRESET_CONFIGS } = require('@/lib/presets');
@@ -1023,6 +1042,11 @@ export const actions = {
 
   clearFilters: (): ClearFiltersAction => ({
     type: 'CLEAR_FILTERS',
+  }),
+
+  setDataListSort: (column: string, direction: 'asc' | 'desc'): SetDataListSortAction => ({
+    type: 'SET_DATA_LIST_SORT',
+    payload: { column, direction },
   }),
 
   resetAll: (): ResetAllAction => ({
