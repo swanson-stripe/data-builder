@@ -8,6 +8,7 @@ import { applyFilters } from '@/lib/filters';
 import { FilterPopover } from './FilterPopover';
 import { FieldFilter } from './FieldFilter';
 import { FilterCondition } from '@/types';
+import { Toast } from './Toast';
 
 type SortDirection = 'asc' | 'desc' | null;
 
@@ -43,6 +44,9 @@ export function DataList() {
   const [isSelecting, setIsSelecting] = useState(false);
   const [anchorCell, setAnchorCell] = useState<{ rowIndex: number; colKey: string } | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+
+  // Toast notification state
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Auto-load selected objects that aren't yet loaded
   useEffect(() => {
@@ -92,6 +96,30 @@ export function DataList() {
 
     return Array.from(columnMap.values());
   }, [state.selectedFields, state.fieldOrder]);
+
+  // Set default sort when columns change
+  useEffect(() => {
+    if (columns.length > 0 && sortState.column === null) {
+      // Get the first column
+      const firstColumn = columns[0];
+      
+      // Determine default sort direction based on field type
+      let defaultDirection: 'asc' | 'desc' = 'asc';
+      
+      if (firstColumn.type === 'number') {
+        defaultDirection = 'desc'; // Numbers: highest first
+      } else if (firstColumn.type === 'date') {
+        defaultDirection = 'desc'; // Dates: most recent first
+      } else {
+        defaultDirection = 'asc'; // Strings: alphabetical
+      }
+      
+      setSortState({
+        column: firstColumn.key,
+        direction: defaultDirection,
+      });
+    }
+  }, [columns, sortState.column]);
 
   // Compute distinct values for enum fields from actual warehouse data
   const distinctValuesCache = useMemo(() => {
@@ -510,8 +538,11 @@ export function DataList() {
     if ((e.metaKey || e.ctrlKey) && e.key === 'c' && state.selectedGrid) {
       e.preventDefault();
 
-      const { cells, isRectangular } = state.selectedGrid;
+      const { cells, rowIds, isRectangular } = state.selectedGrid;
       if (cells.length === 0) return;
+
+      // Determine if this is a row selection or cell selection
+      const isRowSelection = rowIds.length > 0 && cells.length === rowIds.length * columns.length;
 
       if (isRectangular) {
         // Build rectangular grid for TSV export
@@ -554,6 +585,13 @@ export function DataList() {
 
         const tsv = tsvRows.join('\n');
         navigator.clipboard.writeText(tsv);
+
+        // Show toast notification
+        if (isRowSelection) {
+          setToastMessage(`${uniqueRowKeys.length} row${uniqueRowKeys.length === 1 ? '' : 's'} copied`);
+        } else {
+          setToastMessage(`${cells.length} cell${cells.length === 1 ? '' : 's'} copied`);
+        }
       } else {
         // Single cell or non-rectangular: copy values separated by newlines
         const values = cells.map(({ rowId, col }) => {
@@ -562,6 +600,9 @@ export function DataList() {
           return row ? formatValue(row.display[col]) : '';
         });
         navigator.clipboard.writeText(values.join('\n'));
+
+        // Show toast notification
+        setToastMessage(`${cells.length} cell${cells.length === 1 ? '' : 's'} copied`);
       }
     }
   }, [state.selectedGrid, sortedRows, columns]);
@@ -1136,21 +1177,38 @@ export function DataList() {
                           <span className="font-normal text-sm truncate" style={{ color: 'var(--text-secondary)' }}>
                             {getFieldLabel(column.object, column.field)}
                           </span>
-                          {/* Chevron icon - visible on hover */}
-                          <svg 
-                            width="12" 
-                            height="12" 
-                            viewBox="0 0 12 12" 
-                            fill="none" 
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="flex-shrink-0"
-                            style={{
-                              opacity: hoveredColumn === column.key ? 1 : 0,
-                              transition: 'opacity 0.2s'
-                            }}
-                          >
-                            <path d="M3 4.5L6 7.5L9 4.5" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
+                          {/* Down arrow icon - always visible when column is sorted, chevron on hover otherwise */}
+                          {sortState.column === column.key ? (
+                            <svg 
+                              width="12" 
+                              height="12" 
+                              viewBox="0 0 12 12" 
+                              fill="none" 
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="flex-shrink-0"
+                              style={{
+                                transform: sortState.direction === 'asc' ? 'rotate(180deg)' : 'none',
+                                transition: 'transform 0.2s'
+                              }}
+                            >
+                              <path d="M6 3V9M6 9L3.5 6.5M6 9L8.5 6.5" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          ) : (
+                            <svg 
+                              width="12" 
+                              height="12" 
+                              viewBox="0 0 12 12" 
+                              fill="none" 
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="flex-shrink-0"
+                              style={{
+                                opacity: hoveredColumn === column.key ? 1 : 0,
+                                transition: 'opacity 0.2s'
+                              }}
+                            >
+                              <path d="M3 4.5L6 7.5L9 4.5" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
                         </div>
                         <span className="truncate font-mono" style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 300 }}>
                           {column.key}
@@ -1488,6 +1546,15 @@ export function DataList() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Toast notification */}
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          duration={2000}
+          onClose={() => setToastMessage(null)}
+        />
       )}
     </div>
   );

@@ -112,7 +112,9 @@ const schema: SchemaCatalog = {
       fields: [
         { name: 'id', label: 'ID', type: 'id', definition: 'Unique identifier for the payment.' },
         { name: 'customer_id', label: 'Customer ID', type: 'id', definition: 'ID of the customer who made the payment.' },
+        { name: 'payment_method_id', label: 'Payment Method ID', type: 'id', definition: 'ID of the payment method used for this payment.' },
         { name: 'invoice_id', label: 'Invoice ID', type: 'id', definition: 'ID of the invoice this payment is for, if one exists.' },
+        { name: 'product_id', label: 'Product ID', type: 'id', definition: 'ID of the product associated with this payment.' },
         { name: 'amount', label: 'Amount', type: 'number', definition: 'Amount intended to be collected by this payment. A positive integer representing how much to charge in the smallest currency unit.' },
         { name: 'currency', label: 'Currency', type: 'string', enum: ['usd', 'eur', 'gbp'], definition: 'Three-letter ISO currency code, in lowercase.' },
         { name: 'created', label: 'Created', type: 'date', definition: 'Time at which the object was created. Measured in seconds since the Unix epoch.' },
@@ -131,6 +133,7 @@ const schema: SchemaCatalog = {
         { name: 'payment_intent_id', label: 'Payment Intent ID', type: 'id', definition: 'ID of the PaymentIntent associated with this charge, if one exists.' },
         { name: 'invoice_id', label: 'Invoice ID', type: 'id', definition: 'ID of the invoice this charge is for if one exists.' },
         { name: 'payment_method_id', label: 'Payment Method ID', type: 'id', definition: 'ID of the payment method used in this charge.' },
+        { name: 'product_id', label: 'Product ID', type: 'id', definition: 'ID of the product associated with this charge.' },
         { name: 'amount', label: 'Amount', type: 'number', definition: 'Amount intended to be collected by this payment. A positive integer representing how much to charge in the smallest currency unit.' },
         { name: 'amount_captured', label: 'Amount Captured', type: 'number', definition: 'Amount in cents captured (can be less than the amount attribute on the charge if a partial capture was made).' },
         { name: 'amount_refunded', label: 'Amount Refunded', type: 'number', definition: 'Amount in cents refunded (can be less than the amount attribute on the charge if a partial refund was issued).' },
@@ -152,6 +155,7 @@ const schema: SchemaCatalog = {
       definition: 'Refund objects allow you to refund a charge that has previously been created but not yet refunded.',
       fields: [
         { name: 'id', label: 'ID', type: 'id', definition: 'Unique identifier for the refund.' },
+        { name: 'payment_id', label: 'Payment ID', type: 'id', definition: 'ID of the payment that was refunded.' },
         { name: 'charge_id', label: 'Charge ID', type: 'id', definition: 'ID of the charge that was refunded.' },
         { name: 'payment_intent_id', label: 'Payment Intent ID', type: 'id', definition: 'ID of the PaymentIntent that was refunded.' },
         { name: 'amount', label: 'Amount', type: 'number', definition: 'Amount, in cents, to be refunded.' },
@@ -520,11 +524,32 @@ const schema: SchemaCatalog = {
       description: 'A charge can have multiple refunds',
     },
     {
+      from: 'payment',
+      to: 'refund',
+      type: 'one-to-many',
+      via: 'payment_id',
+      description: 'A payment can have multiple refunds',
+    },
+    {
       from: 'product',
       to: 'price',
       type: 'one-to-many',
       via: 'product_id',
       description: 'A product can have multiple prices',
+    },
+    {
+      from: 'product',
+      to: 'charge',
+      type: 'one-to-many',
+      via: 'product_id',
+      description: 'A product can have multiple charges',
+    },
+    {
+      from: 'product',
+      to: 'payment',
+      type: 'one-to-many',
+      via: 'product_id',
+      description: 'A product can have multiple payments',
     },
     {
       from: 'price',

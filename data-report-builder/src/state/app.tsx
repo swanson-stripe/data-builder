@@ -275,7 +275,7 @@ function buildInitialState(): AppState {
     report: 'mrr',
     start: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0], // Jan 1 this year (YTD)
     end: new Date().toISOString().split('T')[0], // Today
-    granularity: 'month',
+    granularity: 'week',
     chart: {
       type: 'line',
       comparison: 'none',

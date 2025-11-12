@@ -23,13 +23,13 @@ export function SidebarTabs() {
             aria-controls={`${tab.id}-panel`}
             className="flex-1 px-2 py-1.5 text-sm text-center focus:outline-none transition-colors cursor-pointer"
             style={{ 
-              backgroundColor: state.activeTab === tab.id ? 'var(--bg-hover)' : 'transparent',
+              backgroundColor: state.activeTab === tab.id ? 'var(--bg-active)' : 'transparent',
               borderRadius: '4px',
               color: state.activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-muted)'
             }}
             onMouseEnter={(e) => {
               if (state.activeTab !== tab.id) {
-                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                e.currentTarget.style.backgroundColor = 'var(--bg-active)';
               }
             }}
             onMouseLeave={(e) => {

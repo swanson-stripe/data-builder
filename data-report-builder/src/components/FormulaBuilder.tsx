@@ -2,6 +2,7 @@
 import { MetricBlock, CalculationOperator, BlockResult, UnitType } from '@/types';
 import { useEffect } from 'react';
 import { formatValueByUnit, getUnitLabel, validateFormulaUnits, getAvailableResultUnitTypes } from '@/lib/unitTypes';
+import { CustomSelect } from './CustomSelect';
 
 type FormulaBuilderProps = {
   blocks: MetricBlock[];
@@ -129,78 +130,41 @@ export function FormulaBuilder({
         <label className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
           Formula
         </label>
-        {calculation && (
-          <button
-            onClick={handleClear}
-            className="text-xs px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            style={{ color: 'var(--text-secondary)', cursor: 'pointer' }}
-          >
-            Clear
-          </button>
-        )}
       </div>
       
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex flex-col gap-2 mb-3">
         {/* Left Operand */}
-        <select
+        <CustomSelect
           value={leftOperand}
-          onChange={(e) => handleLeftChange(e.target.value)}
-          className="flex-1 px-2 py-1.5 text-sm border rounded-lg focus:outline-none"
-          style={{
-            borderColor: 'var(--border-default)',
-            backgroundColor: 'var(--bg-primary)',
-            color: 'var(--text-primary)',
-          }}
-          onFocus={(e) => { e.target.style.borderColor = '#675DFF'; }}
-          onBlur={(e) => { e.target.style.borderColor = 'var(--border-default)'; }}
-        >
-          {blocks.map((block) => (
-            <option key={block.id} value={block.id}>
-              {block.name}
-            </option>
-          ))}
-        </select>
+          onChange={handleLeftChange}
+          options={blocks.map((block) => ({
+            value: block.id,
+            label: block.name,
+          }))}
+          backgroundColor="var(--bg-primary)"
+        />
         
         {/* Operator */}
-        <select
+        <CustomSelect
           value={operator}
-          onChange={(e) => handleOperatorChange(e.target.value as CalculationOperator)}
-          className="px-3 py-1.5 text-sm border rounded-lg focus:outline-none"
-          style={{
-            borderColor: 'var(--border-default)',
-            backgroundColor: 'var(--bg-primary)',
-            color: 'var(--text-primary)',
-            minWidth: '100px',
-          }}
-          onFocus={(e) => { e.target.style.borderColor = '#675DFF'; }}
-          onBlur={(e) => { e.target.style.borderColor = 'var(--border-default)'; }}
-        >
-          {operators.map((op) => (
-            <option key={op.value} value={op.value}>
-              {op.symbol} {op.label}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => handleOperatorChange(value as CalculationOperator)}
+          options={operators.map((op) => ({
+            value: op.value,
+            label: `${op.symbol} ${op.label}`,
+          }))}
+          backgroundColor="var(--bg-primary)"
+        />
         
         {/* Right Operand */}
-        <select
+        <CustomSelect
           value={rightOperand}
-          onChange={(e) => handleRightChange(e.target.value)}
-          className="flex-1 px-2 py-1.5 text-sm border rounded-lg focus:outline-none"
-          style={{
-            borderColor: 'var(--border-default)',
-            backgroundColor: 'var(--bg-primary)',
-            color: 'var(--text-primary)',
-          }}
-          onFocus={(e) => { e.target.style.borderColor = '#675DFF'; }}
-          onBlur={(e) => { e.target.style.borderColor = 'var(--border-default)'; }}
-        >
-          {blocks.map((block) => (
-            <option key={block.id} value={block.id}>
-              {block.name}
-            </option>
-          ))}
-        </select>
+          onChange={handleRightChange}
+          options={blocks.map((block) => ({
+            value: block.id,
+            label: block.name,
+          }))}
+          backgroundColor="var(--bg-primary)"
+        />
       </div>
       
       {/* Validation Error */}
@@ -232,26 +196,17 @@ export function FormulaBuilder({
       {validation.valid && (operator === 'multiply' || operator === 'divide') && availableResultTypes.length > 1 && (
         <div className="mb-3">
           <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-            Result Unit Type
+            Result unit type
           </label>
-          <select
+          <CustomSelect
             value={selectedResultUnitType || availableResultTypes[0]}
-            onChange={(e) => handleResultUnitTypeChange(e.target.value as UnitType)}
-            className="w-full px-2 py-1.5 text-sm border rounded-lg focus:outline-none"
-            style={{
-              borderColor: 'var(--border-default)',
-              backgroundColor: 'var(--bg-primary)',
-              color: 'var(--text-primary)',
-            }}
-            onFocus={(e) => { e.target.style.borderColor = '#675DFF'; }}
-            onBlur={(e) => { e.target.style.borderColor = 'var(--border-default)'; }}
-          >
-            {availableResultTypes.map((type) => (
-              <option key={type} value={type}>
-                {getUnitLabel(type)}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => handleResultUnitTypeChange(value as UnitType)}
+            options={availableResultTypes.map((type) => ({
+              value: type,
+              label: getUnitLabel(type),
+            }))}
+            backgroundColor="var(--bg-primary)"
+          />
         </div>
       )}
       

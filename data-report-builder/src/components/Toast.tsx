@@ -1,65 +1,45 @@
 'use client';
-import { useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 
 type ToastProps = {
   message: string;
-  onClose: () => void;
   duration?: number;
+  onClose: () => void;
 };
 
-export function Toast({ message, onClose, duration = 3000 }: ToastProps) {
+export function Toast({ message, duration = 2000, onClose }: ToastProps) {
+  const [isVisible, setIsVisible] = useState(true);
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      onClose();
+      setIsVisible(false);
+      setTimeout(onClose, 300); // Wait for fade-out animation
     }, duration);
 
     return () => clearTimeout(timer);
   }, [duration, onClose]);
 
-  // Only render on client side
-  if (typeof window === 'undefined') return null;
-
-  return createPortal(
+  return (
     <div
-      className="fixed z-50 animate-slideUp"
       style={{
+        position: 'fixed',
         bottom: '24px',
         left: '50%',
         transform: 'translateX(-50%)',
+        backgroundColor: 'var(--bg-elevated)',
+        color: 'var(--text-primary)',
+        padding: '12px 20px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        fontSize: '14px',
+        fontWeight: 500,
+        zIndex: 9999,
+        opacity: isVisible ? 1 : 0,
+        transition: 'opacity 300ms ease-in-out',
+        pointerEvents: 'none',
       }}
     >
-      <div
-        className="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg"
-        style={{
-          backgroundColor: 'var(--bg-elevated)',
-          border: '1px solid var(--border-subtle)',
-          minWidth: '300px',
-        }}
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 20 20"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="flex-shrink-0"
-        >
-          <circle cx="10" cy="10" r="10" fill="#22c55e" />
-          <path
-            d="M6 10L9 13L14 7"
-            stroke="white"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        <span style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: 500 }}>
-          {message}
-        </span>
-      </div>
-    </div>,
-    document.body
+      {message}
+    </div>
   );
 }
-

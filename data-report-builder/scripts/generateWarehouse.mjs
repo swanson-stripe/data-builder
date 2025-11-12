@@ -73,6 +73,7 @@ const warehouse = {
   payments: [],
   refunds: [],
   subscriptions: [],
+  subscription_items: [],
   invoices: [],
   charges: [],
   payouts: [],
@@ -154,22 +155,40 @@ for (let i = 0; i < SUBSCRIPTIONS && i < activeCustomers.length; i++) {
   const created = randomDate(startDate, END_DATE);
 
   const periodLength = pr.recurring_interval === 'year' ? 12 : pr.recurring_interval === 'week' ? 0.25 : 1;
-  const periodEnd = new Date(created);
-  periodEnd.setMonth(periodEnd.getMonth() + periodLength);
+  
+  // For active subscriptions, extend period end into the future
+  const isCanceled = faker.datatype.boolean({ probability: 0.15 }); // Reduce cancellation rate
+  const periodStart = new Date(END_DATE); // Start most recent period from today
+  periodStart.setDate(periodStart.getDate() - 7); // Started a week ago
+  const periodEnd = new Date(END_DATE);
+  periodEnd.setMonth(periodEnd.getMonth() + periodLength); // End in the future
 
-  const isCanceled = faker.datatype.boolean({ probability: 0.2 });
-  const canceledAt = isCanceled ? randomDate(created, new Date(Math.min(periodEnd.getTime(), END_DATE.getTime()))) : undefined;
+  const canceledAt = isCanceled ? randomDate(created, END_DATE) : undefined;
 
+  const subId = stripeId('sub');
   warehouse.subscriptions.push({
-    id: stripeId('sub'),
+    id: subId,
     customer_id: c.id,
     price_id: pr.id,
-    status: isCanceled ? 'canceled' : pick(['active', 'trialing', 'past_due', 'incomplete']),
+    status: isCanceled ? 'canceled' : pick(['active', 'active', 'active', 'trialing', 'past_due']), // Bias toward active
     created: iso(created),
-    current_period_start: iso(created),
+    current_period_start: iso(periodStart),
     current_period_end: iso(periodEnd),
     canceled_at: canceledAt ? iso(canceledAt) : undefined,
   });
+
+  // Generate 1-3 subscription items per subscription
+  const itemCount = faker.number.int({ min: 1, max: 3 });
+  for (let j = 0; j < itemCount; j++) {
+    const itemPrice = pick(warehouse.prices);
+    warehouse.subscription_items.push({
+      id: stripeId('si'),
+      subscription_id: subId,
+      price_id: itemPrice.id,
+      quantity: faker.number.int({ min: 1, max: 5 }),
+      created: iso(created),
+    });
+  }
 }
 
 // 5️⃣ Generate Payments
@@ -198,19 +217,8 @@ for (let i = 0; i < PAYMENTS; i++) {
   };
   warehouse.payments.push(payment);
 
-  // 5% chance of refund for succeeded payments
-  if (payment.status === 'succeeded' && Math.random() < 0.05) {
-    const refundCreated = randomDate(created, END_DATE);
-    warehouse.refunds.push({
-      id: stripeId('re'),
-      payment_id: payment.id,
-      amount: Math.round(payment.amount * faker.number.float({ min: 0.1, max: 1.0 })),
-      currency: payment.currency,
-      status: pick(['succeeded', 'succeeded', 'pending', 'canceled']), // bias toward succeeded
-      reason: pick(['requested_by_customer', 'duplicate', 'fraudulent']),
-      created: iso(refundCreated),
-    });
-  }
+  // NOTE: Refunds from payments are not created here - we'll create them
+  // after charges are generated so that all refunds have proper charge_id linkage
 }
 
 // 6️⃣ Generate Invoices (for subscriptions)
@@ -224,14 +232,17 @@ for (const sub of warehouse.subscriptions) {
   for (let i = 0; i < invoiceCount; i++) {
     const created = randomDate(subStart, subEnd);
     const price = warehouse.prices.find(p => p.id === sub.price_id);
+    const total = price?.unit_amount || faker.number.int({ min: 500, max: 20000 });
+    const status = pick(['paid', 'paid', 'paid', 'open', 'draft', 'void', 'uncollectible']); // bias toward paid
 
     warehouse.invoices.push({
       id: stripeId('in'),
       customer_id: sub.customer_id,
       subscription_id: sub.id,
-      total: price?.unit_amount || faker.number.int({ min: 500, max: 20000 }),
+      total: total,
+      amount_paid: status === 'paid' ? total : (status === 'open' ? Math.round(total * faker.number.float({ min: 0, max: 0.5 })) : 0), // Paid invoices have full amount paid
       currency: price?.currency || 'usd',
-      status: pick(['paid', 'paid', 'paid', 'open', 'draft', 'void', 'uncollectible']), // bias toward paid
+      status: status,
       created: iso(created),
     });
   }
@@ -243,15 +254,37 @@ const chargeCount = Math.floor(PAYMENTS * 0.1); // 10% of payments are charges
 for (let i = 0; i < chargeCount; i++) {
   const c = pick(warehouse.customers);
   const created = randomDate(new Date(c.created), END_DATE);
+  const prod = pick(warehouse.products);
 
-  warehouse.charges.push({
+  const charge = {
     id: stripeId('ch'),
     customer_id: c.id,
+    product_id: prod.id,
     amount: faker.number.int({ min: 500, max: 50000 }),
     currency: pick(['usd', 'eur', 'gbp']),
     status: pick(['succeeded', 'succeeded', 'succeeded', 'pending', 'failed']), // bias toward succeeded
     created: iso(created),
-  });
+  };
+  warehouse.charges.push(charge);
+
+  // 25% chance of refund for succeeded charges
+  if (charge.status === 'succeeded' && Math.random() < 0.25) {
+    const refundCreated = randomDate(new Date(created), END_DATE);
+    // Find a payment from the same customer to link to the refund
+    const customerPayments = warehouse.payments.filter(p => p.customer_id === charge.customer_id && p.status === 'succeeded');
+    const linkedPayment = customerPayments.length > 0 ? pick(customerPayments) : pick(warehouse.payments.filter(p => p.status === 'succeeded'));
+    
+    warehouse.refunds.push({
+      id: stripeId('re'),
+      payment_id: linkedPayment.id, // Link to a payment from same customer
+      charge_id: charge.id, // Link to this charge
+      amount: Math.round(charge.amount * faker.number.float({ min: 0.1, max: 1.0 })),
+      currency: charge.currency,
+      status: pick(['succeeded', 'succeeded', 'pending', 'canceled']), // bias toward succeeded
+      reason: pick(['requested_by_customer', 'duplicate', 'fraudulent']),
+      created: iso(refundCreated),
+    });
+  }
 }
 
 // 8️⃣ Generate Payouts (aggregate succeeded payments by month)
@@ -316,16 +349,17 @@ fs.writeFileSync(outputPath, content, 'utf-8');
 
 console.log('\n✅ Warehouse generated successfully!');
 console.log('\n📊 Dataset Summary:');
-console.log(`   Customers:        ${warehouse.customers.length.toLocaleString()}`);
-console.log(`   Payment Methods:  ${warehouse.payment_methods.length.toLocaleString()}`);
-console.log(`   Products:         ${warehouse.products.length.toLocaleString()}`);
-console.log(`   Prices:           ${warehouse.prices.length.toLocaleString()}`);
-console.log(`   Payments:         ${warehouse.payments.length.toLocaleString()}`);
-console.log(`   Refunds:          ${warehouse.refunds.length.toLocaleString()}`);
-console.log(`   Subscriptions:    ${warehouse.subscriptions.length.toLocaleString()}`);
-console.log(`   Invoices:         ${warehouse.invoices.length.toLocaleString()}`);
-console.log(`   Charges:          ${warehouse.charges.length.toLocaleString()}`);
-console.log(`   Payouts:          ${warehouse.payouts.length.toLocaleString()}`);
+console.log(`   Customers:         ${warehouse.customers.length.toLocaleString()}`);
+console.log(`   Payment Methods:   ${warehouse.payment_methods.length.toLocaleString()}`);
+console.log(`   Products:          ${warehouse.products.length.toLocaleString()}`);
+console.log(`   Prices:            ${warehouse.prices.length.toLocaleString()}`);
+console.log(`   Payments:          ${warehouse.payments.length.toLocaleString()}`);
+console.log(`   Refunds:           ${warehouse.refunds.length.toLocaleString()}`);
+console.log(`   Subscriptions:     ${warehouse.subscriptions.length.toLocaleString()}`);
+console.log(`   Subscription Items: ${warehouse.subscription_items.length.toLocaleString()}`);
+console.log(`   Invoices:          ${warehouse.invoices.length.toLocaleString()}`);
+console.log(`   Charges:           ${warehouse.charges.length.toLocaleString()}`);
+console.log(`   Payouts:           ${warehouse.payouts.length.toLocaleString()}`);
 console.log(`\n📅 Date Range: ${iso(START_DATE)} to ${iso(END_DATE)} (${YEARS} years)`);
 console.log(`\n💾 Output: ${outputPath}`);
 console.log('\n🔍 Next steps:');

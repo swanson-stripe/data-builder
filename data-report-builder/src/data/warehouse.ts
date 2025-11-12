@@ -61,6 +61,7 @@ export interface Payment {
 export interface Refund {
   id: string;
   payment_id: string;
+  charge_id?: string;
   amount: number;
   currency: string;
   status: 'succeeded' | 'pending' | 'canceled';
@@ -80,6 +81,14 @@ export interface Subscription {
   cancel_at_period_end?: boolean;
 }
 
+export interface SubscriptionItem {
+  id: string;
+  subscription_id: string;
+  price_id: string;
+  quantity: number;
+  created: string;
+}
+
 export interface Invoice {
   id: string;
   customer_id: string;
@@ -96,6 +105,9 @@ export interface Charge {
   id: string;
   customer_id: string;
   payment_method_id?: string;
+  payment_intent_id?: string;
+  invoice_id?: string;
+  product_id?: string;
   amount: number;
   currency: string;
   status: 'succeeded' | 'pending' | 'failed';
@@ -124,6 +136,7 @@ export interface Warehouse {
   payments: Payment[];
   refunds: Refund[];
   subscriptions: Subscription[];
+  subscription_items: SubscriptionItem[];
   invoices: Invoice[];
   charges: Charge[];
   payouts: Payout[];
@@ -337,6 +350,7 @@ function generateWarehouseData(): Warehouse {
       id: `ch_${String(i + 1).padStart(3, '0')}`,
       customer_id: customerId,
       payment_method_id: payment_methods[i % 50].id,
+      product_id: products[i % 10].id,
       amount,
       currency: 'usd',
       status: i % 15 === 0 ? 'failed' : 'succeeded',

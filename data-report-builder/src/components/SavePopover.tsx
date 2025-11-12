@@ -407,8 +407,10 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
           <div style={{ padding: '8px' }}>
             <button
               onClick={() => setView('ownership')}
-              className="w-full flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors rounded-lg"
+              className="w-full flex items-center justify-between transition-colors rounded-lg"
               style={{ cursor: 'pointer', height: '28px', paddingLeft: '8px', paddingRight: '8px', marginBottom: '4px' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>Owners (who can edit)</span>
               <div className="flex items-center gap-2">
@@ -427,8 +429,10 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
 
             <button
               onClick={() => setView('visibility')}
-              className="w-full flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors rounded-lg"
+              className="w-full flex items-center justify-between transition-colors rounded-lg"
               style={{ cursor: 'pointer', height: '28px', paddingLeft: '8px', paddingRight: '8px', marginBottom: '4px' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>Visibility</span>
               <div className="flex items-center gap-2">
@@ -447,8 +451,10 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
 
             <button
               onClick={() => setView('groups')}
-              className="w-full flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors rounded-lg"
+              className="w-full flex items-center justify-between transition-colors rounded-lg"
               style={{ cursor: 'pointer', height: '28px', paddingLeft: '8px', paddingRight: '8px', marginBottom: '4px' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>Add to groups</span>
               <div className="flex items-center gap-2">
@@ -467,7 +473,12 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
               </div>
             </button>
 
-            <div className="flex items-center justify-between rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" style={{ height: '28px', paddingLeft: '8px', paddingRight: '8px', marginBottom: '4px' }}>
+            <div 
+              className="flex items-center justify-between rounded-lg transition-colors" 
+              style={{ height: '28px', paddingLeft: '8px', paddingRight: '8px', marginBottom: '4px' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
               <div className="flex items-center gap-2">
                 <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>Publish as a cohort</span>
                 <button

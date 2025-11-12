@@ -721,7 +721,7 @@ export function ChartPanel() {
                 }}
                   className="px-3 text-sm font-medium transition-colors focus:outline-none flex items-center"
                   style={{
-                    backgroundColor: isSelected ? 'var(--bg-hover)' : 'transparent',
+                    backgroundColor: isSelected ? 'var(--bg-active)' : 'transparent',
                     borderRadius: '50px',
                     color: isSelected ? 'var(--text-primary)' : 'var(--text-muted)',
                     height: '24px',
@@ -729,7 +729,7 @@ export function ChartPanel() {
                   }}
                 onMouseEnter={(e) => {
                   if (!isSelected) {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                    e.currentTarget.style.backgroundColor = 'var(--bg-active)';
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -746,7 +746,7 @@ export function ChartPanel() {
           })}
             
             {/* Divider */}
-            <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--bg-hover)' }} />
+            <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border-subtle)' }} />
             
             {/* Chevron button for popover */}
             <button
@@ -754,14 +754,14 @@ export function ChartPanel() {
               onClick={() => setIsDateRangePopoverOpen(!isDateRangePopoverOpen)}
               className="flex items-center justify-center border-none focus:outline-none cursor-pointer transition-colors"
               style={{
-                backgroundColor: isDateRangePopoverOpen ? 'var(--bg-hover)' : 'transparent',
+                backgroundColor: isDateRangePopoverOpen ? 'var(--bg-active)' : 'transparent',
                 borderRadius: '50px',
                 width: '24px',
                 height: '24px',
               }}
               onMouseEnter={(e) => {
                 if (!isDateRangePopoverOpen) {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                  e.currentTarget.style.backgroundColor = 'var(--bg-active)';
                 }
               }}
               onMouseLeave={(e) => {

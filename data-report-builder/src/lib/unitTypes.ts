@@ -6,6 +6,8 @@ import schema from '@/data/schema';
  */
 const CURRENCY_FIELDS = new Set([
   'amount',
+  'amount_paid',
+  'amount_remaining',
   'unit_amount',
   'amount_received',
   'amount_refunded',
@@ -14,6 +16,7 @@ const CURRENCY_FIELDS = new Set([
   'amount_due',
   'subtotal',
   'total',
+  'tax',
   'starting_balance',
   'ending_balance',
 ]);

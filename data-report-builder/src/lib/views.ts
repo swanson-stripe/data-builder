@@ -132,6 +132,15 @@ export function buildDataListView(opts: {
     }
   }
 
+  // Helper function to get related map (handles singular/plural mismatch)
+  const getRelatedMap = (objectName: string): Map<string, any> | undefined => {
+    let map = relatedMaps.get(objectName);
+    if (!map) {
+      map = relatedMaps.get(objectName + 's');
+    }
+    return map;
+  };
+
   // Build a row for each primary record
   for (const record of primaryTable) {
     const row: RowView = {
@@ -151,7 +160,7 @@ export function buildDataListView(opts: {
         // Try 1-hop join first (direct foreign key)
         const foreignKey = `${f.object}_id`;
         const relatedId = record[foreignKey];
-        const relatedMap = relatedMaps.get(f.object);
+        const relatedMap = getRelatedMap(f.object);
         
         if (relatedId && relatedMap) {
           const relatedRecord = relatedMap.get(relatedId);
@@ -188,7 +197,7 @@ export function buildDataListView(opts: {
               
               // Strategy 1: Use reverse bridge map (intermediate_by_primary)
               const primaryToBridge = `${intermediateObject}_by_${primaryObject}`;
-              const bridgeToTarget = relatedMaps.get(f.object);
+              const bridgeToTarget = getRelatedMap(f.object);
               
               const primaryBridgeRecords = bridgeMaps.get(primaryToBridge);
               if (primaryBridgeRecords && bridgeToTarget) {
@@ -214,14 +223,14 @@ export function buildDataListView(opts: {
               if (foundValue === null) {
                 const intermediateFk = `${intermediateObject}_id`;
                 const intermediateId = record[intermediateFk];
-                const intermediateMap = relatedMaps.get(intermediateObject);
+                const intermediateMap = getRelatedMap(intermediateObject);
                 
                 if (intermediateId && intermediateMap) {
                   const intermediateRecord = intermediateMap.get(intermediateId);
                   if (intermediateRecord) {
                     const targetFk = `${f.object}_id`;
                     const targetId = intermediateRecord[targetFk];
-                    const targetMap = relatedMaps.get(f.object);
+                    const targetMap = getRelatedMap(f.object);
                     
                     if (targetId && targetMap) {
                       const targetRecord = targetMap.get(targetId);
@@ -261,7 +270,7 @@ export function buildDataListView(opts: {
                             const targetFk = `${f.object}_id`;
                             for (const secondLevelRecord of secondLevelRecords) {
                               if (secondLevelRecord[targetFk]) {
-                                const targetMap = relatedMaps.get(f.object);
+                                const targetMap = getRelatedMap(f.object);
                                 if (targetMap) {
                                   const targetRecord = targetMap.get(secondLevelRecord[targetFk]);
                                   if (targetRecord) {
@@ -296,8 +305,26 @@ export function buildDataListView(opts: {
 }
 
 /**
+ * Object types that should not be filtered by date (catalog/reference data)
+ * These represent entities that exist independently of transactions
+ */
+const CATALOG_OBJECTS = new Set([
+  'product',
+  'products',
+  'price',
+  'prices',
+  'customer',
+  'customers',
+  'payment_method',
+  'payment_methods',
+]);
+
+/**
  * Filter RowView[] by date range
  * Uses the canonical timestamp (ts) field for filtering
+ * 
+ * Note: Catalog/reference objects (products, prices, customers) are not filtered by date
+ * since they represent data that exists independently of transaction dates
  *
  * @param rows - Array of RowView objects
  * @param start - Start date (ISO string)
@@ -316,6 +343,11 @@ export function filterRowsByDate(
   const endDate = new Date(end);
 
   return rows.filter(row => {
+    // Don't filter catalog/reference objects by date
+    if (CATALOG_OBJECTS.has(row.pk.object)) {
+      return true;
+    }
+    
     if (!row.ts) return false;
     const rowDate = new Date(row.ts);
     return rowDate >= startDate && rowDate <= endDate;

@@ -2,6 +2,7 @@
 import { useApp, actions, ChartType, XSourceMode, YSourceMode, Comparison } from '@/state/app';
 import { useMemo } from 'react';
 import schema, { getFieldLabel } from '@/data/schema';
+import { CustomSelect } from './CustomSelect';
 
 export function ChartTab() {
   const { state, dispatch } = useApp();
@@ -111,36 +112,20 @@ export function ChartTab() {
     <div className="flex flex-col h-full space-y-4">
       {/* Chart Type */}
       <div>
-        <label htmlFor="chart-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
           Chart Type
         </label>
-        <select
-          id="chart-type"
+        <CustomSelect
           value={state.chart.type}
-          onChange={(e) => dispatch(actions.setChartType(e.target.value as ChartType))}
-          className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none"
-          style={{ 
-            borderColor: 'var(--border-default)',
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = '#675DFF';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'var(--border-default)';
-          }}
-        >
-          {chartTypes.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => dispatch(actions.setChartType(value as ChartType))}
+          options={chartTypes}
+        />
       </div>
 
       {/* X Axis Source */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          X Axis Source
+          X axis source
         </label>
         <div className="space-y-2">
           <label className="flex items-center gap-2 cursor-pointer">
@@ -151,7 +136,7 @@ export function ChartTab() {
               checked={state.chart.xSourceMode === 'time'}
               onChange={(e) => dispatch(actions.setXSourceMode(e.target.value as XSourceMode))}
             />
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Time</span>
+            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Time (default)</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -169,33 +154,23 @@ export function ChartTab() {
       {/* X Field Selector (when mode is 'field') */}
       {state.chart.xSourceMode === 'field' && (
         <div>
-          <label htmlFor="x-source" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            X Axis Field
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+            X axis field
           </label>
-          <select
-            id="x-source"
+          <CustomSelect
             value={currentXSourceValue}
-            onChange={(e) => handleXSourceChange(e.target.value)}
-            className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none"
-          style={{ 
-            borderColor: 'var(--border-default)',
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = '#675DFF';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'var(--border-default)';
-          }}
+            onChange={handleXSourceChange}
+            options={[
+              { value: '', label: '— Select a timestamp field —' },
+              ...xAxisFields.map((field) => ({
+                value: `${field.object}.${field.field}`,
+                label: getFieldLabel(field.object, field.field),
+              })),
+            ]}
             disabled={xAxisFields.length === 0}
-          >
-            <option value="">— Select a timestamp field —</option>
-            {xAxisFields.map((field) => (
-              <option key={`${field.object}.${field.field}`} value={`${field.object}.${field.field}`}>
-                {getFieldLabel(field.object, field.field)}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            placeholder="— Select a timestamp field —"
+          />
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
             Override time axis with a selected timestamp field
           </p>
         </div>
@@ -204,7 +179,7 @@ export function ChartTab() {
       {/* Y Axis Source */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Y Axis Source
+          Y axis source
         </label>
         <div className="space-y-2">
           <label className="flex items-center gap-2 cursor-pointer">
@@ -215,7 +190,7 @@ export function ChartTab() {
               checked={state.chart.ySourceMode === 'metric'}
               onChange={(e) => dispatch(actions.setYSourceMode(e.target.value as YSourceMode))}
             />
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Metric</span>
+            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Metric (default)</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -233,33 +208,23 @@ export function ChartTab() {
       {/* Y Field Selector (when mode is 'field') */}
       {state.chart.ySourceMode === 'field' && (
         <div>
-          <label htmlFor="y-field" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Y Axis Field
+          <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+            Y axis field
           </label>
-          <select
-            id="y-field"
+          <CustomSelect
             value={currentYFieldValue}
-            onChange={(e) => handleYFieldChange(e.target.value)}
-            className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none"
-          style={{ 
-            borderColor: 'var(--border-default)',
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = '#675DFF';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'var(--border-default)';
-          }}
+            onChange={handleYFieldChange}
+            options={[
+              { value: '', label: '— Select a numeric field —' },
+              ...yAxisFields.map((field) => ({
+                value: `${field.object}.${field.field}`,
+                label: getFieldLabel(field.object, field.field),
+              })),
+            ]}
             disabled={yAxisFields.length === 0}
-          >
-            <option value="">— Select a numeric field —</option>
-            {yAxisFields.map((field) => (
-              <option key={`${field.object}.${field.field}`} value={`${field.object}.${field.field}`}>
-                {getFieldLabel(field.object, field.field)}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            placeholder="— Select a numeric field —"
+          />
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
             Uses current Metric Operation + Type to aggregate this field
           </p>
         </div>
@@ -267,46 +232,30 @@ export function ChartTab() {
 
       {/* Comparison */}
       <div>
-        <label htmlFor="comparison" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
           Comparison
         </label>
-        <select
-          id="comparison"
+        <CustomSelect
           value={state.chart.comparison}
-          onChange={(e) => dispatch(actions.setComparison(e.target.value as Comparison))}
-          className="w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none"
-          style={{ 
-            borderColor: 'var(--border-default)',
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = '#675DFF';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'var(--border-default)';
-          }}
-        >
-          {comparisonOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => dispatch(actions.setComparison(value as Comparison))}
+          options={comparisonOptions}
+        />
       </div>
 
       {/* Description */}
       <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
-        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Comparison Modes</h4>
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Comparison types</h4>
         <dl className="space-y-2 text-xs">
           <div>
-            <dt className="font-medium text-gray-700 dark:text-gray-300">Period Start Baseline</dt>
+            <dt className="font-medium text-gray-700 dark:text-gray-300">Period start baseline</dt>
             <dd className="text-gray-500 dark:text-gray-400">Compare current value to the first bucket in the period</dd>
           </div>
           <div>
-            <dt className="font-medium text-gray-700 dark:text-gray-300">Previous Period</dt>
+            <dt className="font-medium text-gray-700 dark:text-gray-300">Previous period</dt>
             <dd className="text-gray-500 dark:text-gray-400">Compare with the previous bucket (e.g., last month)</dd>
           </div>
           <div>
-            <dt className="font-medium text-gray-700 dark:text-gray-300">Previous Year</dt>
+            <dt className="font-medium text-gray-700 dark:text-gray-300">Previous year</dt>
             <dd className="text-gray-500 dark:text-gray-400">Compare with the same bucket one year ago</dd>
           </div>
         </dl>

@@ -42,8 +42,8 @@
   --bg-secondary: #f9fafb;
   --bg-elevated: #ffffff;
   --bg-surface: #f5f6f8;
-  --bg-hover: #D8DEE4;
-  --bg-active: #f3f4f6;
+  --bg-hover: #e5e7eb;
+  --bg-active: #e5e7eb;
   --bg-selected: #f0f4ff;
   --bg-blue-subtle: #f0f4ff;
   
@@ -204,27 +204,27 @@
   --connection-line: #6DC9FC;
   --connection-arrow: #6DC9FC;
   
-  /* Semantic Tokens - Data Tab Specific (Dark) */
-  --data-chip-table-bg: #0B46AD;
-  --data-chip-table-icon: #088EF9;
-  --data-chip-table-text: #FFFFFF;
-  --data-chip-table-counter-bg: #6DC9FC;
-  --data-chip-table-counter-text: #0B46AD;
-  --data-chip-table-hover-stroke: #1E5BB8;
+  /* Semantic Tokens - Data Tab Specific (Dark) - Blue theme adapted for dark mode */
+  --data-chip-table-bg: #1e3a5f;
+  --data-chip-table-icon: #60a5fa;
+  --data-chip-table-text: #e0e7ff;
+  --data-chip-table-counter-bg: #1e293b;
+  --data-chip-table-counter-text: #60a5fa;
+  --data-chip-table-hover-stroke: #2563eb;
   
-  --data-chip-field-bg: #0072E9;
-  --data-chip-field-icon: #6DC9FC;
-  --data-chip-field-text: #FFFFFF;
-  --data-chip-field-counter-bg: #6DC9FC;
-  --data-chip-field-counter-text: #0B46AD;
-  --data-chip-field-hover-stroke: #1E5BB8;
+  --data-chip-field-bg: #1e40af;
+  --data-chip-field-icon: #93c5fd;
+  --data-chip-field-text: #dbeafe;
+  --data-chip-field-counter-bg: #1e293b;
+  --data-chip-field-counter-text: #93c5fd;
+  --data-chip-field-hover-stroke: #3b82f6;
   
-  --data-chip-filter-bg: #1A3A4A;
-  --data-chip-filter-border: #088EF9;
-  --data-chip-filter-text: #6DC9FC;
-  --data-chip-filter-icon: #088EF9;
+  --data-chip-filter-bg: #1e3a5f;
+  --data-chip-filter-border: #60a5fa;
+  --data-chip-filter-text: #93c5fd;
+  --data-chip-filter-icon: #60a5fa;
   
-  --data-tab-link: #0B46AD;
+  --data-tab-link: #60a5fa;
 }
 
 body {

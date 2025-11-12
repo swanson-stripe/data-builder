@@ -47,7 +47,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       op: 'sum',
       type: 'sum_over_period',
     },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
   },
 
   mrr: {
@@ -74,7 +74,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       op: 'sum',
       type: 'latest',
     },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
     filters: [
       {
         field: { object: 'subscription', field: 'status' },
@@ -87,7 +87,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   gross_volume: {
     key: 'gross_volume',
     label: 'Gross Volume',
-    objects: ['charge', 'customer', 'payment_intent', 'invoice'],
+    objects: ['charge', 'customer'],
     fields: [
       { object: 'charge', field: 'id' },
       { object: 'charge', field: 'amount' },
@@ -96,9 +96,6 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       { object: 'charge', field: 'status' },
       { object: 'customer', field: 'id' },
       { object: 'customer', field: 'email' },
-      { object: 'payment_intent', field: 'id' },
-      { object: 'invoice', field: 'id' },
-      { object: 'invoice', field: 'number' },
     ],
     // Flow metric — sum amounts per bucket
     metric: {
@@ -107,7 +104,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       op: 'sum',
       type: 'sum_over_period',
     },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
   },
 
   active_subscribers: {
@@ -132,7 +129,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       op: 'count',
       type: 'latest',
     },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
     // Only count subscriptions with status = 'active'
     filters: [
       {
@@ -146,13 +143,14 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   refund_count: {
     key: 'refund_count',
     label: 'Refund Count',
-    objects: ['refund', 'charge', 'customer'],
+    objects: ['refund', 'payment', 'charge', 'customer'],
     fields: [
       { object: 'refund', field: 'id' },
       { object: 'refund', field: 'created' },
       { object: 'refund', field: 'amount' },
       { object: 'refund', field: 'status' },
       { object: 'refund', field: 'reason' },
+      { object: 'payment', field: 'id' },
       { object: 'charge', field: 'id' },
       { object: 'charge', field: 'amount' },
       { object: 'charge', field: 'created' },
@@ -192,7 +190,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       op: 'avg',
       type: 'latest',
     },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'month' },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
   },
 };
 

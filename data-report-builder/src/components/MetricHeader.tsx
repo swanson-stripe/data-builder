@@ -348,8 +348,6 @@ export function MetricHeader() {
 
         {/* Metadata */}
         <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          <span>{getUnitLabel(unitType)}</span>
-          <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--border-subtle)' }} />
           <span>Private to you</span>
           <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--border-subtle)' }} />
           <button className="underline" style={{ fontWeight: 400, color: 'var(--text-primary)' }}>

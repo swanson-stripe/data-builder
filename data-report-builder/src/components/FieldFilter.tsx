@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { SchemaField } from '@/types';
 import { FilterCondition, FilterOperator } from '@/types';
+import { CustomSelect } from './CustomSelect';
 
 type FieldFilterProps = {
   field: SchemaField;
@@ -159,58 +160,28 @@ export function FieldFilter({
 
   // Render Filter Type selector component
   const renderFilterTypeSelector = () => (
-    <div className="space-y-2">
+    <div style={{ marginBottom: '12px' }}>
       <label 
         htmlFor="filter-type" 
         style={{ 
-          fontSize: '14px', 
-          fontWeight: 600, 
-          color: 'var(--text-primary)',
-          display: 'block'
+          fontSize: '12px', 
+          fontWeight: 500, 
+          color: 'var(--text-secondary)',
+          display: 'block',
+          marginBottom: '4px'
         }}
       >
         Filter type
       </label>
-      <div style={{ position: 'relative' }}>
-        <select
-          id="filter-type"
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value as 'include' | 'exclude')}
-          style={{
-            width: '100%',
-            height: '40px',
-            paddingLeft: '12px',
-            paddingRight: '36px',
-            fontSize: '14px',
-            fontWeight: 400,
-            color: 'var(--text-primary)',
-            backgroundColor: 'var(--bg-elevated)',
-            border: '1px solid var(--border-default)',
-            borderRadius: '8px',
-            appearance: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          <option value="include">Include</option>
-          <option value="exclude">Exclude</option>
-        </select>
-        <svg
-          style={{
-            position: 'absolute',
-            right: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            pointerEvents: 'none'
-          }}
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </div>
+      <CustomSelect
+        value={filterType}
+        onChange={(value) => setFilterType(value as 'include' | 'exclude')}
+        options={[
+          { value: 'include', label: 'Include' },
+          { value: 'exclude', label: 'Exclude' },
+        ]}
+        hoverBackgroundColor="white"
+      />
     </div>
   );
 
@@ -249,7 +220,7 @@ export function FieldFilter({
                   onClick={handleClear}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: 'var(--bg-surface)',
+                    backgroundColor: 'var(--bg-primary)',
                     border: 'none',
                     borderRadius: '6px',
                     height: '28px',
@@ -279,7 +250,7 @@ export function FieldFilter({
                   onClick={onCancel}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: 'var(--bg-surface)',
+                    backgroundColor: 'var(--bg-primary)',
                     border: 'none',
                     borderRadius: '6px',
                     height: '28px',
@@ -365,7 +336,7 @@ export function FieldFilter({
                   onClick={handleClear}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: 'var(--bg-surface)',
+                    backgroundColor: 'var(--bg-primary)',
                     border: 'none',
                     borderRadius: '6px',
                     height: '28px',
@@ -397,7 +368,7 @@ export function FieldFilter({
                   onClick={onCancel}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: 'var(--bg-surface)',
+                    backgroundColor: 'var(--bg-primary)',
                     border: 'none',
                     borderRadius: '6px',
                     height: '28px',
@@ -489,7 +460,7 @@ export function FieldFilter({
                   onClick={handleClear}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: 'var(--bg-surface)',
+                    backgroundColor: 'var(--bg-primary)',
                     border: 'none',
                     borderRadius: '6px',
                     height: '28px',
@@ -519,7 +490,7 @@ export function FieldFilter({
                   onClick={onCancel}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: 'var(--bg-surface)',
+                    backgroundColor: 'var(--bg-primary)',
                     border: 'none',
                     borderRadius: '6px',
                     height: '28px',
@@ -566,11 +537,9 @@ export function FieldFilter({
     return (
       <div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ paddingLeft: '16px', paddingRight: '16px', marginBottom: '12px' }}>
-            {renderFilterTypeSelector()}
-          </div>
+          {renderFilterTypeSelector()}
           
-          <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)', paddingLeft: '16px', paddingRight: '16px', marginBottom: '8px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)', marginBottom: '8px' }}>
             Apply a filter
           </div>
           <div>
@@ -579,14 +548,12 @@ export function FieldFilter({
                 key={enumValue}
                 className="flex items-center cursor-pointer transition-colors"
                 style={{
-                  paddingLeft: '16px',
-                  paddingRight: '16px',
                   height: '32px',
                   fontSize: '14px',
                   color: 'var(--text-primary)',
                   fontWeight: 400
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-primary)'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <input
@@ -600,14 +567,14 @@ export function FieldFilter({
             ))}
           </div>
 
-          <div className="flex gap-2" style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px' }}>
+          <div className="flex gap-2" style={{ paddingTop: '12px' }}>
             {currentFilter ? (
               <>
                 <button
                   onClick={handleClear}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: 'var(--bg-surface)',
+                    backgroundColor: 'var(--bg-primary)',
                     border: 'none',
                     borderRadius: '6px',
                     height: '32px',
@@ -639,7 +606,7 @@ export function FieldFilter({
                   onClick={onCancel}
                   className="flex-1 text-sm font-semibold transition-colors"
                   style={{ 
-                    backgroundColor: 'var(--bg-surface)',
+                    backgroundColor: 'var(--bg-primary)',
                     border: 'none',
                     borderRadius: '6px',
                     height: '32px',
