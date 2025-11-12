@@ -146,7 +146,7 @@ export function FilterPopover({
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div style={{ paddingLeft: '0', paddingRight: '0', paddingTop: '8px', paddingBottom: '12px' }}>
+          <div style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '8px', paddingBottom: '12px' }}>
             <FieldFilter
               field={field}
               objectName={objectName}
