@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { Granularity } from '@/lib/time';
-import { ReportKey, MetricDef, MetricOp, MetricType, FilterGroup, FilterCondition } from '@/types';
+import { ReportKey, MetricDef, MetricOp, MetricType, MetricFormula, MetricBlock, CalculationOperator, FilterGroup, FilterCondition } from '@/types';
 
 // Chart types
 export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year' | 'benchmarks';
@@ -43,7 +43,8 @@ export type AppState = {
   hoveredBucket?: string; // Date label of the currently hovered bucket
   selectedGrid?: GridSelection;
   chart: ChartSettings;
-  metric: MetricDef;
+  metric: MetricDef; // Keep for backward compatibility with existing code
+  metricFormula: MetricFormula; // New multi-block calculation system
   filters: FilterGroup;
 };
 
@@ -154,6 +155,36 @@ type SetMetricNameAction = {
   payload: string;
 };
 
+type AddMetricBlockAction = {
+  type: 'ADD_METRIC_BLOCK';
+  payload: MetricBlock;
+};
+
+type UpdateMetricBlockAction = {
+  type: 'UPDATE_METRIC_BLOCK';
+  payload: { blockId: string; updates: Partial<MetricBlock> };
+};
+
+type RemoveMetricBlockAction = {
+  type: 'REMOVE_METRIC_BLOCK';
+  payload: string; // blockId
+};
+
+type SetCalculationAction = {
+  type: 'SET_CALCULATION';
+  payload: { operator: CalculationOperator; leftOperand: string; rightOperand: string } | undefined;
+};
+
+type ToggleExposeBlockAction = {
+  type: 'TOGGLE_EXPOSE_BLOCK';
+  payload: string; // blockId
+};
+
+type SetMetricFormulaNameAction = {
+  type: 'SET_METRIC_FORMULA_NAME';
+  payload: string;
+};
+
 type ReorderFieldsAction = {
   type: 'REORDER_FIELDS';
   payload: string[]; // New fieldOrder array
@@ -218,6 +249,12 @@ export type AppAction =
   | SetMetricOpAction
   | SetMetricTypeAction
   | SetMetricNameAction
+  | AddMetricBlockAction
+  | UpdateMetricBlockAction
+  | RemoveMetricBlockAction
+  | SetCalculationAction
+  | ToggleExposeBlockAction
+  | SetMetricFormulaNameAction
   | ReorderFieldsAction
   | SetGridSelectionAction
   | ClearGridSelectionAction
@@ -250,6 +287,12 @@ function buildInitialState(): AppState {
       op: 'sum',
       type: 'sum_over_period',
     },
+    metricFormula: {
+      name: 'Metric',
+      blocks: [],
+      calculation: undefined,
+      exposeBlocks: [],
+    },
     filters: {
       conditions: [],
       logic: 'AND',
@@ -262,16 +305,35 @@ function buildInitialState(): AppState {
   const preset = PRESET_CONFIGS['mrr'];
   
   if (preset) {
+    const presetMetric = {
+      name: preset.metric.name,
+      op: preset.metric.op,
+      type: preset.metric.type,
+      source: preset.metric.source,
+    };
+    
+    // Initialize metricFormula with Block 1 from the preset metric
+    // Map preset name and filters to the block
+    const block1: MetricBlock = {
+      id: 'block_1',
+      name: preset.metric.name, // Use preset metric name instead of "Block 1"
+      source: preset.metric.source,
+      op: preset.metric.op,
+      type: preset.metric.type,
+      filters: preset.filters || [], // Apply preset filters to the block
+    };
+    
     return {
       ...baseState,
       selectedObjects: [...preset.objects],
       selectedFields: [...preset.fields],
       fieldOrder: preset.fields.map((f: { object: string; field: string }) => `${f.object}.${f.field}`),
-      metric: {
+      metric: presetMetric,
+      metricFormula: {
         name: preset.metric.name,
-        op: preset.metric.op,
-        type: preset.metric.type,
-        source: preset.metric.source,
+        blocks: [block1],
+        calculation: undefined, // Single block doesn't need a formula
+        exposeBlocks: [],
       },
       start: preset.range?.start || baseState.start,
       end: preset.range?.end || baseState.end,
@@ -283,7 +345,25 @@ function buildInitialState(): AppState {
     };
   }
   
-  return baseState;
+  // Initialize base state with a default block as well
+  const defaultBlock: MetricBlock = {
+    id: 'block_1',
+    name: 'Block 1',
+    source: undefined,
+    op: 'sum',
+    type: 'sum_over_period',
+    filters: [],
+  };
+  
+  return {
+    ...baseState,
+    metricFormula: {
+      name: 'Metric',
+      blocks: [defaultBlock],
+      calculation: undefined,
+      exposeBlocks: [],
+    },
+  };
 }
 
 // Initial state with MRR preset applied
@@ -535,6 +615,87 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
       };
 
+    case 'ADD_METRIC_BLOCK':
+      return {
+        ...state,
+        metricFormula: {
+          ...state.metricFormula,
+          blocks: [...state.metricFormula.blocks, action.payload],
+        },
+      };
+
+    case 'UPDATE_METRIC_BLOCK':
+      return {
+        ...state,
+        metricFormula: {
+          ...state.metricFormula,
+          blocks: state.metricFormula.blocks.map(block =>
+            block.id === action.payload.blockId
+              ? { ...block, ...action.payload.updates }
+              : block
+          ),
+        },
+      };
+
+    case 'REMOVE_METRIC_BLOCK': {
+      const blockId = action.payload;
+      const newBlocks = state.metricFormula.blocks.filter(b => b.id !== blockId);
+      
+      // If the removed block was used in the calculation, clear the calculation
+      let newCalculation = state.metricFormula.calculation;
+      if (newCalculation && 
+          (newCalculation.leftOperand === blockId || newCalculation.rightOperand === blockId)) {
+        newCalculation = undefined;
+      }
+      
+      // Remove from exposed blocks
+      const newExposeBlocks = state.metricFormula.exposeBlocks?.filter(id => id !== blockId);
+      
+      return {
+        ...state,
+        metricFormula: {
+          ...state.metricFormula,
+          blocks: newBlocks,
+          calculation: newCalculation,
+          exposeBlocks: newExposeBlocks,
+        },
+      };
+    }
+
+    case 'SET_CALCULATION':
+      return {
+        ...state,
+        metricFormula: {
+          ...state.metricFormula,
+          calculation: action.payload,
+        },
+      };
+
+    case 'TOGGLE_EXPOSE_BLOCK': {
+      const blockId = action.payload;
+      const currentExposeBlocks = state.metricFormula.exposeBlocks || [];
+      const isExposed = currentExposeBlocks.includes(blockId);
+      
+      return {
+        ...state,
+        metricFormula: {
+          ...state.metricFormula,
+          exposeBlocks: isExposed
+            ? currentExposeBlocks.filter(id => id !== blockId)
+            : [...currentExposeBlocks, blockId],
+        },
+      };
+    }
+
+    case 'SET_METRIC_FORMULA_NAME':
+      return {
+        ...state,
+        metricFormula: {
+          ...state.metricFormula,
+          name: action.payload,
+        },
+      };
+
     case 'REORDER_FIELDS':
       return {
         ...state,
@@ -600,10 +761,20 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
       };
 
-    case 'RESET_ALL':
+    case 'RESET_ALL': {
       // Reset to blank preset, keeping activeTab to avoid jarring tab switch
       const { PRESET_CONFIGS } = require('@/lib/presets');
       const blankPreset = PRESET_CONFIGS['blank'];
+      
+      // Initialize with a default block
+      const resetBlock: MetricBlock = {
+        id: 'block_1',
+        name: 'Block 1',
+        source: undefined,
+        op: 'sum',
+        type: 'sum_over_period',
+        filters: [],
+      };
       
       return {
         activeTab: state.activeTab,
@@ -628,11 +799,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
           type: 'sum_over_period',
           source: undefined,
         },
+        metricFormula: {
+          name: 'Metric',
+          blocks: [resetBlock],
+          calculation: undefined,
+          exposeBlocks: [],
+        },
         filters: {
           conditions: [],
           logic: 'AND',
         },
       };
+    }
 
     default:
       // Exhaustive check
@@ -776,6 +954,36 @@ export const actions = {
 
   setMetricName: (name: string): SetMetricNameAction => ({
     type: 'SET_METRIC_NAME',
+    payload: name,
+  }),
+
+  addMetricBlock: (block: MetricBlock): AddMetricBlockAction => ({
+    type: 'ADD_METRIC_BLOCK',
+    payload: block,
+  }),
+
+  updateMetricBlock: (blockId: string, updates: Partial<MetricBlock>): UpdateMetricBlockAction => ({
+    type: 'UPDATE_METRIC_BLOCK',
+    payload: { blockId, updates },
+  }),
+
+  removeMetricBlock: (blockId: string): RemoveMetricBlockAction => ({
+    type: 'REMOVE_METRIC_BLOCK',
+    payload: blockId,
+  }),
+
+  setCalculation: (calculation: { operator: CalculationOperator; leftOperand: string; rightOperand: string } | undefined): SetCalculationAction => ({
+    type: 'SET_CALCULATION',
+    payload: calculation,
+  }),
+
+  toggleExposeBlock: (blockId: string): ToggleExposeBlockAction => ({
+    type: 'TOGGLE_EXPOSE_BLOCK',
+    payload: blockId,
+  }),
+
+  setMetricFormulaName: (name: string): SetMetricFormulaNameAction => ({
+    type: 'SET_METRIC_FORMULA_NAME',
     payload: name,
   }),
 

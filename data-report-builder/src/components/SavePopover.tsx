@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '@/state/app';
 import { useWarehouseStore } from '@/lib/useWarehouse';
 import { computeMetric } from '@/lib/metrics';
+import { computeFormula } from '@/lib/formulaMetrics';
 import { buildDataListView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
 import schema from '@/data/schema';
@@ -48,13 +49,18 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
   const popoverRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
+  // Always use formula system now (blocks always exist, single block = simple metric)
+  const useFormula = true;
+
   // Set default metric name from metric name or label
   useEffect(() => {
     if (isOpen && !metricName) {
-      const label = state.metric.name || 'Untitled metric';
+      const label = useFormula 
+        ? (state.metricFormula.name || 'Untitled metric')
+        : (state.metric.name || 'Untitled metric');
       setMetricName(label);
     }
-  }, [isOpen, metricName, state.metric.name]);
+  }, [isOpen, metricName, state.metric.name, useFormula, state.metricFormula.name]);
 
   // Focus name input when editing
   useEffect(() => {
@@ -112,22 +118,39 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
     return undefined;
   }, [state.filters, state.selectedObjects, state.selectedFields, warehouse.store]);
 
-  // Calculate metric data for sparkline
+  // Calculate metric data for sparkline - supports both legacy and multi-block
   const { chartData, currentValue, comparisonValue, comparisonPercentage } = useMemo(() => {
     if (!warehouse.store || Object.keys(warehouse.store).length === 0 || state.selectedFields.length === 0) {
       return { chartData: [], currentValue: 0, comparisonValue: null, comparisonPercentage: null };
     }
 
-    const result = computeMetric({
-      def: state.metric,
-      start: state.start,
-      end: state.end,
-      granularity: state.granularity,
-      store: warehouse.store,
-      include: includeSet,
-      schema,
-      objects: state.selectedObjects,
-    });
+    let result;
+    if (useFormula) {
+      // Use multi-block formula system
+      const { result: formulaResult } = computeFormula({
+        formula: state.metricFormula,
+        start: state.start,
+        end: state.end,
+        granularity: state.granularity,
+        store: warehouse.store,
+        schema,
+        selectedObjects: state.selectedObjects,
+        selectedFields: state.selectedFields,
+      });
+      result = formulaResult;
+    } else {
+      // Use legacy single-metric system
+      result = computeMetric({
+        def: state.metric,
+        start: state.start,
+        end: state.end,
+        granularity: state.granularity,
+        store: warehouse.store,
+        include: includeSet,
+        schema,
+        objects: state.selectedObjects,
+      });
+    }
 
     // Get last value as current
     const current = result.series && result.series.length > 0 ? result.series[result.series.length - 1].value : 0;
@@ -151,7 +174,7 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
       comparisonValue: comparisonChange,
       comparisonPercentage: comparisonPercentage,
     };
-  }, [warehouse.store, warehouse.version, state.selectedFields, state.metric, state.start, state.end, state.granularity, state.selectedObjects, state.chart.comparison, includeSet]);
+  }, [useFormula, state.metricFormula, warehouse.store, warehouse.version, state.selectedFields, state.metric, state.start, state.end, state.granularity, state.selectedObjects, state.chart.comparison, includeSet]);
 
   // Handle owner chip input
   const handleOwnerKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -226,9 +249,10 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
               {/* Value and Comparison */}
               <div className="flex items-end gap-2 mb-3">
                 <div style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                  {state.metric.op === 'count' || state.metric.op === 'distinct_count'
-                    ? formatNumber(currentValue)
-                    : currency(currentValue)}
+                  {/* For multi-block, always use currency formatting; for single-metric, check operation */}
+                  {useFormula || (!useFormula && state.metric.op !== 'count' && state.metric.op !== 'distinct_count')
+                    ? currency(currentValue)
+                    : formatNumber(currentValue)}
                 </div>
                 {comparisonValue !== null && (
                   <div
@@ -242,9 +266,9 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
                     }}
                   >
                     <span>
-                      {comparisonValue >= 0 ? '+' : ''}{state.metric.op === 'count' || state.metric.op === 'distinct_count'
-                        ? formatNumber(comparisonValue)
-                        : currency(comparisonValue)}
+                      {comparisonValue >= 0 ? '+' : ''}{useFormula || (!useFormula && state.metric.op !== 'count' && state.metric.op !== 'distinct_count')
+                        ? currency(comparisonValue)
+                        : formatNumber(comparisonValue)}
                     </span>
                     {comparisonPercentage !== null && (
                       <span>({comparisonPercentage >= 0 ? '+' : ''}{comparisonPercentage.toFixed(2)}%)</span>

@@ -294,7 +294,7 @@ function PageContent() {
                   <button
                     key={preset.key}
                     onClick={() => {
-                      applyPreset(preset.key, dispatch);
+                      applyPreset(preset.key, dispatch, state);
                       setShowPresetOptions(false);
                     }}
                     className="w-full text-left px-2 py-2 text-sm rounded transition-colors flex items-center justify-between"

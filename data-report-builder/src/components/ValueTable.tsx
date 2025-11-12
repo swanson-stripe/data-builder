@@ -7,6 +7,7 @@ import {
   createBenchmarkSeries,
 } from '@/data/mock';
 import { computeMetric } from '@/lib/metrics';
+import { computeFormula } from '@/lib/formulaMetrics';
 import { currency, number, percentageChange, shortDate } from '@/lib/format';
 import { getBucketRange } from '@/lib/time';
 import { useWarehouseStore } from '@/lib/useWarehouse';
@@ -71,19 +72,40 @@ export function ValueTable() {
     version,
   ]);
 
-  // Compute metric result (includes series)
+  // Always use formula system now (blocks always exist, single block = simple metric)
+  const useFormula = true;
+
+  // Compute metric result (includes series) - supports both legacy and multi-block
   const metricResult = useMemo(() => {
-    return computeMetric({
-      def: state.metric,
-      start: state.start,
-      end: state.end,
-      granularity: state.granularity,
-      store: warehouse,
-      include: includeSet,
-      schema,
-      objects: state.selectedObjects,
-    });
+    if (useFormula) {
+      // Use multi-block formula system
+      const { result } = computeFormula({
+        formula: state.metricFormula,
+        start: state.start,
+        end: state.end,
+        granularity: state.granularity,
+        store: warehouse,
+        schema,
+        selectedObjects: state.selectedObjects,
+        selectedFields: state.selectedFields,
+      });
+      return result;
+    } else {
+      // Use legacy single-metric system
+      return computeMetric({
+        def: state.metric,
+        start: state.start,
+        end: state.end,
+        granularity: state.granularity,
+        store: warehouse,
+        include: includeSet,
+        schema,
+        objects: state.selectedObjects,
+      });
+    }
   }, [
+    useFormula,
+    state.metricFormula,
     state.metric.name,
     state.metric.op,
     state.metric.type,
@@ -94,6 +116,8 @@ export function ValueTable() {
     state.granularity,
     includeSet,
     state.selectedObjects,
+    state.selectedFields,
+    version, // Re-compute when warehouse data changes
   ]);
 
   // Handle bucket selection
@@ -306,7 +330,11 @@ export function ValueTable() {
   };
 
   // Show placeholder if metric not configured
-  if (metricResult.series === null || !state.metric.source) {
+  const hasConfig = useFormula 
+    ? (state.metricFormula.blocks.length > 0 && state.metricFormula.blocks.some(b => b.source))
+    : state.metric.source;
+    
+  if (metricResult.series === null || !hasConfig) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <div className="text-gray-400 dark:text-gray-500 text-center">

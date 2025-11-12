@@ -203,7 +203,8 @@ export const PRESET_OPTIONS = Object.values(PRESET_CONFIGS).map(p => ({
 
 export function applyPreset(
   key: PresetKey,
-  dispatch: (a: AppAction) => void
+  dispatch: (a: AppAction) => void,
+  currentState?: any // Optional: pass current state to check existing blocks
 ) {
   const p = PRESET_CONFIGS[key];
   if (!p) return;
@@ -217,6 +218,25 @@ export function applyPreset(
 
   // Clear existing filters before applying preset filters
   dispatch({ type: 'CLEAR_FILTERS' });
+  
+  // Clear any formula calculation (presets are single-block only)
+  dispatch({ type: 'SET_CALCULATION', payload: undefined });
+  
+  // Clear exposeBlocks (presets don't expose intermediate blocks)
+  if (currentState?.metricFormula?.exposeBlocks?.length > 0) {
+    currentState.metricFormula.exposeBlocks.forEach((blockId: string) => {
+      dispatch({ type: 'TOGGLE_EXPOSE_BLOCK', payload: blockId });
+    });
+  }
+  
+  // Remove any extra blocks beyond block_1 (presets are single-block only)
+  if (currentState?.metricFormula?.blocks) {
+    currentState.metricFormula.blocks.forEach((block: any) => {
+      if (block.id !== 'block_1') {
+        dispatch({ type: 'REMOVE_METRIC_BLOCK', payload: block.id });
+      }
+    });
+  }
 
   // Apply optional time range
   if (p.range) {
@@ -249,9 +269,29 @@ export function applyPreset(
     dispatch({ type: 'SET_METRIC_OP', payload: p.metric.op });
     dispatch({ type: 'SET_METRIC_TYPE', payload: p.metric.type });
     dispatch({ type: 'SET_METRIC_SOURCE', payload: p.metric.source });
+    
+    // Update Block 1 in the formula system to match metric and include preset filters
+    // This maps the block name, source, operation, aggregation, and filters from the preset
+    dispatch({ 
+      type: 'UPDATE_METRIC_BLOCK', 
+      payload: { 
+        blockId: 'block_1', 
+        updates: {
+          name: p.metric.name, // Set block name to match metric name
+          source: p.metric.source,
+          op: p.metric.op,
+          type: p.metric.type,
+          filters: p.filters || [], // Apply preset filters to the block (not global filters)
+        }
+      }
+    });
+    
+    // Update formula name to match metric name
+    dispatch({ type: 'SET_METRIC_FORMULA_NAME', payload: p.metric.name });
   }
 
-  // Apply preset filters
+  // Apply preset filters to global data list (for display purposes)
+  // Note: Block filters are independent and already set above
   if (p.filters) {
     for (const filter of p.filters) {
       dispatch({ type: 'ADD_FILTER', payload: filter });

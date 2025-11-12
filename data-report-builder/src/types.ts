@@ -64,6 +64,9 @@ export type MetricType =
 
 export type ValueKind = 'number' | 'currency' | 'string';
 
+// Unit types for metric calculations
+export type UnitType = 'currency' | 'count' | 'date' | 'rate';
+
 export type MetricDef = {
   name: string;
   source?: {
@@ -74,11 +77,49 @@ export type MetricDef = {
   type: MetricType; // replaces "scope"
 };
 
+/**
+ * Multi-block metric calculation types
+ */
+export type MetricBlock = {
+  id: string; // unique identifier like "block_1"
+  name: string; // user-facing name
+  source?: { object: string; field: string };
+  op: MetricOp;
+  type: MetricType;
+  filters: FilterCondition[]; // independent from data list filters
+  unitType?: UnitType; // Inferred from source field or manually set
+};
+
+export type CalculationOperator = 'add' | 'subtract' | 'multiply' | 'divide';
+
+export type CalculationStep = {
+  operator: CalculationOperator;
+  leftOperand: string; // block ID
+  rightOperand: string; // block ID
+  resultUnitType?: UnitType; // User-selected unit type for the result
+};
+
+export type MetricFormula = {
+  name: string;
+  blocks: MetricBlock[];
+  calculation?: CalculationStep; // if undefined, uses first block (backward compatible)
+  exposeBlocks?: string[]; // IDs of blocks to show as intermediate values
+};
+
 export type MetricResult = {
   value: number | null;
   series: SeriesPoint[] | null;
   note?: string;
   kind?: ValueKind;
+  unitType?: UnitType; // Unit type for display and validation
+};
+
+export type BlockResult = {
+  blockId: string;
+  blockName: string;
+  value: number | null;
+  series: SeriesPoint[] | null;
+  unitType?: UnitType; // Unit type for this block's result
 };
 
 /**

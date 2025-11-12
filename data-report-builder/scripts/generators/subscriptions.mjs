@@ -117,6 +117,7 @@ export function generateSubscriptions(customers, prices, count = 1000) {
     subscriptions.push({
       id: stripeId('sub'),
       customer_id: customer.id,
+      price_id: price.id, // Link to price for MRR calculations
       status,
       created: toISODate(createdDate),
       current_period_start: toISODate(currentPeriodStart),

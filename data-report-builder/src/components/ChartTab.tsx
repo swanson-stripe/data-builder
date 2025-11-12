@@ -21,7 +21,22 @@ export function ChartTab() {
 
   // Filter timestamp-like fields for X axis
   const xAxisFields = useMemo(() => {
-    return state.selectedFields.filter(({ object, field }) => {
+    // Collect fields from both selectedFields and metric blocks
+    const allFields = [...state.selectedFields];
+    
+    // Add fields from metric blocks that aren't already in selectedFields
+    state.metricFormula.blocks.forEach(block => {
+      if (block.source) {
+        const exists = allFields.some(f => 
+          f.object === block.source!.object && f.field === block.source!.field
+        );
+        if (!exists) {
+          allFields.push({ object: block.source.object, field: block.source.field });
+        }
+      }
+    });
+    
+    return allFields.filter(({ object, field }) => {
       // Find field in schema
       const schemaObj = schema.objects.find(o => o.name === object);
       if (!schemaObj) return false;
@@ -33,11 +48,26 @@ export function ChartTab() {
              field.toLowerCase().includes('created') ||
              field.toLowerCase().includes('date');
     });
-  }, [state.selectedFields]);
+  }, [state.selectedFields, state.metricFormula.blocks]);
 
   // Filter numeric fields for Y axis
   const yAxisFields = useMemo(() => {
-    return state.selectedFields.filter(({ object, field }) => {
+    // Collect fields from both selectedFields and metric blocks
+    const allFields = [...state.selectedFields];
+    
+    // Add fields from metric blocks that aren't already in selectedFields
+    state.metricFormula.blocks.forEach(block => {
+      if (block.source) {
+        const exists = allFields.some(f => 
+          f.object === block.source!.object && f.field === block.source!.field
+        );
+        if (!exists) {
+          allFields.push({ object: block.source.object, field: block.source.field });
+        }
+      }
+    });
+    
+    return allFields.filter(({ object, field }) => {
       const schemaObj = schema.objects.find(o => o.name === object);
       if (!schemaObj) return false;
       const schemaField = schemaObj.fields.find(f => f.name === field);
@@ -45,7 +75,7 @@ export function ChartTab() {
 
       return schemaField.type === 'number';
     });
-  }, [state.selectedFields]);
+  }, [state.selectedFields, state.metricFormula.blocks]);
 
   // Current X source as qualified string
   const currentXSourceValue = state.chart.xSource

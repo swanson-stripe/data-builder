@@ -1,27 +1,42 @@
 {
-  "version": 1762303687437,
-  "counts": {
-    "customers": 1000,
-    "payment_methods": 1477,
-    "products": 15,
-    "prices": 28,
-    "payments": 10000,
-    "refunds": 254,
-    "subscriptions": 783,
-    "invoices": 2686,
-    "charges": 1000,
-    "payouts": 69
-  },
+  "generated": "2025-11-12T01:06:39.642Z",
+  "seed": 42,
   "entities": [
     "customers",
-    "payment_methods",
     "products",
     "prices",
-    "payments",
-    "refunds",
+    "payment_methods",
     "subscriptions",
+    "subscription_item",
+    "subscription_schedule",
     "invoices",
+    "invoice_item",
+    "credit_notes",
+    "payment_intent",
     "charges",
-    "payouts"
-  ]
+    "refunds",
+    "disputes",
+    "quotes",
+    "customer_balance_transactions",
+    "customer_tax_ids"
+  ],
+  "counts": {
+    "customers": 1000,
+    "products": 15,
+    "prices": 29,
+    "payment_methods": 982,
+    "subscriptions": 800,
+    "subscription_item": 985,
+    "subscription_schedule": 75,
+    "invoices": 2784,
+    "invoice_item": 3725,
+    "credit_notes": 66,
+    "payment_intent": 2437,
+    "charges": 2323,
+    "refunds": 110,
+    "disputes": 22,
+    "quotes": 100,
+    "customer_balance_transactions": 546,
+    "customer_tax_ids": 312
+  }
 }

@@ -1,0 +1,2498 @@
+[
+  {
+    "id": "txi_oBI8nUypvcl1y8n7LfEKJUKZ",
+    "customer_id": "cus_mgfYoTDNvzucIh1EaWXUm0Vq",
+    "type": "eu_vat",
+    "value": "IT192386525",
+    "created": "2025-10-11T00:42:43.649Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_FDTH2R87PFmshZ5Mo8Ok4mES",
+    "customer_id": "cus_oCD2nCvREa4D1AWzoDsxWnXU",
+    "type": "ca_bn",
+    "value": "450649186",
+    "created": "2025-10-16T11:07:29.933Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_bjXe7CfJY1k3tVxuYqnbu2lT",
+    "customer_id": "cus_mvG2NC5SV3hNKbcmuCmsK2fI",
+    "type": "ca_bn",
+    "value": "559175758",
+    "created": "2025-03-10T02:14:28.761Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_h8jjSD1pP37RMsts4qEx8Ged",
+    "customer_id": "cus_SpkFOLNrO7x0kmoHorene4BF",
+    "type": "eu_vat",
+    "value": "NL102097716",
+    "created": "2025-08-04T20:54:10.901Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_B01TZilPweVMh92sdJtQXC2P",
+    "customer_id": "cus_5rKlFNVeo9ZVxQwC5K7PMH2i",
+    "type": "ca_bn",
+    "value": "067014556",
+    "created": "2025-01-25T09:34:12.972Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_vrydMSuPK3LBYBx2TVyGX1KM",
+    "customer_id": "cus_8RVuBLavo9m418XyXqjvr6Dd",
+    "type": "us_ein",
+    "value": "50-7937119",
+    "created": "2025-09-22T21:47:11.981Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_o6X7nk7iOWB9hd8KNVwLxzQN",
+    "customer_id": "cus_izGSDL9s0fJZ6oNcyJCbmMy0",
+    "type": "eu_vat",
+    "value": "IT588219419",
+    "created": "2025-09-03T14:33:14.943Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_riVVp88u7sGVLjv5iLBO4kxU",
+    "customer_id": "cus_SSRerZL14sUxu6EOnMXcwhNz",
+    "type": "gb_vat",
+    "value": "GB217621041",
+    "created": "2025-02-25T04:08:24.632Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_w4gkXbQIylFgaIcJrHISydw5",
+    "customer_id": "cus_DUBSI7T4x80qiuz27ylJEQGq",
+    "type": "au_abn",
+    "value": "44622273490",
+    "created": "2025-04-26T23:10:59.347Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_ZohPldfUnNsxcJayFPXq3njY",
+    "customer_id": "cus_c3lgXylz8rCuoZSCzCco2txe",
+    "type": "ca_bn",
+    "value": "211997847",
+    "created": "2025-04-11T08:25:26.187Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_IRYLRyTJpw42BOscrhZLrj4b",
+    "customer_id": "cus_Thm36vgP0nk17pupwA0sXwGj",
+    "type": "ca_bn",
+    "value": "732475011",
+    "created": "2025-08-14T14:19:57.617Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_Fr3SJuvglIZJ7Ht0qCAtIahW",
+    "customer_id": "cus_LhlTWTqMtucAbkRc44WvpOPk",
+    "type": "eu_vat",
+    "value": "DE509568079",
+    "created": "2025-06-15T09:06:26.501Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_3bsxFbZI6BDlX1vYexnd5HWq",
+    "customer_id": "cus_clvCUvv32yrQ91re3I6BhanN",
+    "type": "eu_vat",
+    "value": "IT665157787",
+    "created": "2025-09-08T07:06:03.028Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_Hv9UnIxOpEKJlrgh2KWfqsiZ",
+    "customer_id": "cus_VOzETok0PN6zs7Yd4AJ2Ex6a",
+    "type": "eu_vat",
+    "value": "FR176778699",
+    "created": "2025-08-14T16:24:17.620Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_0gWaYXyBGphaWxsobfCPaJdv",
+    "customer_id": "cus_AoYxhHgUny3qPNdeOV5rkR5d",
+    "type": "ca_bn",
+    "value": "418248993",
+    "created": "2025-05-05T13:56:45.718Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_jgQtic9946M5y0EqXq1BI79u",
+    "customer_id": "cus_jpdYEViMLGXo8FJzcvjqEKep",
+    "type": "ca_bn",
+    "value": "814455748",
+    "created": "2025-03-23T12:41:29.755Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_9S7OqgEP5AEZWfrBYQ9XPxVv",
+    "customer_id": "cus_lo3AS9BFpHpv0GF2mYqvUIAN",
+    "type": "us_ein",
+    "value": "15-6687165",
+    "created": "2023-10-15T08:00:24.087Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_H29AQc8aP4gVTNgDaGCzzJdR",
+    "customer_id": "cus_On5lYDpaZOh437AVuQrHJamD",
+    "type": "eu_vat",
+    "value": "DE116114585",
+    "created": "2025-04-13T02:20:08.105Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_2BzhngVhJTzYYiRpXrItVHUa",
+    "customer_id": "cus_9HDMWG9fQc4HoVE5Wgko3u7o",
+    "type": "eu_vat",
+    "value": "DE751207521",
+    "created": "2025-05-14T16:57:06.521Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_yfcKNw8h6NHSuCd3Hc1K4Gnn",
+    "customer_id": "cus_CyKhz5pKGZhukrRGScS3Tkjv",
+    "type": "eu_vat",
+    "value": "FR717833050",
+    "created": "2025-04-03T19:43:21.588Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_4anktzKnOV791qkIZuWGBXXP",
+    "customer_id": "cus_qbbLgLcjsWVcm9vsTVnuTO0j",
+    "type": "eu_vat",
+    "value": "DE791315293",
+    "created": "2025-01-25T21:29:14.303Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_Os9QK4JlTChgCXI6ANftu27Z",
+    "customer_id": "cus_wVtu7NfTUWwFM8B2u9bmqC4v",
+    "type": "gb_vat",
+    "value": "GB232514380",
+    "created": "2024-06-30T20:08:45.007Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_4fgB4Fe6HGbRg5NNwayhdmJ7",
+    "customer_id": "cus_VIKdrCL6XTgPwsjAJpDHI3Rs",
+    "type": "ca_bn",
+    "value": "145294980",
+    "created": "2025-01-25T07:35:15.077Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_7PzciXshBvVJSWQbxg3KXcaI",
+    "customer_id": "cus_bF0N4bnumjXD1qSi5LBz38Cc",
+    "type": "jp_cn",
+    "value": "6264224971199",
+    "created": "2024-10-09T00:04:17.719Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_PdC6Y1125hd8KHSAkW6Tmcah",
+    "customer_id": "cus_ECkO2RvouF0Srl8rupGqXBO6",
+    "type": "us_ein",
+    "value": "39-4297961",
+    "created": "2025-07-23T07:23:20.696Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_pB9w9jTwZLc3dyTrwpi4T0jR",
+    "customer_id": "cus_K0aAIUHFo07xFpJw4bQIT7Zc",
+    "type": "eu_vat",
+    "value": "FR733654836",
+    "created": "2025-02-18T18:51:26.055Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_5JGMZVP7c8eMHgHoGusIrNL3",
+    "customer_id": "cus_7vAmtmDTan8CJVhW3B3TwFP9",
+    "type": "eu_vat",
+    "value": "ES046534600",
+    "created": "2025-06-05T07:31:17.972Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_bxUL96C5RUE9qcLzDG9qtARQ",
+    "customer_id": "cus_sNPEegj7gcsU6IG5VzmKfG2Q",
+    "type": "gb_vat",
+    "value": "GB227095539",
+    "created": "2025-09-07T04:51:22.460Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_VsjsJnIlDhdTVOFwEIz9rLJB",
+    "customer_id": "cus_YYg2Hr6H1R87aXGNoketyDfW",
+    "type": "eu_vat",
+    "value": "DE380164335",
+    "created": "2025-04-23T01:12:11.030Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_rFJSZcKaUVBZFeBfxl0UnxU7",
+    "customer_id": "cus_9aL0ynvyjiJSb6Tlym7AwcsN",
+    "type": "gb_vat",
+    "value": "GB166941477",
+    "created": "2025-11-11T15:51:05.411Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_RYCjlaDc4qRI7DfuZrBJy3AL",
+    "customer_id": "cus_F7HrW8DnXkXTgNZfrwi0dhra",
+    "type": "eu_vat",
+    "value": "NL615636740",
+    "created": "2025-09-28T10:52:00.632Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_sa8bHbNKpXcPr9bjG7X3uPV1",
+    "customer_id": "cus_vQ1BhRhGFd2phONsBBPqhgxr",
+    "type": "us_ein",
+    "value": "17-3986303",
+    "created": "2021-01-22T00:25:17.734Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_fCQTpPrZGqzqVmBxYIXEg0bD",
+    "customer_id": "cus_eLl8RjEztuJ5FT38Irp8v7tL",
+    "type": "us_ein",
+    "value": "23-9268929",
+    "created": "2025-02-03T08:57:44.191Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_p9hHWc5z1hnYKCFUm8heFXfj",
+    "customer_id": "cus_z4WmUMKBCDCyZJMSd5tvPrzw",
+    "type": "au_abn",
+    "value": "36228217001",
+    "created": "2025-08-19T05:08:30.359Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_tTmudQQWXpRU7Ja2G53J7Tsf",
+    "customer_id": "cus_Ikhx14pWI5QJBOpdvyxzWTSN",
+    "type": "gb_vat",
+    "value": "GB576563580",
+    "created": "2025-05-31T02:50:39.752Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_j7xgEV9esnKoZEshsHpQ6qGm",
+    "customer_id": "cus_MCjx5GIXg1xHNcgvkRtNzLkP",
+    "type": "us_ein",
+    "value": "44-5445453",
+    "created": "2025-06-14T12:51:45.530Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_k3QyzpGbT3ev83QQwW9arXHp",
+    "customer_id": "cus_hWPH5pybrBkMQkP6P95DtUmh",
+    "type": "gb_vat",
+    "value": "GB214326055",
+    "created": "2025-06-17T01:29:59.160Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_3m6QPY7bRDuEz2fmPE2uTnHv",
+    "customer_id": "cus_f0e8BawAi221JjNqsvIg7ykr",
+    "type": "eu_vat",
+    "value": "FR620134073",
+    "created": "2025-09-11T19:44:26.429Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_3diOrOIHzsb5SU9AIcq0J0SN",
+    "customer_id": "cus_ZGWPQznVqxrzt2SrA80fH6Ud",
+    "type": "eu_vat",
+    "value": "IT047384164",
+    "created": "2025-07-14T19:37:56.858Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_zDijw6Y5F3vRJjWCPlU2W8ss",
+    "customer_id": "cus_PjWbFFfkPLkx3cu5QIWGWyBY",
+    "type": "us_ein",
+    "value": "27-5283067",
+    "created": "2025-05-27T13:27:11.194Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_1GVbB6XbqmWDiFYGHB3Eb5rh",
+    "customer_id": "cus_o0gBN86VKALqLnfJqYlVVeNq",
+    "type": "eu_vat",
+    "value": "IT931137337",
+    "created": "2025-10-06T08:57:26.603Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_ESZNEiVjypdwsNqUctcFK7fZ",
+    "customer_id": "cus_WwPm6F0tbCYsOvuVTMixdruP",
+    "type": "eu_vat",
+    "value": "NL639160368",
+    "created": "2020-11-14T05:31:15.017Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_P8gSWWcbQzxQ5p1gcargGTdK",
+    "customer_id": "cus_I6fiyoF37uki4TG74YGpHKMt",
+    "type": "eu_vat",
+    "value": "ES957393173",
+    "created": "2025-08-27T22:14:02.443Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_FNjWFADvpnb4RjxQsa0NQytv",
+    "customer_id": "cus_E108fqu8FAi04o9nCxelCRKy",
+    "type": "eu_vat",
+    "value": "NL571896638",
+    "created": "2025-10-31T01:24:29.525Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_yr4QLyzyVL5yFveXgeHYFAnf",
+    "customer_id": "cus_GljGdqb0YqY8AcMM6UcCZSXl",
+    "type": "gb_vat",
+    "value": "GB760543041",
+    "created": "2025-05-15T15:51:31.948Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_14F8qrorWd37Edktk76kDgZS",
+    "customer_id": "cus_tkbfPCUe70vZHjSM0Oi9etqh",
+    "type": "ca_bn",
+    "value": "587505206",
+    "created": "2025-09-20T16:14:15.865Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_2oheiggMhuDhcl7LuTl0C64g",
+    "customer_id": "cus_GTnMI3A8XO67Al2xo6NUKOdg",
+    "type": "eu_vat",
+    "value": "DE480468793",
+    "created": "2025-09-11T11:41:44.204Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_cViWLoM88xdfjINZyxQ2dXIo",
+    "customer_id": "cus_4XqCFxcKNyu75ljXMEwaYn6u",
+    "type": "eu_vat",
+    "value": "FR797021214",
+    "created": "2021-04-28T05:44:03.773Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_EuPAguzIBAk2ZkujUyUuxppk",
+    "customer_id": "cus_X9bzDJbXDQxpYARXFy02cbfi",
+    "type": "jp_cn",
+    "value": "5187155839824",
+    "created": "2025-08-19T05:59:53.056Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_OnXumEbd37SnzFmzstuLsVCj",
+    "customer_id": "cus_IDoUYadw5rAwkxXcE24y61az",
+    "type": "us_ein",
+    "value": "75-4421706",
+    "created": "2025-04-03T11:12:52.631Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_tkSOexsKIU6JjadiWQH4QcXi",
+    "customer_id": "cus_sMjDSo4vlFWusE6fUF0cGLQi",
+    "type": "us_ein",
+    "value": "61-6932568",
+    "created": "2025-03-30T06:22:08.648Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_kXM1pbTVojNYz4Z8YdeTge0w",
+    "customer_id": "cus_KSXkNdxblV9DA7kybNYdbsKh",
+    "type": "us_ein",
+    "value": "42-4265252",
+    "created": "2025-09-19T21:43:43.014Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_Wb8eUN23VYB7AKKnrT1pNhA5",
+    "customer_id": "cus_73S491CAZSpni9887ejXzZns",
+    "type": "eu_vat",
+    "value": "ES277529002",
+    "created": "2025-09-01T22:18:29.992Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_xL5RHlT7l6djyIjt4d4o1ZIs",
+    "customer_id": "cus_f5gLQMDvHoQFHxSfnMuTlmTs",
+    "type": "ca_bn",
+    "value": "194866201",
+    "created": "2025-02-21T23:18:30.688Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_LI9Br3MAcCjXSE9RrvXY6gt8",
+    "customer_id": "cus_AITPBovLS6nMqkpBZuca2yxc",
+    "type": "ca_bn",
+    "value": "067833887",
+    "created": "2020-09-30T09:18:31.259Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_SNjbVzak2b0hf3KkeMz8A1RO",
+    "customer_id": "cus_0dPFT3Bz2vBbgDtRlgZU1L61",
+    "type": "ca_bn",
+    "value": "837323858",
+    "created": "2025-03-16T12:42:14.009Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_TlX87Dm9hIBKY0aAOldBMCsO",
+    "customer_id": "cus_KnupEmXWQVrxKHTIZlPHGkMT",
+    "type": "jp_cn",
+    "value": "6470620519282",
+    "created": "2025-04-01T06:18:32.684Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_k319xoNjn8QChoGGUVqb3a0i",
+    "customer_id": "cus_PKsqThfWOOc81eLeJfoYfni6",
+    "type": "au_abn",
+    "value": "40861906375",
+    "created": "2025-03-12T00:48:41.441Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_8HM3UT7cdjZZ9o6UoFkNxfyp",
+    "customer_id": "cus_5ZAfy4NVSlk2ExsUa04d2vjb",
+    "type": "eu_vat",
+    "value": "IT227326337",
+    "created": "2025-09-14T02:20:14.896Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_s7MFkevG1222Zt52Otjqx0MB",
+    "customer_id": "cus_4c53gzXSSag4M4yffZKPzSEW",
+    "type": "eu_vat",
+    "value": "DE327258730",
+    "created": "2025-07-06T20:25:53.992Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_gAPnGh0oMXDc5S6zCOgm69m6",
+    "customer_id": "cus_PEhQuuYWm8k11oWSvz0d1K9R",
+    "type": "eu_vat",
+    "value": "IT828210179",
+    "created": "2025-10-17T06:48:57.407Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_i9CHI5iLf43rJpYuKsEuMlwD",
+    "customer_id": "cus_UQPKDGNFknT1HXHZG2Phrjgq",
+    "type": "eu_vat",
+    "value": "NL403232405",
+    "created": "2025-10-18T17:23:09.608Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_zv1Rfd6JukSK2irPSG3rT2d2",
+    "customer_id": "cus_urkXPFaJJqVag3NCja2asfgS",
+    "type": "eu_vat",
+    "value": "NL054708853",
+    "created": "2025-07-14T23:50:51.667Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_TUSTt3Zc4ZBrkCwJ0GreFTG2",
+    "customer_id": "cus_Nuz9kpOLdCfZXyHNIHXADQFJ",
+    "type": "eu_vat",
+    "value": "FR058456914",
+    "created": "2025-06-15T22:36:37.190Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_tb6vdZksiZwQFdYmT46hWDzD",
+    "customer_id": "cus_BtVegV4BGvHaQ8o4xFWJxVty",
+    "type": "jp_cn",
+    "value": "7536567636785",
+    "created": "2025-05-01T17:01:54.772Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_ZixmcJVuk44Yx4MaADNXy9D3",
+    "customer_id": "cus_Jvm6JjgEymDgNe9MHb7PMkE7",
+    "type": "us_ein",
+    "value": "09-5037949",
+    "created": "2025-05-07T09:49:44.500Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_tmBZZgcQRB34EU4EtjO2AXj0",
+    "customer_id": "cus_YJ0S68JRxhllkfBTjbPJVa8x",
+    "type": "jp_rn",
+    "value": "6040668493499",
+    "created": "2025-05-26T16:30:48.611Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_3vtrXZCrqZRX9WZbLWnKCugT",
+    "customer_id": "cus_CzojpzqgLw4mSKkW4Xf0qmxN",
+    "type": "eu_vat",
+    "value": "FR047741533",
+    "created": "2025-05-18T14:57:43.781Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_rPl6SyaPpDZ81Hkhs5Agol3i",
+    "customer_id": "cus_UhnEkS62ch74KaUmFdezyLKF",
+    "type": "eu_vat",
+    "value": "IT334341257",
+    "created": "2025-07-24T00:30:37.669Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_tW2AwFjsXTFLCrxx53MN2ROs",
+    "customer_id": "cus_IDWcZPAFE3dXxnLw0JJaXds7",
+    "type": "eu_vat",
+    "value": "DE576561318",
+    "created": "2025-10-03T13:27:26.258Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_rTy8wxRUElPKt9EwNO59ppPs",
+    "customer_id": "cus_F47UDQTr3b4bp7arlsqDW66Q",
+    "type": "eu_vat",
+    "value": "DE523487889",
+    "created": "2025-11-11T03:28:39.801Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_2gr4VTkdwP6imcfFQ56jPKYh",
+    "customer_id": "cus_NMbEcAGZ154oOQJTk53QJHln",
+    "type": "eu_vat",
+    "value": "DE441279428",
+    "created": "2025-08-23T09:37:04.324Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_BNM8tutdgIDQDz3j0tSmhB5k",
+    "customer_id": "cus_Ujd6835qjHRMw6Im5QkdSTll",
+    "type": "au_abn",
+    "value": "87509679046",
+    "created": "2025-01-27T23:27:13.807Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_0fhmqEy5gEjkcnTzreBi1eGW",
+    "customer_id": "cus_7ZLSpvwcGTa5JgCHjOyRLR1f",
+    "type": "eu_vat",
+    "value": "DE537436496",
+    "created": "2025-07-11T02:30:03.488Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_l6d6KQQHNNyOrWiWhCMCRCen",
+    "customer_id": "cus_KXe8UFrzKLVqiDpAq9tGNuap",
+    "type": "eu_vat",
+    "value": "FR381231180",
+    "created": "2025-05-13T16:28:10.229Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_cN5Q3aAiXDnnrF8qbMzft7LM",
+    "customer_id": "cus_6IZJ1uCGIydWHejVTp23hDAD",
+    "type": "eu_vat",
+    "value": "IT298488931",
+    "created": "2025-04-08T10:11:31.174Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_YlFDL3WJjYGqe78MBri9eAwQ",
+    "customer_id": "cus_rthnBzDljB8f24f1fE3rUNiV",
+    "type": "au_abn",
+    "value": "51280888594",
+    "created": "2025-08-29T23:04:46.811Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_HG9fbUvhZG61EIMoQg0bhL3I",
+    "customer_id": "cus_qNhCpevNPQkNdJW0rEHaYCa1",
+    "type": "eu_vat",
+    "value": "FR115803002",
+    "created": "2025-02-18T01:02:14.854Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_Hy5L3kruP0dmiAgBYBlZEqrv",
+    "customer_id": "cus_aM07xf5mhvY7nVSoH5IYxubD",
+    "type": "au_abn",
+    "value": "36267426527",
+    "created": "2025-07-04T22:12:01.709Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_kf9PTVP5tv7K0vyR6LR6XuZm",
+    "customer_id": "cus_N77WOySZBBKeaLl8jmXHwYTv",
+    "type": "eu_vat",
+    "value": "FR604240700",
+    "created": "2025-02-04T14:02:09.385Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_NEOaY9uGPvRHGlzwQn9KHmss",
+    "customer_id": "cus_dypVStmkgxNjbt4HwuiU5RnS",
+    "type": "jp_rn",
+    "value": "8459726864351",
+    "created": "2025-10-07T07:15:39.371Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_evKCXh4MRba4Vv15GYtyOa3v",
+    "customer_id": "cus_0GLdu5KQ6OLlG0VyCFyRBUAa",
+    "type": "ca_bn",
+    "value": "749473777",
+    "created": "2025-10-09T13:45:03.063Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_aSXAEAhcWmKU8tnfqNLUougB",
+    "customer_id": "cus_sIqNFpvXFUbtUkX6Tr4Sf18E",
+    "type": "au_abn",
+    "value": "75439745689",
+    "created": "2025-04-11T17:38:54.076Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_mDNPsiJmzXoGBE9EgFtzdCV8",
+    "customer_id": "cus_fzQVuD0fh5hjYFqZ9tE3I689",
+    "type": "eu_vat",
+    "value": "DE387376730",
+    "created": "2025-09-30T01:15:16.264Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_vkETFobWHc5PpexqsamEAgRT",
+    "customer_id": "cus_di6DbfTkzo4mpTknMLNXNpOv",
+    "type": "ca_bn",
+    "value": "230076080",
+    "created": "2022-12-29T06:38:01.391Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_l1qvyzCXbsCXMEP4GC3N2eeV",
+    "customer_id": "cus_0HeRswKMDWYWPHF6g08r9TN4",
+    "type": "eu_vat",
+    "value": "DE339835966",
+    "created": "2025-03-14T22:03:50.139Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_DQrjclZ0n0pZ6LDRVPfES4SV",
+    "customer_id": "cus_LJlZQgcjsQMQgAh6G8FEO8MZ",
+    "type": "gb_vat",
+    "value": "GB628782459",
+    "created": "2025-02-26T00:03:39.741Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_uh2xS6iDTp7ZCXjLhglp6xnE",
+    "customer_id": "cus_UCRaTB1DW4AU0DtlC3K0jvnj",
+    "type": "eu_vat",
+    "value": "FR697249823",
+    "created": "2025-06-18T06:08:51.717Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_LjkwlJKec4dsqhAVHLyuCTao",
+    "customer_id": "cus_pA3ZNRHb1RogyqEtHQckrXmn",
+    "type": "ca_bn",
+    "value": "334802850",
+    "created": "2025-07-15T19:20:42.926Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_foKMZ8iui5jkkWBJ5caM9Q9D",
+    "customer_id": "cus_q4wEhNFEqXgzjK22OqlBHcbX",
+    "type": "eu_vat",
+    "value": "FR591345850",
+    "created": "2025-01-20T10:47:53.531Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_iAurzTtvlsFP3g53uGp5n3sN",
+    "customer_id": "cus_fjt1it67sJPxtnb9NsMHcvrq",
+    "type": "eu_vat",
+    "value": "FR361570713",
+    "created": "2025-10-19T04:37:36.385Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_FIyoqZHeqONMH7Ghbfet5976",
+    "customer_id": "cus_H0DxdKihtFV8o4LrHjQxW4vL",
+    "type": "gb_vat",
+    "value": "GB807764057",
+    "created": "2025-05-03T11:51:12.258Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_uMQXwixD9XLWNK9Ec1r0nBKW",
+    "customer_id": "cus_wBBJF4sFij7pZhwK0TnR29jl",
+    "type": "ca_bn",
+    "value": "468091913",
+    "created": "2025-04-22T04:06:34.862Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_tHlW76jBI5COu1vx6wFyWDaD",
+    "customer_id": "cus_wrjPs3heTEyvEKyWYZFVpRUU",
+    "type": "eu_vat",
+    "value": "FR014335678",
+    "created": "2025-01-22T03:49:24.612Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_a8JTbKisTy2v6a8Wl8BQfRfa",
+    "customer_id": "cus_J41sN9PEkvXduC820k4NZ3q1",
+    "type": "eu_vat",
+    "value": "FR232162267",
+    "created": "2023-06-20T02:08:30.387Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_zLRrwbeCT9JgPwbd6k8v38H8",
+    "customer_id": "cus_G19IIDtFLXTNHz7aONCr1kqu",
+    "type": "us_ein",
+    "value": "65-6351175",
+    "created": "2025-02-19T11:32:14.600Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_K8G0rG1bhM16DOAs9QHHrbSn",
+    "customer_id": "cus_dM6TQG4cR79xgdzn8xnJ6Crp",
+    "type": "eu_vat",
+    "value": "IT481096543",
+    "created": "2025-05-23T11:57:59.382Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_ia1v5433vQBDAh3AmzlpSHhO",
+    "customer_id": "cus_gU1kWExcPcfb9XBDXe0Bvt3s",
+    "type": "jp_cn",
+    "value": "2348465734547",
+    "created": "2025-07-27T22:10:17.109Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_oZvInqFfjrAfuDRcq6dpMEhU",
+    "customer_id": "cus_tDKkAoIafqTzX6spBOQFDWnP",
+    "type": "us_ein",
+    "value": "83-9675742",
+    "created": "2025-04-07T21:09:20.262Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_Zr2dt4agp5M5KAWwuXAcicLw",
+    "customer_id": "cus_5dLiZvw2XaxopDF9uNrajd7n",
+    "type": "eu_vat",
+    "value": "DE147155010",
+    "created": "2025-05-17T19:10:32.659Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_A5KHFXYJiAq3ZAKLzWEQ2kyW",
+    "customer_id": "cus_2sqmMKUoyTZYI81PQKhDjrnU",
+    "type": "eu_vat",
+    "value": "DE212581399",
+    "created": "2025-11-07T04:04:09.140Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_af1GnJhQlbJ8jsORQkOsJ3vE",
+    "customer_id": "cus_xcpwMEqY6cleC2biGSNbz1jN",
+    "type": "us_ein",
+    "value": "62-5030924",
+    "created": "2025-07-15T00:06:58.632Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_ibi9O4tWWKwnYhkiXCVQUP6A",
+    "customer_id": "cus_PcoDSEQtIY9VwDSppw1uiV5s",
+    "type": "ca_bn",
+    "value": "189744735",
+    "created": "2025-06-01T13:38:05.642Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_0yBRTQrzuCdBDVWB9A3bjun9",
+    "customer_id": "cus_Bwa8y3SOM02yZll8FE6sFuFO",
+    "type": "gb_vat",
+    "value": "GB292326927",
+    "created": "2025-10-16T12:32:53.448Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_eK1XKhuOi6STzxMetOVTJKmT",
+    "customer_id": "cus_g4ku35gmo7eg4k4Hnk7eeZP0",
+    "type": "eu_vat",
+    "value": "FR163650655",
+    "created": "2025-06-07T05:27:31.239Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_68HYzFltsQxh31dfrli8LHkm",
+    "customer_id": "cus_K6Uhz7gpu0T0LtwcBxae440d",
+    "type": "ca_bn",
+    "value": "776115255",
+    "created": "2025-02-01T12:10:41.413Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_XAUFUFfeNluB6lWSNsn7ytpV",
+    "customer_id": "cus_BG2iUqXdZHMoUxG5DSbJ1VYl",
+    "type": "ca_bn",
+    "value": "892029758",
+    "created": "2025-11-02T20:55:14.514Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_JnEtsAuSn2X3BwIbStWhtxfC",
+    "customer_id": "cus_7SCNnpjrBuPTteWJDK4499q9",
+    "type": "ca_bn",
+    "value": "778914133",
+    "created": "2025-09-29T22:27:47.281Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_shYSQbXIIKg8vNlLPjihme6H",
+    "customer_id": "cus_Qb64vS2dGPOM8oZZBHWr8FXH",
+    "type": "eu_vat",
+    "value": "NL757651403",
+    "created": "2025-08-11T23:50:32.132Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_dkZcAmFJOWzPbwWTGCQiEO8h",
+    "customer_id": "cus_XQOtdUIhlGt58KkvLKa6AJ9n",
+    "type": "ca_bn",
+    "value": "522277049",
+    "created": "2025-06-01T04:33:06.462Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_0iovdLsYQh7ArM9DWB3k3F1f",
+    "customer_id": "cus_8zNxpEglZDSOEQhDACahhBYX",
+    "type": "gb_vat",
+    "value": "GB650502747",
+    "created": "2025-01-23T09:01:15.513Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_9Fvf9c26zUscwHB1MOBYNbw3",
+    "customer_id": "cus_hJePtkpHw0V4W1Lxv4eMTwl3",
+    "type": "eu_vat",
+    "value": "FR912931102",
+    "created": "2025-02-12T17:55:19.184Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_uU1pSayWPRjQniIiGZxNkZWG",
+    "customer_id": "cus_t1nD5sZIxx2XVG6cbwcHx1Kb",
+    "type": "eu_vat",
+    "value": "FR198266567",
+    "created": "2025-07-11T15:43:54.028Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_CfRlecg5mB5tklxKMNt5SC0s",
+    "customer_id": "cus_bf3Im5OGsf9sSbzXDrIPASvP",
+    "type": "us_ein",
+    "value": "61-1376107",
+    "created": "2025-04-12T18:10:00.537Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_ycmEkcOGyimMZXlfUbG0Zcnd",
+    "customer_id": "cus_c5Fq7FcviVeqXjDj6CUsCBpC",
+    "type": "ca_bn",
+    "value": "994473465",
+    "created": "2025-10-22T08:03:01.116Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_9xQGkJxPTpCd2FTIpPJ0CWRv",
+    "customer_id": "cus_hVCtzK9RXzGRnZGqFw6NyN9x",
+    "type": "ca_bn",
+    "value": "223441073",
+    "created": "2025-06-18T23:51:19.506Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_RGk1JffAujHfpWmNKhVK4IoB",
+    "customer_id": "cus_iRGS6seIYO2j124hiopL89Cz",
+    "type": "ca_bn",
+    "value": "729820023",
+    "created": "2025-01-26T01:07:29.850Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_ejMhPUQeHV58gTLS0oUNme5I",
+    "customer_id": "cus_yQFSTp8DS4y71GGBR56RvgJT",
+    "type": "ca_bn",
+    "value": "066993189",
+    "created": "2025-07-11T20:45:03.423Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_FIiXNXdlVn2dhdcp74rlof6r",
+    "customer_id": "cus_6G8ivGVAFjGrRotqOXktHTu6",
+    "type": "gb_vat",
+    "value": "GB753486050",
+    "created": "2023-06-19T15:38:03.060Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_mn7byojjh1Eji1CGRIhPPBbo",
+    "customer_id": "cus_OUeA47EuLq7S5bhZpvLDQuYN",
+    "type": "ca_bn",
+    "value": "274448393",
+    "created": "2025-10-03T01:15:52.624Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_AEY4SErIyX20c2IOE8nesrhh",
+    "customer_id": "cus_gfO90kuHMFCFgnC4ipxuItUn",
+    "type": "jp_rn",
+    "value": "7006429340895",
+    "created": "2025-04-04T16:09:05.832Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_K185FeEyq6d7doukwVnO1MM3",
+    "customer_id": "cus_87NI8dKhYxbRjhkLan1PlfzH",
+    "type": "eu_vat",
+    "value": "FR153542364",
+    "created": "2025-01-25T21:16:58.435Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_y9AjRKacVyi3M4l6jdtbmi4Z",
+    "customer_id": "cus_z6cer2uV1DPj82DyePJhKfF7",
+    "type": "ca_bn",
+    "value": "079969173",
+    "created": "2025-02-18T17:33:18.454Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_UbPNO53vWusyVWzJBJluHKVq",
+    "customer_id": "cus_Uvg69wj2sKTAImuJJqxVDDM7",
+    "type": "eu_vat",
+    "value": "DE066124538",
+    "created": "2025-10-17T17:07:35.977Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_Zef8nJslpFVpWaTkFoMEpAe7",
+    "customer_id": "cus_BJgHpPNdbIyyKReyPSh6eWsp",
+    "type": "ca_bn",
+    "value": "982995199",
+    "created": "2025-05-05T08:24:36.210Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_UAvKLV3IXfOdJBKgGTP42bsc",
+    "customer_id": "cus_gDmo1A7dIjazdgCJJtsMb9Fp",
+    "type": "eu_vat",
+    "value": "ES689877642",
+    "created": "2025-08-26T03:39:47.872Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_GjnQyMRKudZlHQ1rfrh6Blpw",
+    "customer_id": "cus_6b6fgfdJOkiQCiIlAZiVjxsM",
+    "type": "ca_bn",
+    "value": "184698352",
+    "created": "2025-08-24T06:13:27.984Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_HOF89gjpMggYdqRT331izpO5",
+    "customer_id": "cus_LxTuznCjnX662jo5yAKYC65M",
+    "type": "gb_vat",
+    "value": "GB793602735",
+    "created": "2025-06-24T16:56:47.750Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_kc8VO9UDtwxlvec3UQgDLhko",
+    "customer_id": "cus_DAULxVAQQU4AtusPjscfE7bw",
+    "type": "au_abn",
+    "value": "16176864537",
+    "created": "2025-05-04T16:28:22.843Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_qKtfnDICNsQ4iqYyVCN1CU8U",
+    "customer_id": "cus_V0Ws6FTrGYeOiqhr0irDDAiW",
+    "type": "jp_rn",
+    "value": "2077019870206",
+    "created": "2025-07-27T04:16:21.149Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_n4sW75AtseF1qqvWcSlwgxBq",
+    "customer_id": "cus_zPupCEKFKFt8M1ZPFXB3yhms",
+    "type": "ca_bn",
+    "value": "624549277",
+    "created": "2025-06-17T11:55:28.532Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_mxsZLPYUUEQJK9QojczE9iG1",
+    "customer_id": "cus_CN0rRkJE9M6JZXNxFJ06B0Uu",
+    "type": "eu_vat",
+    "value": "FR676292478",
+    "created": "2025-09-27T00:11:27.183Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_q8FMAF4ZkMvXAJ596Z4M1Dts",
+    "customer_id": "cus_mQyFEm4OhQBlAEHO9WpRd1zk",
+    "type": "ca_bn",
+    "value": "203383491",
+    "created": "2025-05-04T13:35:41.016Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_xeideHUQvHMQrIjlPEL2ZiBz",
+    "customer_id": "cus_laSZ3ygPlIxxRtQmasutOzTv",
+    "type": "au_abn",
+    "value": "72724057076",
+    "created": "2025-08-02T12:38:43.358Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_K0TKwrTj7pRRc6k3U3ggRo5A",
+    "customer_id": "cus_72iWXOl8AEqGKMvN1Geg5bZp",
+    "type": "ca_bn",
+    "value": "248929607",
+    "created": "2025-04-24T13:53:39.903Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_Ny9AoAVHRjH0kifS5zvSzNme",
+    "customer_id": "cus_rsMdoXbib1g29m1KNpZGKbPW",
+    "type": "gb_vat",
+    "value": "GB330271292",
+    "created": "2025-06-21T05:40:52.143Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_WF78h9VphOJYomQn45wKoUbW",
+    "customer_id": "cus_RM21xZSjnoJl9Ks4MAuFvERC",
+    "type": "eu_vat",
+    "value": "FR950923059",
+    "created": "2025-01-12T14:32:44.401Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_b5pRjJ8R6g0S9kUB2ntdMw5m",
+    "customer_id": "cus_97MHL9U8Rl6hbuWkBTDmZbwN",
+    "type": "eu_vat",
+    "value": "DE232539996",
+    "created": "2023-06-08T03:03:06.231Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_F8QunoLMu1WaoW4gWo9tymO2",
+    "customer_id": "cus_jM0KOTCkqYSsWPTGRT5XkrNF",
+    "type": "eu_vat",
+    "value": "FR451565183",
+    "created": "2025-04-05T15:45:17.057Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_JaD8gKxjI235t88NDu7zHwUm",
+    "customer_id": "cus_svWYFWxjjyBrSqg0YPCPOVny",
+    "type": "eu_vat",
+    "value": "IT661127136",
+    "created": "2025-11-11T21:35:07.583Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_I1izlGYvOSxBGyQ8k28pAdhZ",
+    "customer_id": "cus_pzrCp95KeQK3ciAO3fnbxtjw",
+    "type": "eu_vat",
+    "value": "NL811642529",
+    "created": "2022-12-04T10:07:57.091Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_kWzic8nECTBCJGkJWhBUKwQt",
+    "customer_id": "cus_LWYLhdrZpcWnGMQOPFpFPlil",
+    "type": "eu_vat",
+    "value": "FR249642121",
+    "created": "2025-01-31T09:44:30.958Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_P8jPpEabcvIlA5NZGgJJSgMc",
+    "customer_id": "cus_0YbTvz5m9wyHStekQ9C0fAsu",
+    "type": "eu_vat",
+    "value": "DE357069017",
+    "created": "2025-05-05T00:54:16.007Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_kfhZomaUwS5GKMLIL9UlyRFq",
+    "customer_id": "cus_CO7gkXv0n0esk27yHpJa7Qlq",
+    "type": "eu_vat",
+    "value": "DE872987384",
+    "created": "2025-07-26T08:42:46.472Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_sa47OrFIQV67AHNaSVjOy127",
+    "customer_id": "cus_gRL0S4E93LsBq4JO2nyBzGXo",
+    "type": "gb_vat",
+    "value": "GB180990028",
+    "created": "2025-09-21T20:43:22.966Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_vLMogGLv7tTCoImby0ljo9ve",
+    "customer_id": "cus_gYeXE3ktPkjV4yv35n8tBGxn",
+    "type": "eu_vat",
+    "value": "ES893414489",
+    "created": "2025-08-22T21:37:38.615Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_oHkDd6hUSadgQ95gV1g9SsWs",
+    "customer_id": "cus_gJIYjWBuFHaKIZUGIWXPL6Pf",
+    "type": "us_ein",
+    "value": "35-7595983",
+    "created": "2025-04-03T16:55:41.940Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_yMkwYLlhtS0Rx9lbAjX0Is2C",
+    "customer_id": "cus_Fis8VYJQ5nkzbyE882LkdM8q",
+    "type": "eu_vat",
+    "value": "DE085322837",
+    "created": "2025-09-01T09:37:43.989Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_C3N1zXMob62tD2GzMwAa4rSY",
+    "customer_id": "cus_SH4TuESSpefLV40PnhblYYkX",
+    "type": "us_ein",
+    "value": "35-9529900",
+    "created": "2025-06-11T12:25:30.915Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_GhWFpcX9J1ldpZ2yQ0cbTUCx",
+    "customer_id": "cus_SNj256Tp2yce9L0r5yl1szfL",
+    "type": "ca_bn",
+    "value": "534783936",
+    "created": "2025-10-05T14:49:01.887Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_DISK7urbZ9qq1pXtFQ4rL3sX",
+    "customer_id": "cus_z8d7w5fsarlRNZwzWoynx5MZ",
+    "type": "gb_vat",
+    "value": "GB523463732",
+    "created": "2025-06-14T23:43:26.938Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_40me78XDyKn9nJG4hEXLquHe",
+    "customer_id": "cus_625GR9olDbXJXhAJI1ZV7xjS",
+    "type": "us_ein",
+    "value": "55-7741985",
+    "created": "2025-07-01T18:59:31.230Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_aQOgYgWrsOGudQVyHYa75XKK",
+    "customer_id": "cus_Gs8urMpj52rlyI2uRswuo67b",
+    "type": "us_ein",
+    "value": "73-3234099",
+    "created": "2025-07-22T00:09:32.008Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_ZxtTxx3NuoIvPbBMUZLk4Rml",
+    "customer_id": "cus_eCfM9Fk27EeDpGuj9lDJ9Fbd",
+    "type": "us_ein",
+    "value": "58-9057594",
+    "created": "2025-01-25T06:44:36.348Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_aH1sCleO1MNnvqEnw1oqybB6",
+    "customer_id": "cus_ABtX6pSnqFF1skCyEEffmfGB",
+    "type": "eu_vat",
+    "value": "FR311108839",
+    "created": "2021-03-03T17:15:57.270Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_W2TtZm4mhyIYbUnvFHlAB1zU",
+    "customer_id": "cus_Lu4aTBbHPkyi4oKspmsjB3Oa",
+    "type": "gb_vat",
+    "value": "GB432071161",
+    "created": "2025-09-29T16:32:09.305Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_kYorXIyBcy5uHRj0Z2rZSef9",
+    "customer_id": "cus_9omheKiHmNa9GU84V7fVNlXz",
+    "type": "jp_cn",
+    "value": "4250017074229",
+    "created": "2025-08-09T00:48:14.441Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_sgfelkzXFAD7q3b41x8Mpmtk",
+    "customer_id": "cus_PQp86BPThj6MhtVK30MyI9SL",
+    "type": "eu_vat",
+    "value": "ES029273462",
+    "created": "2025-04-03T00:29:51.673Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_6xIF5VltqCfhoSGbV6ezyWsE",
+    "customer_id": "cus_We7GykG32lcIWFE0vOEeQXhc",
+    "type": "us_ein",
+    "value": "12-9044953",
+    "created": "2025-07-17T12:24:02.886Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_K3fouy7qhdUNNeZ1WNOEQY9R",
+    "customer_id": "cus_Und6LtPeG758OEanLhVUyDEg",
+    "type": "eu_vat",
+    "value": "NL960647997",
+    "created": "2025-02-15T11:24:54.898Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_ffOGQr1Crnv6QhO2WDBZ5SGx",
+    "customer_id": "cus_1MRuhL0VRxh2ZLl1DZH5o6Uk",
+    "type": "gb_vat",
+    "value": "GB295444356",
+    "created": "2025-03-17T01:16:23.686Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_Mv25jIEWkpn7ANDc053nLoFb",
+    "customer_id": "cus_lrRdiMV5NDeKJ8vLbs7jdv8n",
+    "type": "jp_rn",
+    "value": "6848234618557",
+    "created": "2025-07-26T20:35:58.774Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_jR9IruOxyG5M64vC7ZbgGXH5",
+    "customer_id": "cus_2NyfFLQh1vRcqf0T8LlhWEGL",
+    "type": "us_ein",
+    "value": "38-4683847",
+    "created": "2021-01-22T02:13:35.338Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_z6AqmiMsK2FglrTwzMU8Ne4J",
+    "customer_id": "cus_RQOduUL0s0hrTEmuOiCgt1Q2",
+    "type": "us_ein",
+    "value": "18-0202588",
+    "created": "2025-04-15T15:14:27.082Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_k3QIFWbiU4y2iWzzEnlSYO0B",
+    "customer_id": "cus_fInGv9uKiEc8moLs5DtkN9Uk",
+    "type": "eu_vat",
+    "value": "FR080735088",
+    "created": "2025-02-21T19:20:24.973Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_gDLYrJX4sDxuZKRkzy4IgjHm",
+    "customer_id": "cus_6UQJgIrDjP2GPEbhvk02L5Vr",
+    "type": "gb_vat",
+    "value": "GB509582228",
+    "created": "2025-09-23T14:17:07.907Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_aSHpSTHxol4KuTYhFk1vGFRa",
+    "customer_id": "cus_LeeUMMIgQ8llyssypfFNtEx3",
+    "type": "us_ein",
+    "value": "39-7070928",
+    "created": "2025-10-17T16:21:05.350Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_7clOQkSsp2QoVwSRf29gOY1d",
+    "customer_id": "cus_iDXdEUsjF1mfdbJXn3IxIEU8",
+    "type": "gb_vat",
+    "value": "GB667860817",
+    "created": "2025-03-24T07:41:55.727Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_PqPDUBW3w9V9ifZVr9GtGcEn",
+    "customer_id": "cus_fU0Z27erw641fVoLb4yOTxi6",
+    "type": "eu_vat",
+    "value": "NL234979079",
+    "created": "2025-05-21T06:24:37.864Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_ykNWsDV8hW0DCCxqGiiSnHuf",
+    "customer_id": "cus_DmIQNgpsojK0i87hLYvlP45l",
+    "type": "eu_vat",
+    "value": "FR624554137",
+    "created": "2025-11-09T01:34:21.523Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_M9jC8XLejHEZotJb169MZgru",
+    "customer_id": "cus_KdkF0LT3Ap4GBDOhFKaXlIKv",
+    "type": "us_ein",
+    "value": "25-4141528",
+    "created": "2020-02-05T21:26:12.214Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_1vHVzfFg0FGjJEVxb7RFsCDI",
+    "customer_id": "cus_WmVxtPxs00C4JCsIZfyQ1cwy",
+    "type": "eu_vat",
+    "value": "IT163722340",
+    "created": "2025-05-18T03:18:25.675Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_GeqgR526EwiGtpZWxlN1I9Zi",
+    "customer_id": "cus_HmBTg78uJEsJDCcjlOMf3Lpd",
+    "type": "us_ein",
+    "value": "19-6980212",
+    "created": "2025-10-31T11:21:43.739Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_zSRWzX3MO3VRGEfMmIrhLs0m",
+    "customer_id": "cus_ifzeIGq11xQBrScmziZs3axy",
+    "type": "gb_vat",
+    "value": "GB859425588",
+    "created": "2025-03-23T07:05:33.673Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_JOL1q7AmSgNm9hJYbozTIIBw",
+    "customer_id": "cus_T6WlRFXRTDPKaE9R4ZoaW2tL",
+    "type": "eu_vat",
+    "value": "NL557951827",
+    "created": "2025-07-19T09:48:04.010Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_0L4XZxflYB6KoIGSRzXB4hGs",
+    "customer_id": "cus_7417W5BVC2ATjjfveIDoI6KB",
+    "type": "ca_bn",
+    "value": "768446325",
+    "created": "2025-02-20T05:14:13.196Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_Zcn4FH9qnIV5A8MLDkxDKM8o",
+    "customer_id": "cus_SZp1pETWUEG0mUGt6fyT59Ei",
+    "type": "us_ein",
+    "value": "68-4981483",
+    "created": "2025-08-16T13:41:00.889Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_2Njb3Kuh3brN3XbPKGmar8Bd",
+    "customer_id": "cus_hFsp1SSsHbvrEtui3U0hrjys",
+    "type": "us_ein",
+    "value": "73-8083549",
+    "created": "2025-10-17T20:31:46.780Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_aJJBeCkhLvafFmuqCYN5Xqnr",
+    "customer_id": "cus_5bxX1UTRnupWw4gsXzH5SxVr",
+    "type": "au_abn",
+    "value": "00850205457",
+    "created": "2025-07-18T05:12:35.827Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_jZVW7AvZ9sMUwM69zFazA2k7",
+    "customer_id": "cus_Lw6F9fHEjLWxGgYgTVIOsVKk",
+    "type": "eu_vat",
+    "value": "NL756008463",
+    "created": "2025-06-26T13:00:05.048Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_SjpfCVOGo11hgw6P6S8xdM6d",
+    "customer_id": "cus_kW9xbMycRMW0sZOPCIN5GO2i",
+    "type": "eu_vat",
+    "value": "DE572902070",
+    "created": "2025-01-03T08:14:37.169Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_01sAjiVrBA1Kj5WlbhjmnEiY",
+    "customer_id": "cus_B4jYtq9Q86rrY7tcHoEkztnx",
+    "type": "eu_vat",
+    "value": "DE163956571",
+    "created": "2025-08-12T06:23:42.841Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_tkBRLC3eQtUHpjwUZvkG2jTk",
+    "customer_id": "cus_zlM8vwYZNtxjPKL8ox7m5XKC",
+    "type": "au_abn",
+    "value": "45477653281",
+    "created": "2025-06-11T02:53:08.125Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_ksXqPRtoGIaKqtF2Papft1no",
+    "customer_id": "cus_S6Dr7yml5YJhUWOEnqsWLiCA",
+    "type": "us_ein",
+    "value": "05-9527845",
+    "created": "2025-09-21T23:36:23.355Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_JhkhDJB2cRkf17bOBODVX0ET",
+    "customer_id": "cus_sXg5xbpbSkMWWwYE7Tt9NCSP",
+    "type": "eu_vat",
+    "value": "ES942876502",
+    "created": "2025-07-25T01:30:47.314Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_zEPkGia89KiDbCwNUzRGSP1K",
+    "customer_id": "cus_svVvvmIoArwPpezWGjXlYbZ4",
+    "type": "eu_vat",
+    "value": "IT576043484",
+    "created": "2025-02-28T19:36:14.238Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_hTJ1F8FAWbLzJ6pNPEKydcNG",
+    "customer_id": "cus_4lursSvW9hEhlTxkM4y6a3T2",
+    "type": "au_abn",
+    "value": "62401377521",
+    "created": "2025-07-04T02:37:53.535Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_VbOXThvTa9tdts3G7rBdiHJH",
+    "customer_id": "cus_m38MEhoOpKiIsxBrsgZUw2aQ",
+    "type": "us_ein",
+    "value": "52-3887803",
+    "created": "2025-08-21T17:04:30.516Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_gBY6rTSp1eehBfVE4uyiNLTQ",
+    "customer_id": "cus_pY7oh8QHpmP59UOMCiVuhm1f",
+    "type": "eu_vat",
+    "value": "ES804915169",
+    "created": "2025-01-23T15:00:13.091Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_cbuD017ZO4665dVzLNUhsqEj",
+    "customer_id": "cus_cnn7f0lNgD60usbh1NidN2hg",
+    "type": "au_abn",
+    "value": "55817003173",
+    "created": "2025-06-03T16:55:14.540Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_f8wVBJiOCBrKdhD5o5AOd9Sb",
+    "customer_id": "cus_0WWIqbuNBwQjRr0JSusNSYlA",
+    "type": "eu_vat",
+    "value": "IT434869242",
+    "created": "2025-03-02T18:38:59.822Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_2Ii9sNrsmdXbYRl7mzVKOmi4",
+    "customer_id": "cus_0WIMUZ69bOmARG4r4td0OYXi",
+    "type": "eu_vat",
+    "value": "NL361829279",
+    "created": "2025-08-25T01:50:01.785Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_TeD9Xvj1F3GOj57X9y7morgx",
+    "customer_id": "cus_wnXNKce1DmjDP8U25PuWsVeC",
+    "type": "eu_vat",
+    "value": "FR285215770",
+    "created": "2025-04-02T17:12:09.358Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_m4yq1r0RjwzwD7GBFKh86rVq",
+    "customer_id": "cus_PaEBhohxNSItXytRb9MR4LqH",
+    "type": "eu_vat",
+    "value": "DE449527236",
+    "created": "2025-10-26T01:13:30.456Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_7jEquMSNarLdG6cT4HY7UZdQ",
+    "customer_id": "cus_PPMiwilihGEcGicKmzcCcanM",
+    "type": "eu_vat",
+    "value": "IT482621854",
+    "created": "2025-05-17T21:55:46.723Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_bd0Lw722Lg0fEWyGW6uMI0Aa",
+    "customer_id": "cus_LGo73tFEXnCTptVyNWz6OO7x",
+    "type": "ca_bn",
+    "value": "466189534",
+    "created": "2025-11-05T18:57:35.327Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_l1ZwptH99MS3wSzYKyz6vy0s",
+    "customer_id": "cus_SxuV0yN3mYdwKop3bSOinrlE",
+    "type": "ca_bn",
+    "value": "654431827",
+    "created": "2025-02-03T06:48:51.375Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_J7z9diR120s5KxKzdDN4wxl3",
+    "customer_id": "cus_XR5sHyJYlL5RMwOFyW8Z9teg",
+    "type": "gb_vat",
+    "value": "GB548002671",
+    "created": "2020-03-24T02:57:26.886Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_dzL9LsI0H7CgkpLjcAFGDOXq",
+    "customer_id": "cus_pN9Om9aYCagn36LMZ4Tjk7ZY",
+    "type": "ca_bn",
+    "value": "121599608",
+    "created": "2025-07-24T19:13:20.185Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_2Jihqm2MOO8HszmwNVpjfw28",
+    "customer_id": "cus_7TwgBhtO1bXriVU2mUbzjJ9A",
+    "type": "eu_vat",
+    "value": "FR262414938",
+    "created": "2025-08-29T02:12:11.113Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_cVaV5KzQ0rRFSYxO0FODK7gn",
+    "customer_id": "cus_17Jp7JcAJBZqjcvQWYwBAs94",
+    "type": "eu_vat",
+    "value": "FR864421913",
+    "created": "2025-08-17T21:27:45.332Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_JmtYJgexIwAq0liwnMKfqoNR",
+    "customer_id": "cus_Pkh3vsn7ecWX0aT2WnxLf6OZ",
+    "type": "au_abn",
+    "value": "67143609652",
+    "created": "2025-04-01T12:51:12.009Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_jHRbzlU6HSvu0dV9xyexKYwp",
+    "customer_id": "cus_CLMCl1TqBc85NECV9abqSSAE",
+    "type": "eu_vat",
+    "value": "DE822601620",
+    "created": "2025-01-28T21:27:12.326Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_nUh4ZhTaAykg13U4o61a74Js",
+    "customer_id": "cus_QbE7tw14QhlDdbq3UWrct6o4",
+    "type": "au_abn",
+    "value": "44174316193",
+    "created": "2025-09-29T16:08:57.016Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_bCRZBqcfwSp6QBSGNPgtHWxU",
+    "customer_id": "cus_1qHeO321hs6ZZwzVLaNeqxI9",
+    "type": "ca_bn",
+    "value": "874609619",
+    "created": "2024-09-18T14:09:17.227Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_MdT3IRK8FDEYhz6iaGQph0E2",
+    "customer_id": "cus_7G7sektTGaSvcwbmNEtehYlC",
+    "type": "au_abn",
+    "value": "49495271863",
+    "created": "2025-03-08T09:28:18.426Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_O7RGZKrCVEbmUEYhYWNTRmSb",
+    "customer_id": "cus_NEbG3cDULkPXkbco3uJwYs0t",
+    "type": "ca_bn",
+    "value": "533982600",
+    "created": "2025-09-09T22:16:16.353Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_4s9sd0hhMVsqjXyZc8kszQeL",
+    "customer_id": "cus_X5NbvLGMOimO2vVSN1TUFiuL",
+    "type": "ca_bn",
+    "value": "559212919",
+    "created": "2025-05-18T13:13:10.000Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_KAZuWV1AlWryhvYUxrSFEvr0",
+    "customer_id": "cus_RGrXW5COa7ghXM3MamjgjKgN",
+    "type": "eu_vat",
+    "value": "FR911729684",
+    "created": "2025-10-15T07:10:16.397Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_61xw0q4lz7hayMBXI6BHMNHs",
+    "customer_id": "cus_rlxXXkGIE7xLclcSRaLmGutS",
+    "type": "gb_vat",
+    "value": "GB719672911",
+    "created": "2025-08-25T01:07:29.255Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_jTGtUhtbUI2WB31ynI8UPvy4",
+    "customer_id": "cus_ieuPfEf8WD6DaTfOcyUi5yaJ",
+    "type": "jp_cn",
+    "value": "8041927774761",
+    "created": "2025-03-28T00:02:23.048Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_YSMxIHF7UMMRBIaf4Jdf3P9K",
+    "customer_id": "cus_C8pITnZ8nSEOUveHyLvOTKKA",
+    "type": "gb_vat",
+    "value": "GB282770777",
+    "created": "2025-07-21T22:37:23.271Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_AckaL3Tr5YjrYXq8qMumTAWw",
+    "customer_id": "cus_C02vBj6MpEExbCjObirJIkve",
+    "type": "ca_bn",
+    "value": "401176950",
+    "created": "2025-07-25T10:50:20.866Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_rW7dQl1HB5YMlXwk9nV2EB1Q",
+    "customer_id": "cus_REtXKfnL13R2GjPQX5qzUg4c",
+    "type": "jp_cn",
+    "value": "8681741010989",
+    "created": "2024-03-15T19:08:52.870Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_oe5WTTMntqD5ne2y7LUFL10S",
+    "customer_id": "cus_ubSmJjiD9Ro1iMRziwPjnxTA",
+    "type": "jp_rn",
+    "value": "2678008770019",
+    "created": "2025-01-07T23:05:05.817Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_X2oeEMXS8nA5PGFDxGzqcxwe",
+    "customer_id": "cus_hoxmJ01ISM7VwKcykYtKB5xx",
+    "type": "jp_cn",
+    "value": "8523407229793",
+    "created": "2024-02-28T09:17:08.462Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_NsuI45c9p7SWXO2bjVXKdMMt",
+    "customer_id": "cus_kus6u9NXOq02uGOBYuBelGBm",
+    "type": "au_abn",
+    "value": "72417956394",
+    "created": "2025-03-26T11:25:13.746Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_NvRZJlv03suMxHPspjtYvmof",
+    "customer_id": "cus_T2zVEunCtHCzXPBxINiF8qWk",
+    "type": "eu_vat",
+    "value": "FR241690614",
+    "created": "2025-02-03T09:45:11.611Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_U5DaPrK6EfCXGZtt0PZxILTC",
+    "customer_id": "cus_kR9Iif3to3euOVvpXXbwOOGt",
+    "type": "jp_cn",
+    "value": "3866444273754",
+    "created": "2023-07-18T10:43:02.987Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_9I23glgrqKgWcKoUdKuP2AF3",
+    "customer_id": "cus_ib9t5m1gTr4EXsCVpFrXvSvF",
+    "type": "ca_bn",
+    "value": "891184974",
+    "created": "2025-04-08T03:02:38.908Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_TmxcV8OilBnPi339VFjUJdWW",
+    "customer_id": "cus_czHJmVk6WxYoK6Qa46yiXQNO",
+    "type": "jp_cn",
+    "value": "7162779794837",
+    "created": "2025-10-05T04:07:45.908Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_bH06a4hbsQRQPnv8RxkNeMLg",
+    "customer_id": "cus_Z31XrBKKEtzJQ7hoFoe2Qpkw",
+    "type": "au_abn",
+    "value": "30816109756",
+    "created": "2025-09-29T04:27:44.260Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_Kn79NmDZm4Kps3JVktLGIZ9a",
+    "customer_id": "cus_ZKu8x7UeRidiHw68nkQzb16H",
+    "type": "eu_vat",
+    "value": "NL852951868",
+    "created": "2025-07-05T13:25:36.259Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_wMraWmHVE1hSWfMhIMpx44vz",
+    "customer_id": "cus_Tx5PNPDIU757Rya8rONQL3Iw",
+    "type": "gb_vat",
+    "value": "GB888456940",
+    "created": "2025-05-26T16:02:13.974Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_9FbFP5xR9SKc7mnBpUjmGbQI",
+    "customer_id": "cus_aLjCm5wj4cC65W6n8Wt6LMTH",
+    "type": "eu_vat",
+    "value": "ES715619042",
+    "created": "2025-06-12T02:50:56.976Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_pqoTXsdE2wXIvaAyCw4BE3wS",
+    "customer_id": "cus_7Be1Pv1TxJqbshiD5oxIDSZW",
+    "type": "eu_vat",
+    "value": "DE735353807",
+    "created": "2025-01-24T02:15:03.333Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_hBh2XFQVvLNXulTtywdxtV6R",
+    "customer_id": "cus_v0jKbXTM4li8Z9jS8tYfH4Bl",
+    "type": "eu_vat",
+    "value": "DE497826279",
+    "created": "2025-09-11T17:16:17.427Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_bLnRpmks6ZZ3qWZRyGeXvuOi",
+    "customer_id": "cus_9zsMxqwuVj2FBU7w9sNRPxDy",
+    "type": "eu_vat",
+    "value": "FR489525957",
+    "created": "2025-04-12T22:49:11.597Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_rV8dyCwITqjUFqX8eLs1GGmI",
+    "customer_id": "cus_mPtvqjIeGw61aLnNv2QW4cIZ",
+    "type": "eu_vat",
+    "value": "DE663809959",
+    "created": "2025-07-01T22:11:07.850Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_Gz6TffnZpUMAMVmaWLNQco40",
+    "customer_id": "cus_bdKnk3xCSv04g8L69FeYRKl3",
+    "type": "ca_bn",
+    "value": "416926858",
+    "created": "2025-01-19T01:01:08.954Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_IOTIKGpLj0fXsk5Faa9Kr8Xo",
+    "customer_id": "cus_JgDFGP9316nXlsOUYPveBc3U",
+    "type": "us_ein",
+    "value": "99-7651034",
+    "created": "2025-02-07T14:31:01.764Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_ICE4iTTDpbhqVzWZQTsf31Ob",
+    "customer_id": "cus_vDtL2lyAa41pkzroQCEnM9o2",
+    "type": "ca_bn",
+    "value": "877016012",
+    "created": "2025-07-15T02:50:33.701Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_2TnszCBtWq2vamp8y8qpORoI",
+    "customer_id": "cus_7T8ZqnAoeDJWpHPP2m0yROOl",
+    "type": "eu_vat",
+    "value": "DE457228369",
+    "created": "2025-11-05T10:25:31.730Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_x56thhZsZNVGKRU92mljMkms",
+    "customer_id": "cus_8Y3hMmtbIbQxxVLKR5Jeh0TJ",
+    "type": "eu_vat",
+    "value": "IT120074094",
+    "created": "2025-03-02T08:20:39.206Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_wO5f4mcK5mgyuruCLzIoZyNK",
+    "customer_id": "cus_UR9MWje07XoogavIy2NVrmei",
+    "type": "eu_vat",
+    "value": "DE425856779",
+    "created": "2025-02-15T23:11:09.958Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_3WAbER6T7TGlwaHDYNgYoVbf",
+    "customer_id": "cus_wwEjD8T8QGlkXcIbUKVSy9dc",
+    "type": "jp_rn",
+    "value": "4951171438390",
+    "created": "2025-11-09T01:28:04.407Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_vwasZfX9BLHsqhlWsOrK19jC",
+    "customer_id": "cus_92TtYxvCafUdevD0soRQUQMR",
+    "type": "eu_vat",
+    "value": "ES370605001",
+    "created": "2025-07-28T23:31:49.287Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_bRsp3u2J4S6lwhKgBIXBueN6",
+    "customer_id": "cus_jGwXBDwjDkIemACFHjT1b4Fg",
+    "type": "eu_vat",
+    "value": "IT655666157",
+    "created": "2025-07-13T14:54:16.674Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_WUpbyfBJbXjll9rbqErWD5O7",
+    "customer_id": "cus_XHxkFJIcHAQC9jKJdl0k1SFY",
+    "type": "eu_vat",
+    "value": "ES095155809",
+    "created": "2025-07-04T01:40:51.355Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_moCuDWqIzXqYfjYtjt3Qq5Jf",
+    "customer_id": "cus_F02Kt3t3l9dcn6wpQPPtipGw",
+    "type": "gb_vat",
+    "value": "GB264819039",
+    "created": "2020-06-04T11:36:49.765Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_q0qKP52LxCSyVWz5ukqA1NyJ",
+    "customer_id": "cus_EHyvjGhsR5wunB0uuvdcE5iP",
+    "type": "us_ein",
+    "value": "18-9169955",
+    "created": "2025-09-21T17:32:33.653Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_sruSiaDROtxfXqoHa2KqqQ95",
+    "customer_id": "cus_577n9RTRBATp3tyy9MJeyN0h",
+    "type": "eu_vat",
+    "value": "FR771344201",
+    "created": "2025-10-19T04:30:46.103Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_5O16uclRjmWbn3OfTXjlP7tG",
+    "customer_id": "cus_sFNQfz1N7SpaNcozmbp8Iaty",
+    "type": "au_abn",
+    "value": "46904908743",
+    "created": "2025-03-20T01:36:02.087Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_EupBGtdmCxv3bjKY6lBcBpWr",
+    "customer_id": "cus_eAWVc62PfheQYKPCwI23GkuM",
+    "type": "eu_vat",
+    "value": "FR810910316",
+    "created": "2025-06-30T01:59:30.245Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_SIawBFramOdTHkrizqgKP8hw",
+    "customer_id": "cus_lE3RkB0m0arx9Kb7kyZpq3Lb",
+    "type": "jp_cn",
+    "value": "1397357448527",
+    "created": "2025-04-28T04:20:11.011Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_Sgqsn3IbKjWJr95288U38gRh",
+    "customer_id": "cus_iq6gxeGl5LzPm12NpYP0Rduv",
+    "type": "eu_vat",
+    "value": "FR351145914",
+    "created": "2025-02-26T09:12:55.618Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_CLiWRApDWfAwOaYHDm9nL2Ld",
+    "customer_id": "cus_QOgpL7Tdz6bADg7yQcGnW527",
+    "type": "gb_vat",
+    "value": "GB977710463",
+    "created": "2025-07-25T00:30:57.411Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_TZeu1QFVaGUu5gk4edaxBOZZ",
+    "customer_id": "cus_oWJGqk7sco9l20RDAvJJVfMZ",
+    "type": "eu_vat",
+    "value": "FR534930223",
+    "created": "2025-05-27T06:08:27.930Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_wDj0rkvj7wG62HLtBIJvcbf8",
+    "customer_id": "cus_qcHBZ87v9BctBsjMQhOoueC6",
+    "type": "eu_vat",
+    "value": "IT855482878",
+    "created": "2025-10-01T18:55:58.458Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_2SQVrZ7viZV84TXexaWR8O3y",
+    "customer_id": "cus_bugfkHunTHuqOaF10VvjNZ22",
+    "type": "us_ein",
+    "value": "33-0263318",
+    "created": "2025-05-04T08:12:19.929Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_GGwigvXeP4MNSEyH94RTfTCN",
+    "customer_id": "cus_4uiAsf6KD2ZDcQSzS1W3Dl2V",
+    "type": "au_abn",
+    "value": "77979828079",
+    "created": "2021-10-17T23:39:10.026Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_gmFXJMnOmmVX9iFBdjZY0kYr",
+    "customer_id": "cus_hFFsusw9NEYf9lvcsD3KWgMp",
+    "type": "eu_vat",
+    "value": "FR891645758",
+    "created": "2025-10-11T21:59:58.451Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_HpfVXTqN5wWVskvERGbNeN46",
+    "customer_id": "cus_76eK2ZZ9ocpxP2ZWzty1Juhs",
+    "type": "gb_vat",
+    "value": "GB572486607",
+    "created": "2025-09-19T12:33:12.415Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_pr6k4Fe5x9HvZRSbct75oUEa",
+    "customer_id": "cus_O0mhqCb8JGsvgkjJyJAxjoTz",
+    "type": "jp_cn",
+    "value": "6148091341271",
+    "created": "2025-09-14T21:18:32.606Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_BBXiybIy1iG7ALwqWXchWP3O",
+    "customer_id": "cus_1701ZrJJS6wjykbF2T9CK4Um",
+    "type": "ca_bn",
+    "value": "078047738",
+    "created": "2025-07-17T09:54:29.490Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_qWanr6ASydgpBBy5SNf47LI6",
+    "customer_id": "cus_VlmLwmSPYDGk66E7UHehIPQB",
+    "type": "eu_vat",
+    "value": "FR096885314",
+    "created": "2025-01-08T20:44:30.398Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_cj4f8jJAH7ndcEDmstptdl8d",
+    "customer_id": "cus_d8xt9wxSLdOYIMgZaKomhrNW",
+    "type": "ca_bn",
+    "value": "054497558",
+    "created": "2023-10-13T21:03:19.629Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_mW8l7bKFxa3lKEHPOH5Ob5yh",
+    "customer_id": "cus_CQwJrZyK5s37vlsu9mRRuKK2",
+    "type": "eu_vat",
+    "value": "FR337410448",
+    "created": "2025-05-14T07:47:11.849Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_vpIpmUVzrSpynZsCBwU00pPs",
+    "customer_id": "cus_1bIhqP21eGeRlhezRpfqUkEk",
+    "type": "eu_vat",
+    "value": "DE600374508",
+    "created": "2025-06-30T02:00:10.116Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_Xk9pjja4oGL6Pj0H8jvj8Ltd",
+    "customer_id": "cus_zCU09T0U1MTBD3dTP3Oqy6oq",
+    "type": "eu_vat",
+    "value": "FR805490050",
+    "created": "2025-03-23T13:07:26.096Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_BUdZyyUOWl4wsb1rwpFbJlay",
+    "customer_id": "cus_Uz1LtxC5WfCRkCZQMrruG8R1",
+    "type": "eu_vat",
+    "value": "DE575647701",
+    "created": "2025-08-20T05:00:22.368Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_Ou2BENYPRhLnzRMO9sPjYC2T",
+    "customer_id": "cus_wook74jFhOnDqufv6nrHoFa1",
+    "type": "ca_bn",
+    "value": "097598527",
+    "created": "2025-06-23T01:33:22.162Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_ZV7NqhBKBElAaeQ2GDJLRn0D",
+    "customer_id": "cus_E16xHUr7VruQAixCTeyV2clG",
+    "type": "ca_bn",
+    "value": "063005755",
+    "created": "2025-09-23T02:01:24.614Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_E9dKMXVmDjt9Dspb5hCDQvXI",
+    "customer_id": "cus_XgWeKG3ITVGM49gwnErMIKPP",
+    "type": "ca_bn",
+    "value": "353710079",
+    "created": "2025-08-31T18:29:34.092Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_6ftMpWH59ItY6kN4JT5HeMkY",
+    "customer_id": "cus_p9FOsrKvM3Rga2P3XzHIiOWm",
+    "type": "eu_vat",
+    "value": "IT748391119",
+    "created": "2025-03-01T22:31:04.379Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_GCgwz00XtFCbHtMP6DOcQXUS",
+    "customer_id": "cus_V6zroH8O1zdFwZRkwjJq7E0i",
+    "type": "au_abn",
+    "value": "51549179046",
+    "created": "2025-09-11T04:17:33.840Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_bzuONHqOkRns7z9PDUEFjZPh",
+    "customer_id": "cus_x94ak3caLaNvKrThLaS1sqCr",
+    "type": "eu_vat",
+    "value": "FR279982593",
+    "created": "2025-04-01T08:58:47.423Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_ZxsE1Z18SyBoGEL9osc7rp6U",
+    "customer_id": "cus_ejYrQNrZQtj4smI1PptbWoQe",
+    "type": "eu_vat",
+    "value": "DE793472472",
+    "created": "2022-06-13T10:54:25.275Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_veHeqyOzXWM8IxHjTQllpUYM",
+    "customer_id": "cus_FLl9HBzbgCCyLOh9chW8Scl7",
+    "type": "ca_bn",
+    "value": "010507455",
+    "created": "2025-04-03T15:43:09.233Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_vfulpj3PDQ7yo2CKbAywrxrh",
+    "customer_id": "cus_Ud9VfRLnfLBfTIUr7VBBAtfC",
+    "type": "us_ein",
+    "value": "03-3817268",
+    "created": "2025-08-28T16:57:28.221Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_LIV8GQPmorWziGTWkoCgIGDx",
+    "customer_id": "cus_4NDNzqXMpUZjT2d9myIT9zys",
+    "type": "gb_vat",
+    "value": "GB210122789",
+    "created": "2021-03-20T12:11:56.385Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_5VsuNQUVXHFsrWcj47ZkghL0",
+    "customer_id": "cus_m6FWDxvAINHHXTP2FsCGIRUB",
+    "type": "eu_vat",
+    "value": "ES920734431",
+    "created": "2025-10-14T11:22:03.897Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_K3L5U1vwJE0UAW3NM2kwStHP",
+    "customer_id": "cus_8CttcJVMmZmeYML4b1Mh8bDq",
+    "type": "eu_vat",
+    "value": "FR675260382",
+    "created": "2024-03-25T14:47:55.729Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_jFvXmPiYQxWGkkHl6XzHLfzq",
+    "customer_id": "cus_pcByirJCtgFCsealUKTQswaI",
+    "type": "au_abn",
+    "value": "40908386396",
+    "created": "2021-08-13T10:04:39.157Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_3HRxzyBGpXkDVvH51KVYdXRm",
+    "customer_id": "cus_ZpkV8mmqQQAZQGcydiGb5w0B",
+    "type": "gb_vat",
+    "value": "GB878953424",
+    "created": "2025-01-19T13:45:13.176Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_Rdk9Tas5wkdcl0ViUuhs0Ty3",
+    "customer_id": "cus_snOUj3xIAGEXR8sssVkCT3SL",
+    "type": "ca_bn",
+    "value": "925727261",
+    "created": "2025-01-08T19:14:51.920Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_EMqpOni6TWTzat0UpOsrTAwd",
+    "customer_id": "cus_XNYQ3Qts0CFNk7rmKe8rCh7r",
+    "type": "eu_vat",
+    "value": "DE492762217",
+    "created": "2025-09-23T09:15:13.141Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_H5UeH9a8ovnSYvjJvrPeoPeL",
+    "customer_id": "cus_W9lJI247z3AlFMN2WATCuJd6",
+    "type": "gb_vat",
+    "value": "GB130324735",
+    "created": "2025-03-17T08:51:41.120Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_DE2rbPRysVXfR8mtxTPZzp0K",
+    "customer_id": "cus_OcQmKkHNyCHGJQddYQA0QKX0",
+    "type": "eu_vat",
+    "value": "FR072071093",
+    "created": "2025-06-22T23:27:37.049Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_zLsQvRQvfZhrRp8Knn34tEZ5",
+    "customer_id": "cus_bBicGMp3owTEIcIvOdvchPGJ",
+    "type": "ca_bn",
+    "value": "279944480",
+    "created": "2025-07-05T22:06:03.080Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_WHO8WqQpy5VSmRBjoSnWnSiN",
+    "customer_id": "cus_8a3DezMpLMg06PpQxcIyl56b",
+    "type": "jp_rn",
+    "value": "6928801825174",
+    "created": "2025-10-29T04:35:19.202Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_6UXaIUmvnd9mF5ycCTyw19Mf",
+    "customer_id": "cus_zf3ydKsfB7LsO8nb3XJkfc26",
+    "type": "eu_vat",
+    "value": "IT361786302",
+    "created": "2025-06-17T04:35:07.862Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_zN3rv39p67b6EcZMhEv3q9Sl",
+    "customer_id": "cus_Dz8n4qb5j0K9CPUyMsuxFFMC",
+    "type": "eu_vat",
+    "value": "DE870278036",
+    "created": "2025-05-06T17:38:30.026Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_kIgrX4eDZRINuqXSXeCinkYM",
+    "customer_id": "cus_W1DgKkqLTbi0RWhnqpot93IQ",
+    "type": "eu_vat",
+    "value": "ES931343530",
+    "created": "2025-04-11T22:40:04.817Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_VLet063dg9hEDMB7TVlzcxFX",
+    "customer_id": "cus_vP2xbCLgtqKB7YUzM1cL62C2",
+    "type": "gb_vat",
+    "value": "GB255556355",
+    "created": "2025-07-30T19:11:52.698Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_HjaHTiZQSADtXt4P9xPRMtMa",
+    "customer_id": "cus_chWwRgBLqCR8lPeyrFFzWaPu",
+    "type": "eu_vat",
+    "value": "DE442449416",
+    "created": "2025-07-07T03:29:40.115Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_uVdJn1AjfNVCMEDpdcYeuog6",
+    "customer_id": "cus_Ar0ug8zFwCB7d0YdOMHrAb6l",
+    "type": "eu_vat",
+    "value": "FR350536007",
+    "created": "2025-02-10T15:20:43.436Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_VO0x1la5N8t7HhbDFRY0WYsV",
+    "customer_id": "cus_TrHIgT7AV1wfbeTqeVjIxGbG",
+    "type": "gb_vat",
+    "value": "GB926840760",
+    "created": "2025-04-15T02:33:12.996Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_qoFyKebMrNg45RTUwGDcSVSO",
+    "customer_id": "cus_E72hGO9WyV9sqpVQNhlgNoYm",
+    "type": "eu_vat",
+    "value": "FR962414843",
+    "created": "2025-09-27T03:32:11.387Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_CdqYo7IRDXONHR3vsgUf68fr",
+    "customer_id": "cus_XOl1h7qWvrdCsLvSM881m3re",
+    "type": "eu_vat",
+    "value": "DE614548691",
+    "created": "2025-04-20T22:57:10.465Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_ywgmcBwvnFGCmEUcM5KU2mGl",
+    "customer_id": "cus_9YV8lvoHvzG10bIeV4z1YdAX",
+    "type": "eu_vat",
+    "value": "FR235861585",
+    "created": "2020-12-25T04:52:58.577Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_IZ7JuidD6ff5yOedPFcBLRMv",
+    "customer_id": "cus_ZJVPqRMgCie5xo5IIeXMN0YZ",
+    "type": "eu_vat",
+    "value": "IT695035118",
+    "created": "2025-01-19T04:56:26.794Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_rCsRrtKD09NKtapKlVFJYUlA",
+    "customer_id": "cus_U70VwyVHPLBGymhalzAGSEa1",
+    "type": "gb_vat",
+    "value": "GB157659423",
+    "created": "2025-09-07T15:38:24.951Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_sdcmCgfRoipoI8Bk5t8Ebeyr",
+    "customer_id": "cus_3ohwuEfdIYWN4eGioX5R3kym",
+    "type": "ca_bn",
+    "value": "477715352",
+    "created": "2025-06-19T01:29:11.493Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_ro1UWyBRfA8aQJ2QIFNzR2Nd",
+    "customer_id": "cus_U72KFu27cDFFN1DfzJIhmUQf",
+    "type": "jp_cn",
+    "value": "1831614753924",
+    "created": "2025-06-12T02:46:29.181Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_GG24vWHxApYvml6dZ7lIj63Y",
+    "customer_id": "cus_HhYhPipFyvNHUe1Zh2fFAcbr",
+    "type": "eu_vat",
+    "value": "DE938844872",
+    "created": "2025-08-18T14:19:46.407Z",
+    "verification_status": "unavailable"
+  },
+  {
+    "id": "txi_CgMtXXdnEFOr37qtYtVeLyIs",
+    "customer_id": "cus_hv1QXRaPlWi5Q7xnKKM3Rsdi",
+    "type": "ca_bn",
+    "value": "291159962",
+    "created": "2025-08-25T22:03:42.978Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_Uto3R72cNCfsVuglT6IGxk1l",
+    "customer_id": "cus_E3qc22aqzNBw2iGgABiz7J12",
+    "type": "ca_bn",
+    "value": "877832685",
+    "created": "2025-10-20T23:33:08.357Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_LA7KIgEXeDYzRWX6mKJanvHN",
+    "customer_id": "cus_zVUNk6jKBH69FnmoNH6lFYUf",
+    "type": "eu_vat",
+    "value": "DE512759205",
+    "created": "2025-06-16T19:33:25.190Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_nCsOc45xCAisjXwgSYEhqqxS",
+    "customer_id": "cus_HOW6UgyWC5uTpQNUgukx1eYB",
+    "type": "eu_vat",
+    "value": "NL947722567",
+    "created": "2025-01-30T22:33:39.127Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_35o6dDc9RzmHKv85kRoyTa8U",
+    "customer_id": "cus_khtKRtjUkMK3bzRAKJuy4VF9",
+    "type": "gb_vat",
+    "value": "GB930313171",
+    "created": "2025-03-21T10:11:00.202Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_MpYMH3Mrol89TFDoGCiAYc88",
+    "customer_id": "cus_pXDKvq57zCZRQhp6A4rzeMF9",
+    "type": "au_abn",
+    "value": "90230961098",
+    "created": "2025-09-21T01:13:28.149Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_0Je64zJzOG4OlmdICPyzBXNw",
+    "customer_id": "cus_hlD8lJz3uwH0qS1FdoSmx5k8",
+    "type": "eu_vat",
+    "value": "DE818882397",
+    "created": "2025-10-16T13:27:17.067Z",
+    "verification_status": "unverified"
+  },
+  {
+    "id": "txi_8UoWFHty9vZVoIrBkXOcWkhd",
+    "customer_id": "cus_YGnfdXquPX0Z4PWyyFla4SxH",
+    "type": "au_abn",
+    "value": "83100808431",
+    "created": "2021-05-04T18:06:55.843Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_rCBXM4T1OfNBLjCD9Lr06TgP",
+    "customer_id": "cus_liS6AbLDo6L4gfzvhqrzT8y1",
+    "type": "jp_cn",
+    "value": "7820120679676",
+    "created": "2025-03-29T22:08:44.569Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_r1L8lVZeTrWkE0iBRuTyIbdW",
+    "customer_id": "cus_NSJmrDdHEEkBcbLnxieMNPQp",
+    "type": "ca_bn",
+    "value": "353403986",
+    "created": "2025-10-25T18:04:14.495Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_HpZYgTXu1zmqqDWMzou9wh9A",
+    "customer_id": "cus_ElsNlt1UniBwoVmZMUh4pj34",
+    "type": "jp_cn",
+    "value": "1452588082189",
+    "created": "2025-04-24T05:32:43.505Z",
+    "verification_status": "pending"
+  },
+  {
+    "id": "txi_3SnBMQw7aq3vyfSUC2uF7VtJ",
+    "customer_id": "cus_2F7hODCeF8XfPVa0SL9POsWA",
+    "type": "eu_vat",
+    "value": "FR552287543",
+    "created": "2025-01-24T04:25:56.675Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_T7RrBqTJiRcBHYz7Cb2SctmE",
+    "customer_id": "cus_ccOypwYTvxCNS9CeCaOERWV9",
+    "type": "gb_vat",
+    "value": "GB196321729",
+    "created": "2025-09-07T04:44:35.457Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_XNCp7nQ5VY7Kg0FbtYI2JOhY",
+    "customer_id": "cus_9bfEBlcC89nzJGnEduCK464x",
+    "type": "eu_vat",
+    "value": "ES062249992",
+    "created": "2025-01-16T02:02:19.879Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_NIRAT8SXcXZC51PFIiMU7PID",
+    "customer_id": "cus_DgxpnR8p0gC5gSG4ZW8VyVYH",
+    "type": "eu_vat",
+    "value": "IT135323983",
+    "created": "2025-02-23T14:59:48.734Z",
+    "verification_status": "verified"
+  },
+  {
+    "id": "txi_nGTj3eg2fvoFpH0fxkjAgQFC",
+    "customer_id": "cus_CkDj5uRUxHBO6of0P8kRIzjv",
+    "type": "au_abn",
+    "value": "56092066967",
+    "created": "2025-09-08T23:28:13.682Z",
+    "verification_status": "unavailable"
+  }
+]

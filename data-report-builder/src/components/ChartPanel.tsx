@@ -8,6 +8,7 @@ import {
   createBenchmarkSeries,
 } from '@/data/mock';
 import { computeMetric } from '@/lib/metrics';
+import { computeFormula } from '@/lib/formulaMetrics';
 import { Granularity, validateGranularityRange, getBucketRange } from '@/lib/time';
 import { useWarehouseStore } from '@/lib/useWarehouse';
 import schema from '@/data/schema';
@@ -177,19 +178,40 @@ export function ChartPanel() {
     version,
   ]);
 
-  // Compute metric result (includes series)
+  // Always use formula system now (blocks always exist, single block = simple metric)
+  const useFormula = true;
+
+  // Compute metric result (includes series) - supports both legacy and multi-block
   const metricResult = useMemo(() => {
-    return computeMetric({
-      def: state.metric,
-      start: state.start,
-      end: state.end,
-      granularity: state.granularity,
-      store: warehouse,
-      include: includeSet,
-      schema,
-      objects: state.selectedObjects, // Pass selected objects to determine primary table
-    });
+    if (useFormula) {
+      // Use multi-block formula system
+      const { result } = computeFormula({
+        formula: state.metricFormula,
+        start: state.start,
+        end: state.end,
+        granularity: state.granularity,
+        store: warehouse,
+        schema,
+        selectedObjects: state.selectedObjects,
+        selectedFields: state.selectedFields,
+      });
+      return result;
+    } else {
+      // Use legacy single-metric system
+      return computeMetric({
+        def: state.metric,
+        start: state.start,
+        end: state.end,
+        granularity: state.granularity,
+        store: warehouse,
+        include: includeSet,
+        schema,
+        objects: state.selectedObjects, // Pass selected objects to determine primary table
+      });
+    }
   }, [
+    useFormula,
+    state.metricFormula,
     state.metric.name,
     state.metric.op,
     state.metric.type,
@@ -200,20 +222,23 @@ export function ChartPanel() {
     state.granularity,
     includeSet,
     state.selectedObjects,
+    state.selectedFields,
     version, // Re-compute when warehouse data changes
   ]);
 
   // Extract series from metric result (for compatibility with existing code)
   const series = useMemo(() => {
     if (!metricResult.series) {
-      return { key: state.report, label: state.metric.name, points: [] };
+      const metricName = useFormula ? state.metricFormula.name : state.metric.name;
+      return { key: state.report, label: metricName, points: [] };
     }
+    const metricName = useFormula ? state.metricFormula.name : state.metric.name;
     return {
       key: state.report,
-      label: state.metric.name,
+      label: metricName,
       points: metricResult.series,
     };
-  }, [metricResult, state.report, state.metric.name]);
+  }, [metricResult, state.report, state.metric.name, useFormula, state.metricFormula.name]);
 
   // Handle point click
   const handlePointClick = useCallback((data: any) => {
@@ -222,7 +247,8 @@ export function ChartPanel() {
 
     // For "latest" or "first" metrics, override the clicked bucket to show the bucket
     // that actually contributes to the metric value (not the clicked bucket)
-    if (state.metric.type === 'latest' || state.metric.type === 'first') {
+    // This only applies to legacy single-metric mode
+    if (!useFormula && (state.metric.type === 'latest' || state.metric.type === 'first')) {
       // Compute the appropriate bucket from the metric result series
       if (metricResult.series && metricResult.series.length > 0) {
         if (state.metric.type === 'latest') {
@@ -249,7 +275,7 @@ export function ChartPanel() {
 
     const { start, end } = getBucketRange(bucketDate, state.granularity);
     dispatch(actions.setSelectedBucket(start, end, dateStr));
-  }, [state.metric.type, state.granularity, metricResult.series, dispatch]);
+  }, [useFormula, state.metric.type, state.granularity, metricResult.series, dispatch]);
 
   // Generate comparison series based on comparison mode
   const comparisonSeries = useMemo(() => {
@@ -288,17 +314,33 @@ export function ChartPanel() {
             break;
         }
 
-        const prevSeries = generateSeries({
-          key: state.report,
-          start: shiftedStart,
-          end: shiftedEnd,
-          granularity: state.granularity,
-          seed: 54321, // Different seed for variation
-        });
+        // Compute actual metric for previous period using formula system
+        const prevResult = useFormula
+          ? computeFormula({
+              formula: state.metricFormula,
+              start: shiftedStart.toISOString().split('T')[0],
+              end: shiftedEnd.toISOString().split('T')[0],
+              granularity: state.granularity,
+              store: warehouse,
+              schema,
+              selectedObjects: state.selectedObjects,
+              selectedFields: state.selectedFields,
+            }).result
+          : computeMetric({
+              def: state.metric,
+              start: shiftedStart.toISOString().split('T')[0],
+              end: shiftedEnd.toISOString().split('T')[0],
+              granularity: state.granularity,
+              store: warehouse,
+              include: includeSet,
+              schema,
+              objects: state.selectedObjects,
+            });
 
         return {
-          ...prevSeries,
+          key: state.report,
           label: 'Previous Period',
+          points: prevResult.series || [],
         };
       }
 
@@ -308,17 +350,33 @@ export function ChartPanel() {
         const yearEnd = new Date(state.end);
         yearEnd.setFullYear(yearEnd.getFullYear() - 1);
 
-        const prevYearSeries = generateSeries({
-          key: state.report,
-          start: yearStart,
-          end: yearEnd,
-          granularity: state.granularity,
-          seed: 54321,
-        });
+        // Compute actual metric for previous year using formula system
+        const prevYearResult = useFormula
+          ? computeFormula({
+              formula: state.metricFormula,
+              start: yearStart.toISOString().split('T')[0],
+              end: yearEnd.toISOString().split('T')[0],
+              granularity: state.granularity,
+              store: warehouse,
+              schema,
+              selectedObjects: state.selectedObjects,
+              selectedFields: state.selectedFields,
+            }).result
+          : computeMetric({
+              def: state.metric,
+              start: yearStart.toISOString().split('T')[0],
+              end: yearEnd.toISOString().split('T')[0],
+              granularity: state.granularity,
+              store: warehouse,
+              include: includeSet,
+              schema,
+              objects: state.selectedObjects,
+            });
 
         return {
-          ...prevYearSeries,
+          key: state.report,
           label: 'Previous Year',
+          points: prevYearResult.series || [],
         };
       }
 
@@ -329,17 +387,31 @@ export function ChartPanel() {
       default:
         return null;
     }
-  }, [series, state.chart.comparison, state.start, state.end, state.granularity]);
+  }, [series, state.chart.comparison, state.start, state.end, state.granularity, useFormula, state.metricFormula, warehouse, schema, state.selectedObjects, state.selectedFields, includeSet, state.metric]);
+
+  // Get value kind from metric result (must be declared before chartData)
+  const valueKind = metricResult.kind || 'number';
 
   // Format chart data for Recharts - merge current and comparison series
+  // IMPORTANT: Convert currency values from pennies to dollars for chart rendering
   const chartData = useMemo(() => {
-    const data = series.points.map((point, index) => ({
-      date: point.date,
-      current: point.value,
-      comparison: comparisonSeries?.points[index]?.value,
-    }));
+    const data = series.points.map((point, index) => {
+      const currentValue = valueKind === 'currency' ? point.value / 100 : point.value;
+      
+      // Check if comparison value exists (including 0, but excluding null/undefined)
+      const comparisonPoint = comparisonSeries?.points[index];
+      const comparisonValue = comparisonPoint && comparisonPoint.value !== null && comparisonPoint.value !== undefined
+        ? (valueKind === 'currency' ? comparisonPoint.value / 100 : comparisonPoint.value)
+        : undefined;
+      
+      return {
+        date: point.date,
+        current: currentValue,
+        comparison: comparisonValue,
+      };
+    });
     return data;
-  }, [series, comparisonSeries]);
+  }, [series, comparisonSeries, valueKind]);
 
   // Compute X-axis ticks - only label the first occurrence of each month
   const xAxisTicks = useMemo(() => {
@@ -357,13 +429,22 @@ export function ChartPanel() {
       .map((point) => point.date);
   }, [chartData]);
 
-  // Get value kind from metric result
-  const valueKind = metricResult.kind || 'number';
-
   // Format number for display based on value kind (compact for chart axes)
+  // Note: Values are already converted to dollars in chartData, so we format directly
   const formatValue = (value: number) => {
     if (valueKind === 'currency') {
-      return currency(value, { compact: true });
+      // Value is already in dollars, not pennies
+      if (Math.abs(value) >= 1_000_000) {
+        return `$${(value / 1_000_000).toFixed(2)}M`;
+      } else if (Math.abs(value) >= 1_000) {
+        return `$${(value / 1_000).toFixed(1)}K`;
+      }
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value);
     } else {
       // For number/string, format with compact notation
       if (value >= 1000000) {
@@ -376,9 +457,16 @@ export function ChartPanel() {
   };
 
   // Format for tooltips (full values, not compact)
+  // Note: Values are already converted to dollars in chartData, so we format directly
   const formatTooltipValue = (value: number) => {
     if (valueKind === 'currency') {
-      return currency(value, { compact: false });
+      // Value is already in dollars, not pennies
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value);
     } else {
       return value.toLocaleString();
     }
@@ -1243,7 +1331,7 @@ export function ChartPanel() {
 
       {/* Chart and Table Container */}
       <div className="mt-3 p-2" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '8px' }}>
-        {metricResult.series === null || !state.metric.source ? (
+        {metricResult.series === null || (useFormula ? !state.metricFormula.blocks.some(b => b.source) : !state.metric.source) ? (
           <div className="flex flex-col items-center justify-center" style={{ height: '280px' }}>
             <div className="text-gray-400 dark:text-gray-500 text-center">
               <div className="text-4xl mb-2">📊</div>
@@ -1308,7 +1396,7 @@ export function ChartPanel() {
                 }}
               />
               <Line
-                      type="linear"
+                type="linear"
                 dataKey="current"
                 name={series.label}
                       stroke="var(--chart-line-primary)"
@@ -1320,11 +1408,16 @@ export function ChartPanel() {
                   const { key, ...dotProps } = props;
                         
                         // For latest/first value metrics, only show dot on the relevant bucket
+                        // Use formula block type if available, otherwise fall back to legacy metric type
+                        const metricType = useFormula && state.metricFormula.blocks.length > 0
+                          ? state.metricFormula.blocks[0].type
+                          : state.metric.type;
+                        
                         const shouldShowDot = 
-                          state.metric.type === 'sum_over_period' || 
-                          state.metric.type === 'average_over_period' ||
-                          (state.metric.type === 'latest' && props.index === chartData.length - 1) ||
-                          (state.metric.type === 'first' && props.index === 0);
+                          metricType === 'sum_over_period' || 
+                          metricType === 'average_over_period' ||
+                          (metricType === 'latest' && props.index === chartData.length - 1) ||
+                          (metricType === 'first' && props.index === 0);
                         
                         if (!shouldShowDot && !isSelected && !isHovered) {
                           return <g key={key} />;
@@ -1439,11 +1532,16 @@ export function ChartPanel() {
                   const { key, ...dotProps } = props;
                         
                         // For latest/first value metrics, only show dot on the relevant bucket
+                        // Use formula block type if available, otherwise fall back to legacy metric type
+                        const metricType = useFormula && state.metricFormula.blocks.length > 0
+                          ? state.metricFormula.blocks[0].type
+                          : state.metric.type;
+                        
                         const shouldShowDot = 
-                          state.metric.type === 'sum_over_period' || 
-                          state.metric.type === 'average_over_period' ||
-                          (state.metric.type === 'latest' && props.index === chartData.length - 1) ||
-                          (state.metric.type === 'first' && props.index === 0);
+                          metricType === 'sum_over_period' || 
+                          metricType === 'average_over_period' ||
+                          (metricType === 'latest' && props.index === chartData.length - 1) ||
+                          (metricType === 'first' && props.index === 0);
                         
                         if (!shouldShowDot && !isSelected && !isHovered) {
                           return <g key={key} />;

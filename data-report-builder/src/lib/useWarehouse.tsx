@@ -191,8 +191,11 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     console.log('[Warehouse] initial prop:', initial);
     console.log('========================================');
     
-    // Reset loading state when preset changes
+    // Reset loading state and clear store when preset changes
     setIsInitialLoadComplete(false);
+    storeRef.current = {}; // Clear all existing data
+    setLoadedEntities(new Set()); // Clear loaded entities tracking
+    loadingRef.current.clear(); // Clear loading state
     
     perf.mark('app_start');
     perf.mark('warehouse_init');
