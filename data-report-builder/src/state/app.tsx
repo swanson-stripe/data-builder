@@ -355,6 +355,10 @@ function buildInitialState(): AppState {
         conditions: preset.filters || [],
         logic: 'AND',
       },
+      dataListSort: preset.defaultSort ? {
+        column: preset.defaultSort.column,
+        direction: preset.defaultSort.direction,
+      } : undefined,
     };
   }
   
