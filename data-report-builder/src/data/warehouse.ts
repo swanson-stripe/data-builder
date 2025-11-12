@@ -384,6 +384,7 @@ function generateWarehouseData(): Warehouse {
     payments,
     refunds,
     subscriptions,
+    subscription_items: [],
     invoices,
     charges,
     payouts,

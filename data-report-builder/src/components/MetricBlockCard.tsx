@@ -1,5 +1,5 @@
 'use client';
-import { MetricBlock, MetricOp, MetricType, FilterCondition, BlockResult } from '@/types';
+import { MetricBlock, MetricOp, MetricType, FilterCondition, BlockResult, FieldType } from '@/types';
 import { getFieldLabel } from '@/data/schema';
 import { useState, useMemo, useEffect } from 'react';
 import { formatValueByUnit, getUnitLabel } from '@/lib/unitTypes';
@@ -122,7 +122,7 @@ export function MetricBlockCard({
   
   // Get all fields from selected objects for filter options
   const availableFilterFields = useMemo(() => {
-    const fields: Array<{ name: string; label: string; type: string; object: string; objectLabel: string; enum?: string[] }> = [];
+    const fields: Array<{ name: string; label: string; type: FieldType; object: string; objectLabel: string; enum?: string[] }> = [];
     
     // Get all fields from fieldOptions (which come from selectedFields in the parent)
     fieldOptions.forEach(option => {
@@ -133,7 +133,7 @@ export function MetricBlockCard({
         fields.push({
           name: field.name,
           label: field.label || field.name,
-          type: field.type,
+          type: field.type as FieldType,
           object: option.object,
           objectLabel: schemaObj?.label || option.object,
           enum: field.enum, // Include enum values for fields that have them
@@ -439,12 +439,7 @@ export function MetricBlockCard({
                     field={(() => {
                       const [objectName, fieldName] = selectedFilterFieldName.split('.');
                       const filterField = availableFilterFields.find(f => f.object === objectName && f.name === fieldName);
-                      return filterField ? {
-                        name: filterField.name,
-                        label: filterField.label,
-                        type: filterField.type,
-                        enum: filterField.enum, // Pass enum values to FieldFilter
-                      } : availableFilterFields[0];
+                      return filterField || availableFilterFields[0];
                     })()}
                     objectName={selectedFilterFieldName.split('.')[0]}
                     currentFilter={currentFilter && `${currentFilter.field.object}.${currentFilter.field.field}` === selectedFilterFieldName ? currentFilter : undefined}
