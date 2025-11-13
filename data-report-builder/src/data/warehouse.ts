@@ -398,7 +398,7 @@ function generateWarehouseData(): Warehouse {
 // ============================================================================
 
 // Import generated synthetic dataset
-import { warehouseData } from './warehouse-data';
+import { warehouseData } from './warehouse-fresh';
 export const warehouse: Warehouse = warehouseData;
 
 // ============================================================================
