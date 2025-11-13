@@ -239,35 +239,14 @@ export function ChartPanel() {
       // Set calculating to true immediately when dependencies change
       dispatch(actions.setCalculating(true));
       
-      // Clear after chart data is ready and rendered
-      // Use requestIdleCallback to wait until browser is done with heavy work
-      let timeoutId: NodeJS.Timeout;
+      // Keep visible for full calculation + render time (5 seconds to cover grouping operations)
+      const timeout = setTimeout(() => {
+        dispatch(actions.setCalculating(false));
+      }, 5000);
       
-      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-        const idleCallbackId = (window as any).requestIdleCallback(
-          () => {
-            // Additional delay after idle to ensure full render
-            timeoutId = setTimeout(() => {
-              dispatch(actions.setCalculating(false));
-            }, 800);
-          },
-          { timeout: 3000 } // Force after 3s even if not idle
-        );
-        
-        return () => {
-          (window as any).cancelIdleCallback(idleCallbackId);
-          if (timeoutId) clearTimeout(timeoutId);
-        };
-      } else {
-        // Fallback for older browsers
-        timeoutId = setTimeout(() => {
-          dispatch(actions.setCalculating(false));
-        }, 3000);
-        
-        return () => {
-          clearTimeout(timeoutId);
-        };
-      }
+      return () => {
+        clearTimeout(timeout);
+      };
     } else {
       // Clear immediately if not a heavy calculation
       dispatch(actions.setCalculating(false));
@@ -885,40 +864,12 @@ export function ChartPanel() {
     // Set loading immediately on mount
     dispatch(actions.setCalculating(true));
     
-    // Wait for React to finish rendering and hydration
-    // Use a combination of requestIdleCallback (when browser is idle) and timeout (fallback)
-    let timeoutId: NodeJS.Timeout;
-    let rafId: number;
-    
-    const clearLoading = () => {
+    // Keep indicator visible for full loading period (7 seconds to cover all log activity)
+    const timeout = setTimeout(() => {
       dispatch(actions.setCalculating(false));
-    };
+    }, 7000);
     
-    // Schedule clearing after browser is idle
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      const idleCallbackId = (window as any).requestIdleCallback(
-        () => {
-          // Wait a bit more after idle to ensure full interactivity
-          timeoutId = setTimeout(clearLoading, 1000);
-        },
-        { timeout: 4000 } // Force after 4s even if not idle
-      );
-      
-      return () => {
-        (window as any).cancelIdleCallback(idleCallbackId);
-        if (timeoutId) clearTimeout(timeoutId);
-      };
-    } else {
-      // Fallback: use RAF + timeout for older browsers
-      rafId = requestAnimationFrame(() => {
-        timeoutId = setTimeout(clearLoading, 3500);
-      });
-      
-      return () => {
-        cancelAnimationFrame(rafId);
-        if (timeoutId) clearTimeout(timeoutId);
-      };
-    }
+    return () => clearTimeout(timeout);
   }, []); // Run once on mount
 
   // Handle click outside to close group by popovers
