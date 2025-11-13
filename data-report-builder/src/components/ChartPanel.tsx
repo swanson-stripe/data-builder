@@ -229,31 +229,39 @@ export function ChartPanel() {
   ]);
 
   // Track when heavy calculations are in progress
+  // This effect triggers when dependencies that cause expensive recalculations change
   useEffect(() => {
     const isGrouping = state.groupBy && state.groupBy.selectedValues.length > 0;
     const isMultiBlock = state.metricFormula.blocks.length > 1;
     const isHeavyCalculation = isGrouping || isMultiBlock;
     
     if (isHeavyCalculation) {
-      // Set calculating to true immediately
+      // Set calculating to true immediately when dependencies change
       dispatch(actions.setCalculating(true));
       
-      // Clear after enough time for the calculation and UI update
+      // Clear after longer delay to account for actual computation time
+      // Grouping with 10 values can take 2-3 seconds
       const timeout = setTimeout(() => {
         dispatch(actions.setCalculating(false));
-      }, 1000);
+      }, 2500);
       
       return () => {
         clearTimeout(timeout);
-        dispatch(actions.setCalculating(false));
       };
+    } else {
+      // Clear immediately if not a heavy calculation
+      dispatch(actions.setCalculating(false));
     }
   }, [
+    state.groupBy?.field.object,
+    state.groupBy?.field.field,
     state.groupBy?.selectedValues.length,
     state.metricFormula.blocks.length,
     state.start,
     state.end,
     state.granularity,
+    state.selectedObjects.length,
+    state.selectedFields.length,
     dispatch,
   ]);
 
@@ -851,6 +859,15 @@ export function ChartPanel() {
     if (!state.groupBy) return [];
     return getGroupValues(warehouse, state.groupBy.field, 100);
   }, [state.groupBy?.field, version]);
+
+  // Show loading indicator on initial mount for preset calculations
+  useEffect(() => {
+    dispatch(actions.setCalculating(true));
+    const timeout = setTimeout(() => {
+      dispatch(actions.setCalculating(false));
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, []); // Run once on mount
 
   // Handle click outside to close group by popovers
   useEffect(() => {
