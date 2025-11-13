@@ -4,10 +4,12 @@ import { MetricOp, MetricType, MetricBlock, MetricFormula } from '@/types';
 import { getFieldLabel } from '@/data/schema';
 import { MetricBlockCard } from './MetricBlockCard';
 import { FormulaBuilder } from './FormulaBuilder';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useWarehouseStore } from '@/lib/useWarehouse';
 import { computeFormula } from '@/lib/formulaMetrics';
 import schema from '@/data/schema';
+import { getAvailableGroupFields, getGroupValues } from '@/lib/grouping';
+import GroupBySelector from './GroupBySelector';
 
 export function MetricTab() {
   const { state, dispatch } = useApp();
@@ -16,6 +18,12 @@ export function MetricTab() {
   // Track draft formula for multi-block calculations (to prevent broken states)
   const [draftFormula, setDraftFormula] = useState<MetricFormula | null>(null);
   const [hasUnappliedChanges, setHasUnappliedChanges] = useState(false);
+
+  // Group By state
+  const [isGroupByFieldSelectorOpen, setIsGroupByFieldSelectorOpen] = useState(false);
+  const [isGroupByValueSelectorOpen, setIsGroupByValueSelectorOpen] = useState(false);
+  const groupByButtonRef = useRef<HTMLButtonElement>(null);
+  const groupByPopoverRef = useRef<HTMLDivElement>(null);
 
   // Build list of qualified field names from selected fields
   const fieldOptions = state.selectedFields.map((field) => ({
@@ -31,6 +39,40 @@ export function MetricTab() {
 
   // Use draft formula for display if it exists, otherwise use state
   const activeFormula = draftFormula || state.metricFormula;
+
+  // Available fields for grouping
+  const availableGroupFields = useMemo(() => {
+    return getAvailableGroupFields(state.selectedObjects, schema);
+  }, [state.selectedObjects]);
+
+  // Available values for the selected group field
+  const availableGroupValues = useMemo(() => {
+    if (!state.groupBy || !warehouse) return [];
+    return getGroupValues(warehouse, state.groupBy.field, 50); // Get top 50, user can select max 10
+  }, [state.groupBy?.field, version]);
+
+  // Close Group By popovers when clicking outside
+  useEffect(() => {
+    if (!isGroupByFieldSelectorOpen && !isGroupByValueSelectorOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      
+      // Don't close if clicking the button
+      if (groupByButtonRef.current?.contains(target)) {
+        return;
+      }
+      
+      // Close if clicking outside the popover
+      if (groupByPopoverRef.current && !groupByPopoverRef.current.contains(target)) {
+        setIsGroupByFieldSelectorOpen(false);
+        setIsGroupByValueSelectorOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isGroupByFieldSelectorOpen, isGroupByValueSelectorOpen]);
 
   // Compute block results for live preview
   const { result, blockResults } = useMemo(() => {
@@ -277,6 +319,148 @@ export function MetricTab() {
             resultUnitType={result.unitType}
           />
         )}
+
+        {/* Group By Section */}
+        <div>
+          <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--text-primary)' }}>
+            Group by
+          </label>
+          <div className="relative inline-flex items-center gap-2">
+            <button
+              ref={groupByButtonRef}
+              onClick={() => {
+                if (!state.groupBy) {
+                  // Open field selector
+                  setIsGroupByFieldSelectorOpen(true);
+                } else {
+                  // Open value selector
+                  setIsGroupByValueSelectorOpen(true);
+                }
+              }}
+              className="text-sm border-none focus:outline-none cursor-pointer flex items-center transition-colors gap-2"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                color: state.groupBy ? 'var(--text-primary)' : 'var(--text-muted)',
+                fontWeight: 400,
+                borderRadius: '50px',
+                padding: '6px 12px',
+                height: '32px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {!state.groupBy && (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              )}
+              <span>
+                {state.groupBy 
+                  ? `${schema.objects.find(o => o.name === state.groupBy.field.object)?.label}.${schema.objects.find(o => o.name === state.groupBy.field.object)?.fields.find(f => f.name === state.groupBy.field.field)?.label} (${state.groupBy.selectedValues.length})`
+                  : 'Add grouping'}
+              </span>
+              {state.groupBy && (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </button>
+
+            {/* Field Selector Popover */}
+            {isGroupByFieldSelectorOpen && (
+              <div
+                ref={groupByPopoverRef}
+                className="absolute z-50"
+                style={{
+                  top: '40px',
+                  left: 0,
+                  minWidth: '200px',
+                  backgroundColor: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-medium)',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  padding: '8px',
+                }}
+              >
+                {availableGroupFields.length === 0 ? (
+                  <div className="px-3 py-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+                    No categorical fields available
+                  </div>
+                ) : (
+                  availableGroupFields.map((field) => (
+                    <button
+                      key={`${field.object}.${field.field}`}
+                      onClick={() => {
+                        const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
+                        dispatch(actions.setGroupBy({
+                          field: { object: field.object, field: field.field },
+                          selectedValues: values,
+                          autoAddedField: false,
+                        }));
+                        setIsGroupByFieldSelectorOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm transition-colors"
+                      style={{
+                        borderRadius: '4px',
+                        color: 'var(--text-primary)',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      {field.label}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Value Selector Popover */}
+            {isGroupByValueSelectorOpen && state.groupBy && (
+              <div
+                ref={groupByPopoverRef}
+                className="absolute z-50"
+                style={{
+                  top: '40px',
+                  left: 0,
+                }}
+              >
+                <GroupBySelector
+                  availableValues={availableGroupValues}
+                  selectedValues={state.groupBy.selectedValues}
+                  onApply={(selectedValues) => {
+                    dispatch(actions.updateGroupValues(selectedValues));
+                    setIsGroupByValueSelectorOpen(false);
+                  }}
+                  onCancel={() => {
+                    setIsGroupByValueSelectorOpen(false);
+                  }}
+                  maxSelections={10}
+                />
+              </div>
+            )}
+
+            {/* Clear button - show when grouping is active */}
+            {state.groupBy && (
+              <button
+                onClick={() => {
+                  dispatch(actions.clearGroupBy());
+                }}
+                className="flex items-center justify-center transition-colors"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderRadius: '50px',
+                  color: 'var(--text-muted)',
+                  width: '32px',
+                  height: '32px',
+                }}
+                aria-label="Clear grouping"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
