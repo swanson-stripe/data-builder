@@ -1720,6 +1720,7 @@ export function ChartPanel() {
                         // Show dot with click handler
                         return (
                           <circle
+                            key={`${groupValue}-${index}`}
                             cx={props.cx}
                             cy={props.cy}
                             r={isSelected ? 5 : isHovered ? 4.5 : 4}
