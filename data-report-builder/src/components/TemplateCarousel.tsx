@@ -5,6 +5,7 @@ import { useApp } from '@/state/app';
 import { PresetKey, PRESET_CONFIGS } from '@/lib/presets';
 import { applyPreset } from '@/lib/presets';
 import TemplateCard from './TemplateCard';
+import { useWarehouseStore } from '@/lib/useWarehouse';
 
 // Template presets to display in carousel (excluding 'blank' and 'mrr')
 const TEMPLATE_KEYS: PresetKey[] = [
@@ -22,6 +23,7 @@ type Props = {
 
 export default function TemplateCarousel({ onExploreOwn }: Props) {
   const { state, dispatch } = useApp();
+  const { store: warehouse } = useWarehouseStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [displayIndex, setDisplayIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -54,7 +56,7 @@ export default function TemplateCarousel({ onExploreOwn }: Props) {
   };
 
   const handleSelectTemplate = (key: PresetKey) => {
-    applyPreset(key, dispatch, state);
+    applyPreset(key, dispatch, state, warehouse);
     dispatch({ type: 'HIDE_TEMPLATE_SELECTOR' });
   };
 

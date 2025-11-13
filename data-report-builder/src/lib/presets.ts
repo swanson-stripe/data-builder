@@ -1,7 +1,8 @@
 // src/lib/presets.ts
 import { Granularity } from '@/lib/time';
-import { MetricDef, FilterCondition, MetricOp, MetricType, CalculationOperator, UnitType } from '@/types';
+import { MetricDef, FilterCondition, MetricOp, MetricType, CalculationOperator, UnitType, GroupBy } from '@/types';
 import { AppAction, ChartType } from '@/state/app';
+import { getGroupValues } from '@/lib/grouping';
 
 export type PresetKey =
   | 'blank'
@@ -58,6 +59,8 @@ type PresetConfig = {
     column: string; // Qualified field name: "object.field"
     direction: 'asc' | 'desc';
   };
+  // Optional group by configuration
+  groupBy?: Omit<GroupBy, 'autoAddedField'>; // Exclude autoAddedField from preset config
 };
 
 // convenience generator for ISO "today"
@@ -361,6 +364,10 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       column: 'charge.amount',
       direction: 'desc',
     },
+    groupBy: {
+      field: { object: 'product', field: 'name' },
+      selectedValues: [], // Empty array means show top 10 values from dataset
+    },
   },
 };
 
@@ -372,7 +379,8 @@ export const PRESET_OPTIONS = Object.values(PRESET_CONFIGS).map(p => ({
 export function applyPreset(
   key: PresetKey,
   dispatch: (a: AppAction) => void,
-  currentState?: any // Optional: pass current state to check existing blocks
+  currentState?: any, // Optional: pass current state to check existing blocks
+  warehouse?: any // Optional: warehouse store for resolving groupBy values
 ) {
   const p = PRESET_CONFIGS[key];
   if (!p) return;
@@ -518,6 +526,22 @@ export function applyPreset(
       payload: {
         column: p.defaultSort.column,
         direction: p.defaultSort.direction,
+      }
+    });
+  }
+
+  // Apply groupBy if specified
+  if (p.groupBy && warehouse) {
+    const selectedValues = p.groupBy.selectedValues.length > 0
+      ? p.groupBy.selectedValues
+      : getGroupValues(warehouse, p.groupBy.field, 10);
+
+    dispatch({
+      type: 'SET_GROUP_BY',
+      payload: {
+        field: p.groupBy.field,
+        selectedValues,
+        autoAddedField: false,
       }
     });
   }

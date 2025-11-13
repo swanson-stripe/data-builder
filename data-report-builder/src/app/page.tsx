@@ -14,7 +14,7 @@ import { Toast } from '@/components/Toast';
 import { useReportHeuristics } from '@/hooks/useReportHeuristics';
 import { PRESET_OPTIONS, applyPreset } from '@/lib/presets';
 import { ReportKey } from '@/types';
-import { WarehouseProvider } from '@/lib/useWarehouse';
+import { WarehouseProvider, useWarehouseStore } from '@/lib/useWarehouse';
 import { useState, useRef, useEffect } from 'react';
 import TemplateSelector from '@/components/TemplateSelector';
 import TemplateReopenButton from '@/components/TemplateReopenButton';
@@ -22,6 +22,7 @@ import TemplateReopenButton from '@/components/TemplateReopenButton';
 function PageContent() {
   const { state, dispatch } = useApp();
   const { theme, setTheme } = useTheme();
+  const { store: warehouse } = useWarehouseStore();
   const [sidebarWidth, setSidebarWidth] = useState(360);
   const [isResizing, setIsResizing] = useState(false);
   const [isHoveringHandle, setIsHoveringHandle] = useState(false);
@@ -311,7 +312,7 @@ function PageContent() {
                   <button
                     key={preset.key}
                     onClick={() => {
-                      applyPreset(preset.key, dispatch, state);
+                      applyPreset(preset.key, dispatch, state, warehouse);
                       setShowPresetOptions(false);
                       // Hide template selector if it's showing
                       if (state.showTemplateSelector) {
