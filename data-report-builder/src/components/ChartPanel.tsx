@@ -228,28 +228,41 @@ export function ChartPanel() {
     version, // Re-compute when warehouse data changes
   ]);
 
+  // Track loading state with ref to prevent multiple effects from interfering
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialMount = useRef(true);
+  
+  // Clear any existing timeout and set new one
+  const setLoadingState = useCallback((duration: number) => {
+    // Clear any existing timeout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+    }
+    
+    // Set calculating to true
+    dispatch(actions.setCalculating(true));
+    
+    // Schedule clearing
+    loadingTimeoutRef.current = setTimeout(() => {
+      dispatch(actions.setCalculating(false));
+      loadingTimeoutRef.current = null;
+    }, duration);
+  }, [dispatch]);
+  
   // Track when heavy calculations are in progress
-  // This effect triggers when dependencies that cause expensive recalculations change
   useEffect(() => {
+    // Skip on initial mount (handled separately below)
+    if (isInitialMount.current) {
+      return;
+    }
+    
     const isGrouping = state.groupBy && state.groupBy.selectedValues.length > 0;
     const isMultiBlock = state.metricFormula.blocks.length > 1;
     const isHeavyCalculation = isGrouping || isMultiBlock;
     
     if (isHeavyCalculation) {
-      // Set calculating to true immediately when dependencies change
-      dispatch(actions.setCalculating(true));
-      
-      // Keep visible for full calculation + render time (5 seconds to cover grouping operations)
-      const timeout = setTimeout(() => {
-        dispatch(actions.setCalculating(false));
-      }, 5000);
-      
-      return () => {
-        clearTimeout(timeout);
-      };
-    } else {
-      // Clear immediately if not a heavy calculation
-      dispatch(actions.setCalculating(false));
+      // Set loading state for 5 seconds on heavy operations
+      setLoadingState(5000);
     }
   }, [
     state.groupBy?.field.object,
@@ -261,7 +274,7 @@ export function ChartPanel() {
     state.granularity,
     state.selectedObjects.length,
     state.selectedFields.length,
-    dispatch,
+    setLoadingState,
   ]);
 
   // Compute grouped metrics if grouping is active
@@ -861,16 +874,12 @@ export function ChartPanel() {
 
   // Show loading indicator on initial mount until page is fully interactive
   useEffect(() => {
-    // Set loading immediately on mount
-    dispatch(actions.setCalculating(true));
-    
-    // Keep indicator visible for full loading period (7 seconds to cover all log activity)
-    const timeout = setTimeout(() => {
-      dispatch(actions.setCalculating(false));
-    }, 7000);
-    
-    return () => clearTimeout(timeout);
-  }, []); // Run once on mount
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      // Set loading state for 7 seconds on initial mount
+      setLoadingState(7000);
+    }
+  }, [setLoadingState]);
 
   // Handle click outside to close group by popovers
   useEffect(() => {
@@ -1590,7 +1599,7 @@ export function ChartPanel() {
                     key={`${field.object}.${field.field}`}
                     onClick={() => {
                       // Set calculating state immediately before heavy operation
-                      dispatch(actions.setCalculating(true));
+                      setLoadingState(5000);
                       
                       // Get top 10 values for this field
                       const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
@@ -1633,7 +1642,7 @@ export function ChartPanel() {
                 selectedValues={state.groupBy.selectedValues}
                 onApply={(selectedValues) => {
                   // Set calculating state immediately before updating group values
-                  dispatch(actions.setCalculating(true));
+                  setLoadingState(5000);
                   dispatch(actions.updateGroupValues(selectedValues));
                   setIsGroupByValueSelectorOpen(false);
                 }}
