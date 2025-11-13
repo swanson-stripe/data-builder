@@ -1569,6 +1569,9 @@ export function ChartPanel() {
                   <button
                     key={`${field.object}.${field.field}`}
                     onClick={() => {
+                      // Set calculating state immediately before heavy operation
+                      dispatch(actions.setCalculating(true));
+                      
                       // Get top 10 values for this field
                       const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
                       
@@ -1609,6 +1612,8 @@ export function ChartPanel() {
                 availableValues={availableGroupValues}
                 selectedValues={state.groupBy.selectedValues}
                 onApply={(selectedValues) => {
+                  // Set calculating state immediately before updating group values
+                  dispatch(actions.setCalculating(true));
                   dispatch(actions.updateGroupValues(selectedValues));
                   setIsGroupByValueSelectorOpen(false);
                 }}

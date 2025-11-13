@@ -195,6 +195,11 @@ export function MetricTab() {
 
   const handleApplyChanges = () => {
     if (draftFormula) {
+      // Set calculating state immediately before applying changes
+      if (draftFormula.blocks.length > 1) {
+        dispatch(actions.setCalculating(true));
+      }
+      
       // Apply all changes from draft to state
       draftFormula.blocks.forEach((block, index) => {
         if (index < state.metricFormula.blocks.length) {
@@ -390,6 +395,8 @@ export function MetricTab() {
                     <button
                       key={`${field.object}.${field.field}`}
                       onClick={() => {
+                        // Set calculating state immediately before heavy operation
+                        dispatch(actions.setCalculating(true));
                         const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
                         dispatch(actions.setGroupBy({
                           field: { object: field.object, field: field.field },
@@ -427,6 +434,8 @@ export function MetricTab() {
                   availableValues={availableGroupValues}
                   selectedValues={state.groupBy.selectedValues}
                   onApply={(selectedValues) => {
+                    // Set calculating state immediately before updating group values
+                    dispatch(actions.setCalculating(true));
                     dispatch(actions.updateGroupValues(selectedValues));
                     setIsGroupByValueSelectorOpen(false);
                   }}
