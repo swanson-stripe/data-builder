@@ -3,9 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { AIParseResult, AIReportConfig } from '@/types/ai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI client lazily to avoid build-time errors
+let openaiClient: OpenAI | null = null;
+function getOpenAIClient() {
+  if (!openaiClient && process.env.OPENAI_API_KEY) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
 
 // Available data objects and their fields for context
 const STRIPE_SCHEMA = {
@@ -146,6 +153,18 @@ export async function POST(request: NextRequest) {
           error: 'Please provide a prompt describing the report you want to create.',
         } as AIParseResult,
         { status: 400 }
+      );
+    }
+
+    // Get OpenAI client
+    const openai = getOpenAIClient();
+    if (!openai) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'OpenAI API key not configured. Please add OPENAI_API_KEY to .env.local',
+        } as AIParseResult,
+        { status: 500 }
       );
     }
 
