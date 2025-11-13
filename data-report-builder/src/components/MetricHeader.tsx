@@ -19,6 +19,9 @@ const REPORT_LABELS: Record<ReportKey, string> = {
   active_subscribers: 'Active Subscribers',
   refund_count: 'Refund Count',
   subscriber_ltv: 'Subscriber Lifetime Value',
+  customer_acquisition: 'Customer Acquisition',
+  payment_success_rate: 'Payment Success Rate',
+  revenue_by_product: 'Revenue by Product',
 };
 
 export function MetricHeader() {

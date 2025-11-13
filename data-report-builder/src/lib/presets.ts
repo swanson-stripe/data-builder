@@ -1,6 +1,6 @@
 // src/lib/presets.ts
 import { Granularity } from '@/lib/time';
-import { MetricDef, FilterCondition } from '@/types';
+import { MetricDef, FilterCondition, MetricOp, MetricType, CalculationOperator, UnitType } from '@/types';
 import { AppAction, ChartType } from '@/state/app';
 
 export type PresetKey =
@@ -9,9 +9,21 @@ export type PresetKey =
   | 'gross_volume'
   | 'active_subscribers'
   | 'refund_count'
-  | 'subscriber_ltv';
+  | 'subscriber_ltv'
+  | 'customer_acquisition'
+  | 'payment_success_rate'
+  | 'revenue_by_product';
 
 type QualifiedField = { object: string; field: string };
+
+type PresetBlock = {
+  id: string;
+  name: string;
+  source: QualifiedField | undefined;
+  op: MetricOp;
+  type: MetricType;
+  filters: FilterCondition[];
+};
 
 type PresetConfig = {
   key: PresetKey;
@@ -23,6 +35,17 @@ type PresetConfig = {
   // Metric driving the value/chart/summary
   metric: Pick<MetricDef, 'name' | 'op' | 'type'> & {
     source: QualifiedField | undefined;
+  };
+  // Optional multi-block calculation (for complex metrics like rates)
+  multiBlock?: {
+    blocks: PresetBlock[];
+    calculation: {
+      operator: CalculationOperator;
+      leftOperand: string;
+      rightOperand: string;
+      resultUnitType?: UnitType;
+    };
+    outputUnit: 'rate' | 'volume' | 'count';
   };
   // Optional default time settings
   range?: { start: string; end: string; granularity: Granularity };
@@ -217,6 +240,128 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       direction: 'desc',
     },
   },
+
+  customer_acquisition: {
+    key: 'customer_acquisition',
+    label: 'Customer Acquisition',
+    objects: ['customer', 'charge'],
+    fields: [
+      { object: 'customer', field: 'id' },
+      { object: 'customer', field: 'email' },
+      { object: 'customer', field: 'created' },
+      { object: 'charge', field: 'id' },
+      { object: 'charge', field: 'amount' },
+      { object: 'charge', field: 'created' },
+      { object: 'charge', field: 'status' },
+    ],
+    // Count new customers per period
+    metric: {
+      name: 'Customer Acquisition',
+      source: { object: 'customer', field: 'id' },
+      op: 'count',
+      type: 'sum_over_period',
+    },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
+    chartType: 'bar',
+    defaultSort: {
+      column: 'customer.created',
+      direction: 'desc',
+    },
+  },
+
+  payment_success_rate: {
+    key: 'payment_success_rate',
+    label: 'Payment Success Rate',
+    objects: ['charge'],
+    fields: [
+      { object: 'charge', field: 'id' },
+      { object: 'charge', field: 'amount' },
+      { object: 'charge', field: 'status' },
+      { object: 'charge', field: 'created' },
+    ],
+    // Placeholder metric (will be replaced by multi-block calculation)
+    metric: {
+      name: 'Payment Success Rate',
+      source: { object: 'charge', field: 'id' },
+      op: 'count',
+      type: 'sum_over_period',
+    },
+    // Multi-block calculation: succeeded / total (as rate/percentage)
+    multiBlock: {
+      blocks: [
+        {
+          id: 'block_1',
+          name: 'Successful Payments',
+          source: { object: 'charge', field: 'id' },
+          op: 'count',
+          type: 'latest',
+          filters: [
+            {
+              field: { object: 'charge', field: 'status' },
+              operator: 'equals',
+              value: 'succeeded',
+            },
+          ],
+        },
+        {
+          id: 'block_2',
+          name: 'Total Payments',
+          source: { object: 'charge', field: 'id' },
+          op: 'count',
+          type: 'latest',
+          filters: [],
+        },
+      ],
+      calculation: {
+        operator: 'divide',
+        leftOperand: 'block_1',
+        rightOperand: 'block_2',
+        resultUnitType: 'rate',
+      },
+      outputUnit: 'rate',
+    },
+    range: { 
+      start: new Date(new Date().setMonth(new Date().getMonth() - 3)).toISOString().split('T')[0], 
+      end: todayISO(), 
+      granularity: 'day' 
+    },
+    filters: [], // No global filters, using block-level filters instead
+    defaultSort: {
+      column: 'charge.created',
+      direction: 'desc',
+    },
+  },
+
+  revenue_by_product: {
+    key: 'revenue_by_product',
+    label: 'Revenue by Product',
+    objects: ['charge', 'product'],
+    fields: [
+      { object: 'product', field: 'name' },
+      { object: 'product', field: 'id' },
+      { object: 'charge', field: 'id' },
+      { object: 'charge', field: 'amount' },
+      { object: 'charge', field: 'created' },
+      { object: 'charge', field: 'status' },
+    ],
+    // Sum payment amounts
+    metric: {
+      name: 'Revenue by Product',
+      source: { object: 'charge', field: 'amount' },
+      op: 'sum',
+      type: 'sum_over_period',
+    },
+    range: { 
+      start: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0], 
+      end: todayISO(), 
+      granularity: 'week' 
+    },
+    chartType: 'bar',
+    defaultSort: {
+      column: 'charge.amount',
+      direction: 'desc',
+    },
+  },
 };
 
 export const PRESET_OPTIONS = Object.values(PRESET_CONFIGS).map(p => ({
@@ -242,23 +387,32 @@ export function applyPreset(
   // Clear existing filters before applying preset filters
   dispatch({ type: 'CLEAR_FILTERS' });
   
-  // Clear any formula calculation (presets are single-block only)
-  dispatch({ type: 'SET_CALCULATION', payload: undefined });
-  
-  // Clear exposeBlocks (presets don't expose intermediate blocks)
-  if (currentState?.metricFormula?.exposeBlocks?.length > 0) {
-    currentState.metricFormula.exposeBlocks.forEach((blockId: string) => {
-      dispatch({ type: 'TOGGLE_EXPOSE_BLOCK', payload: blockId });
-    });
-  }
-  
-  // Remove any extra blocks beyond block_1 (presets are single-block only)
-  if (currentState?.metricFormula?.blocks) {
-    currentState.metricFormula.blocks.forEach((block: any) => {
-      if (block.id !== 'block_1') {
+  // Clear any formula calculation and extra blocks (unless multi-block preset)
+  if (!p.multiBlock) {
+    dispatch({ type: 'SET_CALCULATION', payload: undefined });
+    
+    // Clear exposeBlocks (presets don't expose intermediate blocks)
+    if (currentState?.metricFormula?.exposeBlocks?.length > 0) {
+      currentState.metricFormula.exposeBlocks.forEach((blockId: string) => {
+        dispatch({ type: 'TOGGLE_EXPOSE_BLOCK', payload: blockId });
+      });
+    }
+    
+    // Remove any extra blocks beyond block_1 (single-block presets only)
+    if (currentState?.metricFormula?.blocks) {
+      currentState.metricFormula.blocks.forEach((block: any) => {
+        if (block.id !== 'block_1') {
+          dispatch({ type: 'REMOVE_METRIC_BLOCK', payload: block.id });
+        }
+      });
+    }
+  } else {
+    // Multi-block preset: clear all existing blocks first
+    if (currentState?.metricFormula?.blocks) {
+      currentState.metricFormula.blocks.forEach((block: any) => {
         dispatch({ type: 'REMOVE_METRIC_BLOCK', payload: block.id });
-      }
-    });
+      });
+    }
   }
 
   // Apply optional time range
@@ -287,7 +441,38 @@ export function applyPreset(
   }
 
   // Configure Metric (Phase 3)
-  if (p.metric) {
+  if (p.multiBlock) {
+    // Multi-block calculation (e.g., Payment Success Rate)
+    dispatch({ type: 'SET_METRIC_NAME', payload: p.metric.name });
+    dispatch({ type: 'SET_METRIC_FORMULA_NAME', payload: p.metric.name });
+    
+    // Add all blocks
+    for (const block of p.multiBlock.blocks) {
+      dispatch({ 
+        type: 'ADD_METRIC_BLOCK', 
+        payload: {
+          id: block.id,
+          name: block.name,
+          source: block.source,
+          op: block.op,
+          type: block.type,
+          filters: block.filters,
+        }
+      });
+    }
+    
+    // Set up the calculation formula with result unit type
+    dispatch({ 
+      type: 'SET_CALCULATION', 
+      payload: {
+        operator: p.multiBlock.calculation.operator,
+        leftOperand: p.multiBlock.calculation.leftOperand,
+        rightOperand: p.multiBlock.calculation.rightOperand,
+        resultUnitType: p.multiBlock.calculation.resultUnitType,
+      }
+    });
+  } else if (p.metric) {
+    // Single-block metric
     dispatch({ type: 'SET_METRIC_NAME', payload: p.metric.name });
     dispatch({ type: 'SET_METRIC_OP', payload: p.metric.op });
     dispatch({ type: 'SET_METRIC_TYPE', payload: p.metric.type });

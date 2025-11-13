@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { Granularity } from '@/lib/time';
-import { ReportKey, MetricDef, MetricOp, MetricType, MetricFormula, MetricBlock, CalculationOperator, FilterGroup, FilterCondition } from '@/types';
+import { ReportKey, MetricDef, MetricOp, MetricType, MetricFormula, MetricBlock, CalculationOperator, FilterGroup, FilterCondition, UnitType } from '@/types';
 
 // Chart types
 export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year' | 'benchmarks';
@@ -50,6 +50,8 @@ export type AppState = {
     column: string; // Qualified field name: "object.field"
     direction: 'asc' | 'desc';
   };
+  showTemplateSelector: boolean; // Whether to show the template selection UI
+  hasUserMadeChanges: boolean; // Track if user has modified blank state
 };
 
 // Action types
@@ -176,7 +178,7 @@ type RemoveMetricBlockAction = {
 
 type SetCalculationAction = {
   type: 'SET_CALCULATION';
-  payload: { operator: CalculationOperator; leftOperand: string; rightOperand: string } | undefined;
+  payload: { operator: CalculationOperator; leftOperand: string; rightOperand: string; resultUnitType?: UnitType } | undefined;
 };
 
 type ToggleExposeBlockAction = {
@@ -239,6 +241,24 @@ type ResetAllAction = {
   type: 'RESET_ALL';
 };
 
+type ShowTemplateSelectorAction = {
+  type: 'SHOW_TEMPLATE_SELECTOR';
+};
+
+type HideTemplateSelectorAction = {
+  type: 'HIDE_TEMPLATE_SELECTOR';
+};
+
+type SetUserMadeChangesAction = {
+  type: 'SET_USER_MADE_CHANGES';
+  payload: boolean;
+};
+
+type ApplyAIConfigAction = {
+  type: 'APPLY_AI_CONFIG';
+  payload: any; // AIReportConfig from AI parsing
+};
+
 export type AppAction =
   | SetTabAction
   | ToggleObjectAction
@@ -276,7 +296,11 @@ export type AppAction =
   | SetFilterLogicAction
   | ClearFiltersAction
   | SetDataListSortAction
-  | ResetAllAction;
+  | ResetAllAction
+  | ShowTemplateSelectorAction
+  | HideTemplateSelectorAction
+  | SetUserMadeChangesAction
+  | ApplyAIConfigAction;
 
 // Helper function to build initial state with preset applied
 function buildInitialState(): AppState {
@@ -310,6 +334,8 @@ function buildInitialState(): AppState {
       conditions: [],
       logic: 'AND',
     },
+    showTemplateSelector: false, // Don't show by default - MRR preset is loaded
+    hasUserMadeChanges: false,
   };
 
   // Apply MRR preset synchronously to initial state
@@ -420,12 +446,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
           metric: shouldClearMetricSource
             ? { ...state.metric, source: undefined }
             : state.metric,
+          hasUserMadeChanges: state.report === 'blank' ? true : state.hasUserMadeChanges,
         };
       } else {
         // Add object
         return {
           ...state,
           selectedObjects: [...state.selectedObjects, objectName],
+          hasUserMadeChanges: state.report === 'blank' ? true : state.hasUserMadeChanges,
         };
       }
     }
@@ -832,6 +860,96 @@ function appReducer(state: AppState, action: AppAction): AppState {
           conditions: [],
           logic: 'AND',
         },
+        showTemplateSelector: true, // Show template selector on reset
+        hasUserMadeChanges: false,
+      };
+    }
+
+    case 'SHOW_TEMPLATE_SELECTOR':
+      return {
+        ...state,
+        showTemplateSelector: true,
+      };
+
+    case 'HIDE_TEMPLATE_SELECTOR':
+      return {
+        ...state,
+        showTemplateSelector: false,
+      };
+
+    case 'SET_USER_MADE_CHANGES':
+      return {
+        ...state,
+        hasUserMadeChanges: action.payload,
+      };
+
+    case 'APPLY_AI_CONFIG': {
+      const config = action.payload;
+      
+      console.log('🤖 [AI Config] Applying AI-generated configuration:', config);
+      
+      // Ensure filtered fields are included in selectedFields
+      // (Users need to see the fields they're filtering on)
+      const filterFields = (config.filters || []).map((f: any) => f.field);
+      const allFields = [...config.fields];
+      
+      // Add filter fields if not already present
+      filterFields.forEach((filterField: { object: string; field: string }) => {
+        const exists = allFields.some(
+          f => f.object === filterField.object && f.field === filterField.field
+        );
+        if (!exists) {
+          console.log('🤖 [AI Config] Adding filter field to selectedFields:', filterField);
+          allFields.push(filterField);
+        }
+      });
+      
+      // Reset state first
+      const resetBlock: MetricBlock = {
+        id: 'block_1',
+        name: config.metric.name,
+        source: config.metric.source,
+        op: config.metric.op,
+        type: config.metric.type,
+        filters: config.filters || [],
+      };
+      
+      console.log('🤖 [AI Config] Created metric block:', resetBlock);
+      console.log('🤖 [AI Config] Selected objects:', config.objects);
+      console.log('🤖 [AI Config] Selected fields:', allFields);
+      console.log('🤖 [AI Config] Global filters:', config.filters);
+      
+      return {
+        ...state,
+        report: 'blank', // AI-generated reports are custom
+        selectedObjects: config.objects,
+        selectedFields: allFields,
+        fieldOrder: allFields.map((f: { object: string; field: string }) => `${f.object}.${f.field}`),
+        metric: {
+          name: config.metric.name,
+          source: config.metric.source,
+          op: config.metric.op,
+          type: config.metric.type,
+        },
+        metricFormula: {
+          name: config.metric.name,
+          blocks: [resetBlock],
+          calculation: undefined,
+          exposeBlocks: [],
+        },
+        start: config.range?.start || state.start,
+        end: config.range?.end || state.end,
+        granularity: config.range?.granularity || state.granularity,
+        filters: {
+          conditions: config.filters || [],
+          logic: 'AND',
+        },
+        chart: {
+          ...state.chart,
+          type: config.chartType || state.chart.type,
+        },
+        showTemplateSelector: false, // Hide template selector after applying
+        hasUserMadeChanges: false,
       };
     }
 

@@ -50,10 +50,11 @@ export interface Payment {
   id: string;
   customer_id: string;
   payment_method_id: string;
+  price_id?: string;
   invoice_id?: string;
   amount: number;
   currency: string;
-  status: 'succeeded' | 'processing' | 'requires_payment_method' | 'canceled';
+  status: 'succeeded' | 'processing' | 'requires_payment_method' | 'canceled' | 'pending' | 'failed';
   product_id: string;
   created: string;
 }
@@ -108,6 +109,7 @@ export interface Charge {
   payment_intent_id?: string;
   invoice_id?: string;
   product_id?: string;
+  price_id?: string;
   amount: number;
   currency: string;
   status: 'succeeded' | 'pending' | 'failed';

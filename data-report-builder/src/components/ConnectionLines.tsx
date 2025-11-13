@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback, RefObject } from 'react';
+import { useEffect, useState, useCallback, useMemo, RefObject } from 'react';
 import { useApp } from '@/state/app';
 
 interface ConnectionLinesProps {
@@ -31,6 +31,25 @@ export function ConnectionLines({ containerRef, expandedTables, expandedFields, 
   const [connections, setConnections] = useState<Connection[]>([]);
   const [svgDimensions, setSvgDimensions] = useState({ width: 0, height: 0 });
 
+  // Memoize selector strings to reduce repeated string concatenation
+  const selectors = useMemo(() => {
+    const tableSelectors = new Map<string, string>();
+    const fieldSelectors = new Map<string, string>();
+    const filterSelectors = new Map<string, string>();
+    
+    state.selectedObjects.forEach(objectName => {
+      tableSelectors.set(objectName, `[data-connection-id="table-${objectName}"]`);
+    });
+    
+    state.selectedFields.forEach(field => {
+      const fieldId = `${field.object}.${field.field}`;
+      fieldSelectors.set(fieldId, `[data-connection-id="field-${fieldId}"]`);
+      filterSelectors.set(fieldId, `[data-connection-id="filter-${fieldId}"]`);
+    });
+    
+    return { tableSelectors, fieldSelectors, filterSelectors };
+  }, [state.selectedObjects, state.selectedFields]);
+
   const calculateConnections = useCallback(() => {
     if (!containerRef.current) return;
 
@@ -60,17 +79,22 @@ export function ConnectionLines({ containerRef, expandedTables, expandedFields, 
       
       if (selectedFieldsForObject.length === 0) return;
       
-      // Get table chip position
-      const tableChipEl = container.querySelector(`[data-connection-id="table-${objectName}"]`);
+      // Get table chip position using memoized selector
+      const tableSelector = selectors.tableSelectors.get(objectName);
+      if (!tableSelector) return;
+      const tableChipEl = container.querySelector(tableSelector);
       if (!tableChipEl) return;
       
       const tableChipPos = getElementPosition(tableChipEl);
       if (!tableChipPos) return;
       
-      // Get all field element positions
+      // Get all field element positions using memoized selectors
       const fieldPositions: Array<{ field: string; pos: ElementPosition }> = [];
       selectedFieldsForObject.forEach((field) => {
-        const fieldEl = container.querySelector(`[data-connection-id="field-${objectName}.${field.field}"]`);
+        const fieldId = `${objectName}.${field.field}`;
+        const fieldSelector = selectors.fieldSelectors.get(fieldId);
+        if (!fieldSelector) return;
+        const fieldEl = container.querySelector(fieldSelector);
         if (fieldEl) {
           const pos = getElementPosition(fieldEl);
           if (pos) {
@@ -97,8 +121,13 @@ export function ConnectionLines({ containerRef, expandedTables, expandedFields, 
     // Find all field-to-filter connections (including expanded fields with no filter yet)
     // First, add connections for fields with actual filters
     state.filters.conditions.forEach((condition) => {
-      const fieldEl = container.querySelector(`[data-connection-id="field-${condition.field.object}.${condition.field.field}"]`);
-      const filterEl = container.querySelector(`[data-connection-id="filter-${condition.field.object}.${condition.field.field}"]`);
+      const fieldId = `${condition.field.object}.${condition.field.field}`;
+      const fieldSelector = selectors.fieldSelectors.get(fieldId);
+      const filterSelector = selectors.filterSelectors.get(fieldId);
+      
+      if (!fieldSelector || !filterSelector) return;
+      const fieldEl = container.querySelector(fieldSelector);
+      const filterEl = container.querySelector(filterSelector);
 
       if (!fieldEl || !filterEl) return;
 
@@ -131,9 +160,13 @@ export function ConnectionLines({ containerRef, expandedTables, expandedFields, 
       // If it has a filter, we already drew the connection above
       if (hasFilter) return;
       
-      // Find the field and filter elements
-      const fieldEl = container.querySelector(`[data-connection-id="field-${fieldId}"]`);
-      const filterEl = container.querySelector(`[data-connection-id="filter-${fieldId}"]`);
+      // Find the field and filter elements using memoized selectors
+      const fieldSelector = selectors.fieldSelectors.get(fieldId);
+      const filterSelector = selectors.filterSelectors.get(fieldId);
+      
+      if (!fieldSelector || !filterSelector) return;
+      const fieldEl = container.querySelector(fieldSelector);
+      const filterEl = container.querySelector(filterSelector);
       
       if (!fieldEl || !filterEl) return;
       
@@ -157,7 +190,7 @@ export function ConnectionLines({ containerRef, expandedTables, expandedFields, 
       width: container.scrollWidth,
       height: container.scrollHeight,
     });
-  }, [containerRef, state.selectedObjects, state.selectedFields, state.filters.conditions, expandedTables, expandedFields, expandedFilters, showAllFieldsMap, searchQuery]);
+  }, [containerRef, state.selectedObjects, state.selectedFields, state.filters.conditions, expandedTables, expandedFields, expandedFilters, showAllFieldsMap, searchQuery, selectors]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -176,7 +209,7 @@ export function ConnectionLines({ containerRef, expandedTables, expandedFields, 
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
         requestAnimationFrame(calculateConnections);
-      }, 100);
+      }, 250); // Increased from 100ms for better performance
     };
 
     // Handle scroll with requestAnimationFrame for performance
@@ -207,7 +240,7 @@ export function ConnectionLines({ containerRef, expandedTables, expandedFields, 
   useEffect(() => {
     const timeout = setTimeout(() => {
       requestAnimationFrame(calculateConnections);
-    }, 50);
+    }, 150); // Increased from 50ms for better performance
     return () => clearTimeout(timeout);
   }, [calculateConnections]);
 

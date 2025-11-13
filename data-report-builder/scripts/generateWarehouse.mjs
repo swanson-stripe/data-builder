@@ -21,11 +21,29 @@ const YEARS = 6;
 const START_DATE = new Date(2020, 0, 1); // Jan 1, 2020
 const END_DATE = new Date(); // TODAY - ensures current data
 
-// Reduced scale for faster generation and smaller file size
-const CUSTOMERS = 1000;     // 5000 -> 1000 (80% reduction)
-const PRODUCTS = 15;        // 20 -> 15 (25% reduction)
-const PAYMENTS = 10000;     // 50000 -> 10000 (80% reduction)
-const SUBSCRIPTIONS = 800;  // 4000 -> 800 (80% reduction)
+// Scaled up for realistic business metrics while keeping file size manageable
+const CUSTOMERS = 10000;      // Increased for realistic customer base
+const PRODUCTS = 25;          // More product variety
+const PAYMENTS = 50000;       // Higher payment volume
+const SUBSCRIPTIONS = 12000;  // Target ~10k active subscriptions for realistic MRR
+
+// Safety limits to prevent runaway generation
+const SAFETY_LIMITS = {
+  MAX_CUSTOMERS: 100000,
+  MAX_SUBSCRIPTIONS: 50000,
+  MAX_PAYMENTS: 200000,
+  GENERATION_TIMEOUT_MS: 300000, // 5 minutes
+  MAX_FILE_SIZE_MB: 50,
+};
+
+// Estimated bytes per record for file size calculation
+const BYTES_PER_RECORD = {
+  customer: 150,
+  subscription: 200,
+  payment: 180,
+  price: 120,
+  product: 150,
+};
 
 // ============================================================================
 // Helper Functions
@@ -60,10 +78,148 @@ function stripeId(prefix, length = 10) {
 }
 
 // ============================================================================
+// Validation Functions
+// ============================================================================
+
+function validateConfig() {
+  console.log('🔍 Validating configuration...');
+  if (CUSTOMERS > SAFETY_LIMITS.MAX_CUSTOMERS) {
+    throw new Error(`CUSTOMERS (${CUSTOMERS}) exceeds limit (${SAFETY_LIMITS.MAX_CUSTOMERS})`);
+  }
+  if (SUBSCRIPTIONS > SAFETY_LIMITS.MAX_SUBSCRIPTIONS) {
+    throw new Error(`SUBSCRIPTIONS (${SUBSCRIPTIONS}) exceeds limit (${SAFETY_LIMITS.MAX_SUBSCRIPTIONS})`);
+  }
+  if (PAYMENTS > SAFETY_LIMITS.MAX_PAYMENTS) {
+    throw new Error(`PAYMENTS (${PAYMENTS}) exceeds limit (${SAFETY_LIMITS.MAX_PAYMENTS})`);
+  }
+  
+  // Estimate output size
+  const estimatedMB = (
+    CUSTOMERS * BYTES_PER_RECORD.customer +
+    SUBSCRIPTIONS * BYTES_PER_RECORD.subscription +
+    PAYMENTS * BYTES_PER_RECORD.payment +
+    PRODUCTS * BYTES_PER_RECORD.product * 3 // ~3 prices per product
+  ) / 1024 / 1024;
+  
+  console.log(`   📦 Estimated output: ${estimatedMB.toFixed(2)} MB`);
+  if (estimatedMB > SAFETY_LIMITS.MAX_FILE_SIZE_MB) {
+    throw new Error(`Estimated size ${estimatedMB.toFixed(2)}MB exceeds ${SAFETY_LIMITS.MAX_FILE_SIZE_MB}MB limit`);
+  }
+  console.log('   ✅ Config validation passed\n');
+}
+
+function validateRelationalIntegrity(warehouse) {
+  console.log('\n🔍 Validating relational integrity...');
+  const errors = [];
+  
+  // Check payments have valid customers
+  warehouse.payments.forEach(p => {
+    if (!warehouse.customers.find(c => c.id === p.customer_id)) {
+      errors.push(`Payment ${p.id} -> invalid customer_id`);
+    }
+  });
+  
+  // Check subscriptions have valid price and customer
+  warehouse.subscriptions.forEach(sub => {
+    if (!warehouse.prices.find(pr => pr.id === sub.price_id)) {
+      errors.push(`Subscription ${sub.id} -> invalid price_id`);
+    }
+    if (!warehouse.customers.find(c => c.id === sub.customer_id)) {
+      errors.push(`Subscription ${sub.id} -> invalid customer_id`);
+    }
+  });
+  
+  // Check prices have valid products
+  warehouse.prices.forEach(pr => {
+    if (!warehouse.products.find(p => p.id === pr.product_id)) {
+      errors.push(`Price ${pr.id} -> invalid product_id`);
+    }
+  });
+  
+  // Check subscription_items have valid subscription and price
+  warehouse.subscription_items.forEach(item => {
+    if (!warehouse.subscriptions.find(s => s.id === item.subscription_id)) {
+      errors.push(`SubscriptionItem ${item.id} -> invalid subscription_id`);
+    }
+    if (!warehouse.prices.find(p => p.id === item.price_id)) {
+      errors.push(`SubscriptionItem ${item.id} -> invalid price_id`);
+    }
+  });
+  
+  // Check charges have valid customer and product
+  warehouse.charges.forEach(ch => {
+    if (!warehouse.customers.find(c => c.id === ch.customer_id)) {
+      errors.push(`Charge ${ch.id} -> invalid customer_id`);
+    }
+    if (!warehouse.products.find(p => p.id === ch.product_id)) {
+      errors.push(`Charge ${ch.id} -> invalid product_id`);
+    }
+    // Check price_id if it exists (will be added in Phase 2)
+    if (ch.price_id && !warehouse.prices.find(p => p.id === ch.price_id)) {
+      errors.push(`Charge ${ch.id} -> invalid price_id`);
+    }
+  });
+  
+  if (errors.length > 0) {
+    console.error('   ❌ Relational integrity errors:');
+    errors.slice(0, 5).forEach(e => console.error(`      ${e}`));
+    if (errors.length > 5) console.error(`      ... and ${errors.length - 5} more`);
+    throw new Error(`${errors.length} integrity errors found`);
+  }
+  console.log('   ✅ All foreign keys valid');
+}
+
+function validateMetrics(warehouse) {
+  console.log('\n📊 Validating metrics...');
+  
+  const activeSubscriptions = warehouse.subscriptions.filter(s => 
+    s.status === 'active' && new Date(s.current_period_end) > new Date()
+  );
+  
+  let calculatedMRR = 0;
+  let missingPrices = 0;
+  
+  activeSubscriptions.forEach(sub => {
+    const price = warehouse.prices.find(p => p.id === sub.price_id);
+    if (!price) {
+      missingPrices++;
+      return;
+    }
+    
+    let monthlyAmount = price.unit_amount;
+    if (price.recurring_interval === 'year') {
+      monthlyAmount = Math.round(price.unit_amount / 12);
+    } else if (price.recurring_interval === 'week') {
+      monthlyAmount = Math.round(price.unit_amount * 4.33);
+    }
+    calculatedMRR += monthlyAmount;
+  });
+  
+  const mrrDollars = calculatedMRR / 100;
+  console.log(`   Active subscriptions: ${activeSubscriptions.length.toLocaleString()}`);
+  console.log(`   Calculated MRR: $${mrrDollars.toLocaleString()}`);
+  
+  if (activeSubscriptions.length === 0) {
+    throw new Error('No active subscriptions generated');
+  }
+  if (missingPrices > 0) {
+    throw new Error(`${missingPrices} active subscriptions have invalid price_id`);
+  }
+  if (mrrDollars < 1000) {
+    console.warn(`   ⚠️  MRR is very low ($${mrrDollars.toFixed(2)})`);
+  }
+  
+  console.log('   ✅ Metrics validation passed');
+}
+
+// ============================================================================
 // Main Generation
 // ============================================================================
 
 console.log('🚀 Generating realistic synthetic dataset...\n');
+
+// Validate configuration before starting
+validateConfig();
 
 const warehouse = {
   customers: [],
@@ -81,13 +237,15 @@ const warehouse = {
 
 // 1️⃣ Generate Customers
 console.log(`1️⃣  Generating ${CUSTOMERS} customers...`);
+// Use realistic country distribution with valid ISO codes
+const COUNTRIES = ['US', 'US', 'US', 'US', 'US', 'CA', 'CA', 'MX', 'GB', 'DE', 'FR', 'AU', 'JP', 'BR']; // Bias toward North America
 for (let i = 0; i < CUSTOMERS; i++) {
   const created = randomDate(START_DATE, END_DATE);
   warehouse.customers.push({
     id: stripeId('cus'),
     email: faker.internet.email().toLowerCase(),
     name: faker.person.fullName(),
-    country: faker.location.countryCode(),
+    country: pick(COUNTRIES), // Use valid ISO country codes with North America bias
     created: iso(created),
     balance: faker.number.int({ min: -10000, max: 10000 }),
     delinquent: faker.datatype.boolean({ probability: 0.1 }),
@@ -108,16 +266,37 @@ for (let i = 0; i < PRODUCTS; i++) {
     created: iso(created),
   });
 
-  // Each product has 1-3 prices
-  const priceCount = faker.number.int({ min: 1, max: 3 });
+  // Each product has 2-4 prices with realistic tiered pricing
+  const priceTiers = [
+    { amount: 2900, weight: 0.40 },   // $29/mo - 40% of prices
+    { amount: 4900, weight: 0.25 },   // $49/mo - 25%
+    { amount: 9900, weight: 0.20 },   // $99/mo - 20%
+    { amount: 19900, weight: 0.10 },  // $199/mo - 10%
+    { amount: 49900, weight: 0.05 },  // $499/mo - 5%
+  ];
+  
+  const priceCount = faker.number.int({ min: 2, max: 4 });
   for (let j = 0; j < priceCount; j++) {
-    const currency = pick(['usd', 'eur', 'gbp']);
+    // Weighted random selection for realistic distribution
+    const rand = Math.random();
+    let cumulativeWeight = 0;
+    let selectedAmount = 2900; // default
+    
+    for (const tier of priceTiers) {
+      cumulativeWeight += tier.weight;
+      if (rand <= cumulativeWeight) {
+        selectedAmount = tier.amount;
+        break;
+      }
+    }
+    
+    const currency = pick(['usd', 'usd', 'usd', 'eur', 'gbp']); // Bias toward USD
     warehouse.prices.push({
       id: stripeId('price'),
       product_id: pid,
-      unit_amount: faker.number.int({ min: 500, max: 20000 }),
+      unit_amount: selectedAmount,
       currency,
-      recurring_interval: pick(['month', 'year', 'week']),
+      recurring_interval: pick(['month', 'month', 'month', 'year']), // Bias toward monthly
       active: faker.datatype.boolean({ probability: 0.95 }),
       created: iso(created),
     });
@@ -209,9 +388,10 @@ for (let i = 0; i < PAYMENTS; i++) {
     id: stripeId('pi', 12),
     customer_id: c.id,
     payment_method_id: pm.id,
-    amount: faker.number.int({ min: 500, max: 20000 }),
+    price_id: pr.id,  // Explicit price link for consistency
+    amount: pr.unit_amount,  // Use price's amount for consistency
     currency: pr.currency,
-    status: pick(['succeeded', 'succeeded', 'succeeded', 'processing', 'requires_payment_method', 'canceled']), // bias toward succeeded
+    status: pick(['succeeded', 'succeeded', 'succeeded', 'succeeded', 'succeeded', 'pending', 'failed']), // Heavy bias toward succeeded for realistic data
     product_id: pr.product_id,
     created: iso(created),
   };
@@ -255,13 +435,19 @@ for (let i = 0; i < chargeCount; i++) {
   const c = pick(warehouse.customers);
   const created = randomDate(new Date(c.created), END_DATE);
   const prod = pick(warehouse.products);
+  
+  // Get a valid price for this product
+  const productPrices = warehouse.prices.filter(p => p.product_id === prod.id);
+  if (productPrices.length === 0) continue; // Skip if no prices for this product
+  const pr = pick(productPrices);
 
   const charge = {
     id: stripeId('ch'),
     customer_id: c.id,
     product_id: prod.id,
-    amount: faker.number.int({ min: 500, max: 50000 }),
-    currency: pick(['usd', 'eur', 'gbp']),
+    price_id: pr.id,  // Link to price for consistency
+    amount: pr.unit_amount,  // Use price's amount for consistency
+    currency: pr.currency,  // Use price's currency
     status: pick(['succeeded', 'succeeded', 'succeeded', 'pending', 'failed']), // bias toward succeeded
     created: iso(created),
   };
@@ -310,6 +496,13 @@ for (const [month, data] of byMonth.entries()) {
     created: iso(payoutDate),
   });
 }
+
+// ============================================================================
+// Validate Before Saving
+// ============================================================================
+
+validateRelationalIntegrity(warehouse);
+validateMetrics(warehouse);
 
 // ============================================================================
 // Save to File

@@ -10,6 +10,43 @@ import React, { createContext, useContext, useEffect, useRef, useState, type Rea
 import { perf } from '@/lib/instrument';
 import { PRESET_CONFIGS, type PresetKey } from '@/lib/presets';
 
+/**
+ * Validate warehouse data on load to catch issues early
+ */
+function validateWarehouseEntity(name: string, data: any[]): void {
+  if (!data || !Array.isArray(data)) {
+    throw new Error(`[Warehouse] ${name} is not an array`);
+  }
+  
+  if (data.length === 0) {
+    console.warn(`[Warehouse] ${name} has no records`);
+    return;
+  }
+  
+  // Validate key entities have expected structure
+  if (name === 'subscription' || name === 'subscriptions') {
+    const activeSubs = data.filter((s: any) => s.status === 'active');
+    if (activeSubs.length === 0) {
+      console.warn(`[Warehouse] No active subscriptions found`);
+    }
+    
+    // Check some subscriptions have valid price_id
+    const subsWithPrice = data.filter((s: any) => s.price_id).length;
+    if (subsWithPrice === 0) {
+      console.error(`[Warehouse] No subscriptions have price_id`);
+    }
+  }
+  
+  if (name === 'price' || name === 'prices') {
+    const validPrices = data.filter((p: any) => p.unit_amount && p.product_id);
+    if (validPrices.length === 0) {
+      console.error(`[Warehouse] No prices have unit_amount and product_id`);
+    }
+  }
+  
+  console.log(`[Warehouse] ✅ Validated ${name}: ${data.length} records`);
+}
+
 export type EntityName =
   | 'customer'
   | 'customers'
@@ -152,6 +189,9 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       const json = await res.json();
 
       console.log(`[Warehouse] Fetch successful for ${name} from ${url}:`, json.length, 'records');
+
+      // Validate data structure before storing
+      validateWarehouseEntity(name, json);
 
       // Mutate ref directly - STABLE identity!
       storeRef.current[name] = json;

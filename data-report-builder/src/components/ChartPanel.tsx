@@ -445,6 +445,9 @@ export function ChartPanel() {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(value);
+    } else if (metricResult.unitType === 'rate') {
+      // For rates, display as percentage with 2 decimal places
+      return `${(value * 100).toFixed(2)}%`;
     } else {
       // For number/string, format with compact notation
       if (value >= 1000000) {
@@ -467,6 +470,9 @@ export function ChartPanel() {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(value);
+    } else if (metricResult.unitType === 'rate') {
+      // For rates, display as percentage with 2 decimal places
+      return `${(value * 100).toFixed(2)}%`;
     } else {
       return value.toLocaleString();
     }

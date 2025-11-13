@@ -40,7 +40,10 @@ export type ReportKey =
   | 'gross_volume'
   | 'active_subscribers'
   | 'refund_count'
-  | 'subscriber_ltv';
+  | 'subscriber_ltv'
+  | 'customer_acquisition'
+  | 'payment_success_rate'
+  | 'revenue_by_product';
 
 export type ReportSeries = {
   key: ReportKey;

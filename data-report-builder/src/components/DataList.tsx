@@ -180,11 +180,21 @@ export function DataList() {
       return [];
     }
 
-    return buildDataListView({
+    const rows = buildDataListView({
       store: warehouse,
       selectedObjects: state.selectedObjects,
       selectedFields: state.selectedFields,
     });
+    
+    console.log('[DataList] rawRows:', 
+      'selectedObjects:', state.selectedObjects,
+      'selectedFields:', state.selectedFields,
+      'rowCount:', rows.length,
+      'sampleRow:', rows[0],
+      'warehouseKeys:', Object.keys(warehouse)
+    );
+    
+    return rows;
   }, [state.selectedObjects, state.selectedFields, version]);
 
   // First, filter rows by global date range (state.start, state.end)
@@ -209,13 +219,40 @@ export function DataList() {
   }, [globalDateFilteredRows, state.selectedBucket, state.start, state.end]);
 
   // Apply field filters
+  // Special handling for multi-block metrics: when drilling down via bucket selection,
+  // show ALL source records (not filtered by block-specific filters) so users can see
+  // the complete data that contributed to the calculated metric (e.g., all payments for a success rate)
   const fieldFilteredRows = useMemo(() => {
+    const hasMultipleBlocks = state.metricFormula.blocks.length > 1;
+    const isMultiBlockDrilldown = hasMultipleBlocks && state.selectedBucket;
+    
+    console.log('[DataList] Before filtering:',
+      'dateFilteredRowCount:', dateFilteredRows.length,
+      'filterConditions:', state.filters.conditions,
+      'sampleRow.display:', dateFilteredRows[0]?.display,
+      'availableFields:', dateFilteredRows[0] ? Object.keys(dateFilteredRows[0].display) : []
+    );
+    
+    // For multi-block metrics with bucket selection, skip field filters
+    // (only apply date filter so user sees all records that went into the calculation)
+    if (isMultiBlockDrilldown) {
+      return dateFilteredRows;
+    }
+    
+    // For single-block metrics or when not drilling down, apply field filters normally
     if (state.filters.conditions.length === 0) {
       return dateFilteredRows;
     }
 
-    return applyFilters(dateFilteredRows, state.filters);
-  }, [dateFilteredRows, state.filters]);
+    const filtered = applyFilters(dateFilteredRows, state.filters);
+    
+    console.log('[DataList] After filtering:',
+      'filteredRowCount:', filtered.length,
+      'sampleFilteredRow:', filtered[0]
+    );
+    
+    return filtered;
+  }, [dateFilteredRows, state.filters, state.metricFormula.blocks, state.selectedBucket]);
 
   // Sort rows based on current sort state using sortRowsByField
   const sortedRows = useMemo(() => {
@@ -929,7 +966,7 @@ export function DataList() {
             }}
           >
             <span>All</span>
-            <span style={{ fontWeight: 400, color: state.selectedBucket ? '#374151' : '#533AFD' }}>{globalDateFilteredRows.length.toLocaleString()}</span>
+            <span style={{ fontWeight: 400, color: state.selectedBucket ? '#374151' : '#533AFD' }}>{sortedRows.length.toLocaleString()}</span>
           </button>
 
           {/* Top spend chip */}
@@ -951,7 +988,7 @@ export function DataList() {
             }}
           >
             <span>Top spend</span>
-            <span style={{ fontWeight: 400 }}>{Math.round(globalDateFilteredRows.length * 0.15).toLocaleString()}</span>
+            <span style={{ fontWeight: 400 }}>{Math.round(sortedRows.length * 0.15).toLocaleString()}</span>
           </button>
 
           {/* First-time chip */}
@@ -973,7 +1010,7 @@ export function DataList() {
             }}
           >
             <span>First-time</span>
-            <span style={{ fontWeight: 400 }}>{Math.round(globalDateFilteredRows.length * 0.10).toLocaleString()}</span>
+            <span style={{ fontWeight: 400 }}>{Math.round(sortedRows.length * 0.10).toLocaleString()}</span>
           </button>
 
           {/* Top markets chip */}
@@ -995,7 +1032,7 @@ export function DataList() {
             }}
           >
             <span>Top markets</span>
-            <span style={{ fontWeight: 400 }}>{Math.round(globalDateFilteredRows.length * 0.05).toLocaleString()}</span>
+            <span style={{ fontWeight: 400 }}>{Math.round(sortedRows.length * 0.05).toLocaleString()}</span>
           </button>
 
           {/* Selected bucket chip - appears when a bucket is clicked */}

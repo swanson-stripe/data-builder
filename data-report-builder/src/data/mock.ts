@@ -100,6 +100,10 @@ export function generateSeries({
   seed?: number;
 }): ReportSeries {
   const config = getReportConfig(key);
+  if (!config) {
+    throw new Error(`No config found for report key: ${key}`);
+  }
+  
   const rng = new SeededRandom(seed);
   const dates = rangeByGranularity(start, end, granularity);
   const points: SeriesPoint[] = [];

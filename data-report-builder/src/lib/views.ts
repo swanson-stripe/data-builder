@@ -166,9 +166,8 @@ export function buildDataListView(opts: {
           const relatedRecord = relatedMap.get(relatedId);
           if (relatedRecord) {
             row.display[qualifiedKey] = relatedRecord[f.field];
-            // console.log(`[Views] 1-hop join: ${primaryObject}.${foreignKey}=${relatedId} -> ${f.object}.${f.field}=${relatedRecord[f.field]}`);
           } else {
-            console.warn(`[Views] 1-hop join failed: ${f.object} record ${relatedId} not found in map (map has ${relatedMap.size} records)`);
+            // Silently fail - related record not found
             row.display[qualifiedKey] = null;
           }
         } else {

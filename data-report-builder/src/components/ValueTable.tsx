@@ -269,6 +269,9 @@ export function ValueTable() {
   const formatValue = (val: number) => {
     if (valueKind === 'currency') {
       return currency(val, { compact: false });
+    } else if (metricResult.unitType === 'rate') {
+      // For rates, display as percentage with 2 decimal places
+      return `${(val * 100).toFixed(2)}%`;
     } else {
       return number(val, { decimals: 0 });
     }
