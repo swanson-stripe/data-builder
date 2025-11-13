@@ -1701,7 +1701,56 @@ export function ChartPanel() {
                       stroke={color}
                       strokeWidth={2}
                       isAnimationActive={false}
-                      dot={{ r: 4, fill: color }}
+                      dot={(props: any) => {
+                        // Respect aggregation basis for grouped metrics (same logic as ungrouped)
+                        const isSelected = state.selectedBucket?.label === props.payload.date;
+                        const isHovered = state.hoveredBucket === props.payload.date;
+                        const index = props.index;
+                        
+                        // For "latest" metrics, only show dot on last bucket
+                        if (state.metric.type === 'latest' && index !== chartData.length - 1) {
+                          return null;
+                        }
+                        
+                        // For "first" metrics, only show dot on first bucket
+                        if (state.metric.type === 'first' && index !== 0) {
+                          return null;
+                        }
+                        
+                        // Show dot with click handler
+                        return (
+                          <circle
+                            cx={props.cx}
+                            cy={props.cy}
+                            r={isSelected ? 5 : isHovered ? 4.5 : 4}
+                            fill={color}
+                            stroke="white"
+                            strokeWidth={isSelected ? 2 : 0}
+                            style={{ cursor: 'pointer' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Apply both bucket and group filters
+                              const dateStr = props.payload.date;
+                              const parts = dateStr.split('-');
+                              const bucketDate = parts.length === 2
+                                ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)
+                                : new Date(dateStr);
+                              
+                              const { start, end } = getBucketRange(bucketDate, state.granularity);
+                              dispatch(actions.setSelectedBucket(start, end, dateStr));
+                              
+                              // Add filter for the group value
+                              if (state.groupBy) {
+                                dispatch(actions.addFilter({
+                                  field: state.groupBy.field,
+                                  operator: 'equals',
+                                  value: groupValue,
+                                }));
+                              }
+                            }}
+                          />
+                        );
+                      }}
                       activeDot={{ r: 5, style: { cursor: 'pointer' } }}
                     />
                   );
@@ -1855,6 +1904,57 @@ export function ChartPanel() {
                       strokeWidth={2}
                       isAnimationActive={false}
                       stackId="stack"
+                      dot={(props: any) => {
+                        // Respect aggregation basis for grouped metrics
+                        const isSelected = state.selectedBucket?.label === props.payload.date;
+                        const isHovered = state.hoveredBucket === props.payload.date;
+                        const index = props.index;
+                        const { key, ...dotProps } = props;
+                        
+                        // For "latest" metrics, only show dot on last bucket
+                        if (state.metric.type === 'latest' && index !== chartData.length - 1 && !isSelected && !isHovered) {
+                          return <g key={key} />;
+                        }
+                        
+                        // For "first" metrics, only show dot on first bucket
+                        if (state.metric.type === 'first' && index !== 0 && !isSelected && !isHovered) {
+                          return <g key={key} />;
+                        }
+                        
+                        // Show dot
+                        return (
+                          <circle
+                            key={key}
+                            {...dotProps}
+                            r={isSelected ? 5 : isHovered ? 4.5 : 4}
+                            fill={color}
+                            stroke="white"
+                            strokeWidth={isSelected ? 2 : 0}
+                            style={{ cursor: 'pointer' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Apply both bucket and group filters
+                              const dateStr = props.payload.date;
+                              const parts = dateStr.split('-');
+                              const bucketDate = parts.length === 2
+                                ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)
+                                : new Date(dateStr);
+                              
+                              const { start, end } = getBucketRange(bucketDate, state.granularity);
+                              dispatch(actions.setSelectedBucket(start, end, dateStr));
+                              
+                              // Add filter for the group value
+                              if (state.groupBy) {
+                                dispatch(actions.addFilter({
+                                  field: state.groupBy.field,
+                                  operator: 'equals',
+                                  value: groupValue,
+                                }));
+                              }
+                            }}
+                          />
+                        );
+                      }}
                     />
                   );
                 })
@@ -1980,6 +2080,44 @@ export function ChartPanel() {
                       fill={color}
                       isAnimationActive={false}
                       stackId="stack"
+                      shape={(props: any) => {
+                        const { x, y, width, height, payload } = props;
+                        const isSelected = state.selectedBucket?.label === payload.date;
+                        const isHovered = state.hoveredBucket === payload.date;
+                        return (
+                          <rect
+                            x={x}
+                            y={y}
+                            width={width}
+                            height={height}
+                            fill={color}
+                            stroke={isSelected ? 'white' : 'none'}
+                            strokeWidth={isSelected ? 2 : 0}
+                            style={{ cursor: 'pointer' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Apply both bucket and group filters
+                              const dateStr = payload.date;
+                              const parts = dateStr.split('-');
+                              const bucketDate = parts.length === 2
+                                ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)
+                                : new Date(dateStr);
+                              
+                              const { start, end } = getBucketRange(bucketDate, state.granularity);
+                              dispatch(actions.setSelectedBucket(start, end, dateStr));
+                              
+                              // Add filter for the group value
+                              if (state.groupBy) {
+                                dispatch(actions.addFilter({
+                                  field: state.groupBy.field,
+                                  operator: 'equals',
+                                  value: groupValue,
+                                }));
+                              }
+                            }}
+                          />
+                        );
+                      }}
                     />
                   );
                 })

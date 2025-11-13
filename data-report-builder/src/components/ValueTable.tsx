@@ -521,17 +521,38 @@ export function ValueTable() {
                               backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-hover)' : 'var(--bg-elevated)'
                             }}
                             tabIndex={0}
-                            onClick={() => handleBucketClick(point.date)}
+                            onClick={() => {
+                              // Apply both bucket and group filters
+                              handleBucketClick(point.date);
+                              
+                              // Add filter for the group value
+                              if (state.groupBy) {
+                                dispatch(actions.addFilter({
+                                  field: state.groupBy.field,
+                                  operator: 'equals',
+                                  value: groupValue,
+                                }));
+                              }
+                            }}
                             onMouseEnter={() => dispatch(actions.setHoveredBucket(point.date))}
                             onMouseLeave={() => dispatch(actions.clearHoveredBucket())}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
                                 handleBucketClick(point.date);
+                                
+                                // Add filter for the group value
+                                if (state.groupBy) {
+                                  dispatch(actions.addFilter({
+                                    field: state.groupBy.field,
+                                    operator: 'equals',
+                                    value: groupValue,
+                                  }));
+                                }
                               }
                             }}
                             role="button"
-                            aria-label={`Select period ${shortDate(point.date)}`}
+                            aria-label={`Select period ${shortDate(point.date)} for ${groupValue}`}
                           >
                             <span className="text-sm underline" style={{ color: 'var(--text-primary)' }}>
                               {formatValue(point.value)}
