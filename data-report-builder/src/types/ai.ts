@@ -20,12 +20,30 @@ export type AIReportConfig = {
   objects: string[];
   // Qualified fields to auto-select in the Data List
   fields: { object: string; field: string }[];
-  // Metric driving the value/chart/summary
-  metric: {
+  // Metric driving the value/chart/summary (for simple metrics)
+  metric?: {
     name: string;
     source: { object: string; field: string } | undefined;
     op: 'sum' | 'count' | 'avg' | 'min' | 'max';
     type: 'sum_over_period' | 'latest' | 'first' | 'last';
+  };
+  // Multi-block metric (for rate/percentage metrics)
+  multiBlock?: {
+    blocks: Array<{
+      id: string;
+      name: string;
+      source: { object: string; field: string };
+      op: 'sum' | 'count' | 'avg' | 'min' | 'max';
+      type: 'sum_over_period' | 'latest' | 'first' | 'last';
+      filters: FilterCondition[];
+    }>;
+    calculation: {
+      operator: 'divide' | 'multiply' | 'add' | 'subtract';
+      leftOperand: string;
+      rightOperand: string;
+      resultUnitType: 'rate' | 'currency' | 'count';
+    };
+    outputUnit: string;
   };
   // Optional default time settings
   range?: {

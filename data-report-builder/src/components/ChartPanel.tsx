@@ -1457,6 +1457,7 @@ export function ChartPanel() {
                   strokeWidth={2}
                         strokeDasharray="4 4"
                   dot={false}
+                  isAnimationActive={false}
                 />
               )}
             </LineChart>
@@ -1521,6 +1522,7 @@ export function ChartPanel() {
                         stroke="var(--chart-line-secondary)"
                   strokeWidth={2}
                         strokeDasharray="4 4"
+                  isAnimationActive={false}
                 />
               )}
               <Area
@@ -1653,6 +1655,7 @@ export function ChartPanel() {
                   dataKey="comparison"
                   name={comparisonSeries.label}
                         fill="#9ca3af"
+                  isAnimationActive={false}
                 />
               )}
             </BarChart>

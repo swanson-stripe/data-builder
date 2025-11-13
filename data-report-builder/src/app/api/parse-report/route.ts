@@ -21,133 +21,56 @@ const STRIPE_SCHEMA = {
   payment_method: ['id', 'customer_id', 'type', 'card_brand', 'card_last4'],
 };
 
-const SYSTEM_PROMPT = `You are an AI assistant that helps users create Stripe data reports. You must parse requests in ONE SHOT - make reasonable assumptions rather than asking for clarification.
+const SYSTEM_PROMPT = `You are an AI assistant that helps users create Stripe data reports. Parse requests and return valid JSON.
 
 Available Stripe data objects and their fields:
 ${JSON.stringify(STRIPE_SCHEMA, null, 2)}
 
-CRITICAL RULES:
-1. ALWAYS return success: true if the request is about Stripe data/payments/customers/revenue
-2. NEVER ask for clarification or return needsClarification
-3. Make reasonable assumptions for ambiguous requests
-4. Use common defaults when details are missing
+RULES:
+1. Return success: true if request is about Stripe data/payments/customers/revenue
+2. Make reasonable assumptions for missing details
+3. For rate/percentage metrics, use multiBlock format with two blocks and divide operator
 
-DEFAULT ASSUMPTIONS:
-- If no time range specified: use last 3 months
-- If no granularity specified: use "week" 
-- If "revenue" or "amount": sum payment.amount with sum_over_period
-- If "customers" or "users": count customer.id with sum_over_period
-- If "subscriptions" or "MRR": sum subscription.amount with sum_over_period
-- If no chart type specified: use "line" for time series, "bar" for comparisons
-- If no specific fields mentioned: include relevant timestamp (created) and the metric source field
-- If geographic terms (country, region): 
-  * MUST include BOTH customer object (for geography) AND payment object
-  * Put metric source object FIRST in objects array
-  * For "North America": filter customer.country with operator "in", value ["US", "CA", "MX"]
-  * Always add payment.status = "succeeded" filter to count only customers with successful transactions
-- If time periods mentioned (October 2025): set range.start and range.end accordingly
-  * IMPORTANT: If a year is mentioned (e.g., "2025"), use that year
-  * If only a month is mentioned with no year, use the current year (2024)
-  * October 2025 should be: {"start": "2025-10-01", "end": "2025-10-31"}
-- If status mentioned (successful, failed, active): add to filters array on the appropriate object
+DEFAULTS:
+- Time range: Use current year if year mentioned, otherwise last 1 month (4 weeks)
+- Granularity: "week"
+- Chart type: "line"
+- Filters: Include relevant status filters (e.g., payment.status for payment metrics)
 
-METRIC OPERATION MAPPING:
-- "total", "revenue", "volume", "amount" → op: "sum", type: "sum_over_period"
-- "count", "number of", "how many" → op: "count", type: "sum_over_period"  
-- "average", "avg", "mean" → op: "avg", type: "sum_over_period"
-- "MRR", "ARR", "active subscriptions" → op: "sum", type: "latest"
-- "new", "acquisition", "signups" → op: "count", type: "sum_over_period" (first occurrence)
+RATE METRICS:
+For "rate", "percentage", or "ratio" requests, use multiBlock with:
+- Block 1 (numerator): Count/sum with specific filter, type: "latest"
+- Block 2 (denominator): Count/sum of total, type: "latest"
+- Calculation: divide, resultUnitType: "rate"
 
-COMMON PATTERNS:
-- "successful payments" → objects: ["payment", "customer"], sum payment.amount, filter payment.status="succeeded"
-- "new customers" → objects: ["customer", "payment"], count customer.id, filter payment.status="succeeded"
-- "new customers in [region]" → objects: ["customer", "payment"], count customer.id, filter customer.country + payment.status
-- "MRR" → objects: ["subscription"], sum amount, type: "latest", filter subscription.status="active"
-- "refunds" → objects: ["refund"], count or sum refund.id
+Example: "blocked payment rate"
+- Block 1: count payment.id where status in ["failed", "blocked"], type: "latest"
+- Block 2: count payment.id (all payments), type: "latest"
+- divide block_1 / block_2
 
-CRITICAL - OBJECT ORDERING:
-The FIRST object in "objects" array must be the metric source object.
-- Counting customers? Customer first: ["customer", "payment"]
-- Summing payments? Payment first: ["payment", "customer"]
-
-IMPORTANT - FILTER FORMAT:
-Filters MUST use this exact structure:
+FILTER FORMAT:
 {
   "field": {"object": "payment", "field": "status"},
   "operator": "equals",
   "value": "succeeded"
 }
 
-NOT like this (WRONG):
-{
-  "field": "status",
-  "operator": "equals",
-  "value": "succeeded"
-}
+Return JSON in one of these formats:
 
-The field property must always be an object with both "object" and "field" keys.
-
-ONLY return success: false if:
-- Request is completely unrelated to data/reports (e.g., "tell me a joke")
-- Request asks you to do something other than create a report
-
-Return your response as JSON using one of these formats:
-
-EXAMPLE 1 - Payment-centric metric (summing payment amounts):
+SIMPLE METRIC (count/sum):
 {
   "success": true,
   "config": {
-    "objects": ["payment", "customer"],
+    "objects": ["payment"],
     "fields": [
-      {"object": "payment", "field": "amount"}, 
-      {"object": "payment", "field": "created"},
-      {"object": "customer", "field": "id"},
-      {"object": "customer", "field": "country"}
+      {"object": "payment", "field": "id"},
+      {"object": "payment", "field": "amount"},
+      {"object": "payment", "field": "created"}
     ],
     "metric": {
-      "name": "Successful Payments in North America",
+      "name": "Payment Volume",
       "source": {"object": "payment", "field": "amount"},
       "op": "sum",
-      "type": "sum_over_period"
-    },
-    "range": {
-      "start": "2025-10-01",
-      "end": "2025-10-31",
-      "granularity": "week"
-    },
-    "filters": [
-      {
-        "field": {"object": "payment", "field": "status"},
-        "operator": "equals",
-        "value": "succeeded"
-      },
-      {
-        "field": {"object": "customer", "field": "country"},
-        "operator": "in",
-        "value": ["US", "CA", "MX"]
-      }
-    ],
-    "chartType": "line"
-  },
-  "confidence": 0.9,
-  "explanation": "Parsing: successful payment revenue in North America (US, CA, MX) during October 2025"
-}
-
-EXAMPLE 2 - Customer-centric metric (counting customers):
-{
-  "success": true,
-  "config": {
-    "objects": ["customer", "payment"],
-    "fields": [
-      {"object": "customer", "field": "id"}, 
-      {"object": "customer", "field": "created"},
-      {"object": "customer", "field": "country"},
-      {"object": "payment", "field": "id"}
-    ],
-    "metric": {
-      "name": "New Customers in North America",
-      "source": {"object": "customer", "field": "id"},
-      "op": "count",
       "type": "sum_over_period"
     },
     "range": {
@@ -155,29 +78,61 @@ EXAMPLE 2 - Customer-centric metric (counting customers):
       "end": "2025-11-13",
       "granularity": "week"
     },
-    "filters": [
-      {
-        "field": {"object": "customer", "field": "country"},
-        "operator": "in",
-        "value": ["US", "CA", "MX"]
-      },
-      {
-        "field": {"object": "payment", "field": "status"},
-        "operator": "equals",
-        "value": "succeeded"
-      }
-    ],
+    "filters": [],
     "chartType": "line"
-  },
-  "confidence": 0.9,
-  "explanation": "Parsing: count of new customers in North America with successful payments"
+  }
 }
 
-OR only if truly out of scope:
+RATE METRIC (use multiBlock):
 {
-  "success": false,
-  "error": "This request is not about creating a data report.",
-  "needsClarification": false
+  "success": true,
+  "config": {
+    "objects": ["payment"],
+    "fields": [
+      {"object": "payment", "field": "id"},
+      {"object": "payment", "field": "status"},
+      {"object": "payment", "field": "created"}
+    ],
+    "multiBlock": {
+      "blocks": [
+        {
+          "id": "block_1",
+          "name": "Blocked Payments",
+          "source": {"object": "payment", "field": "id"},
+          "op": "count",
+          "type": "latest",
+          "filters": [
+            {
+              "field": {"object": "payment", "field": "status"},
+              "operator": "in",
+              "value": ["failed", "blocked"]
+            }
+          ]
+        },
+        {
+          "id": "block_2",
+          "name": "Total Payments",
+          "source": {"object": "payment", "field": "id"},
+          "op": "count",
+          "type": "latest",
+          "filters": []
+        }
+      ],
+      "calculation": {
+        "operator": "divide",
+        "leftOperand": "block_1",
+        "rightOperand": "block_2",
+        "resultUnitType": "rate"
+      },
+      "outputUnit": "rate"
+    },
+    "range": {
+      "start": "2025-01-01",
+      "end": "2025-11-13",
+      "granularity": "week"
+    },
+    "chartType": "line"
+  }
 }`;
 
 export async function POST(request: NextRequest) {
@@ -195,40 +150,75 @@ export async function POST(request: NextRequest) {
     }
 
     // Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.3, // Lower temperature for more consistent parsing
-      response_format: { type: 'json_object' },
-    });
+    let responseText: string;
+    try {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.3,
+        response_format: { type: 'json_object' },
+      });
 
-    const responseText = completion.choices[0]?.message?.content;
-    if (!responseText) {
-      throw new Error('No response from AI');
+      responseText = completion.choices[0]?.message?.content || '';
+      if (!responseText) {
+        throw new Error('No response from AI');
+      }
+    } catch (apiError: any) {
+      console.error('🤖 [API] OpenAI API error:', apiError.message);
+      console.error('🤖 [API] Error details:', apiError);
+      
+      // Check if it's an API key issue
+      if (apiError.message?.includes('API key') || apiError.status === 401) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'OpenAI API key not configured. Please add OPENAI_API_KEY to .env.local',
+          } as AIParseResult,
+          { status: 500 }
+        );
+      }
+      
+      throw apiError;
     }
 
+    // Log the raw response for debugging
+    console.log('🤖 [API] Raw AI response:', responseText);
+
     // Parse the JSON response
-    const result = JSON.parse(responseText) as AIParseResult;
+    let result: AIParseResult;
+    try {
+      result = JSON.parse(responseText) as AIParseResult;
+      console.log('🤖 [API] Parsed result:', JSON.stringify(result, null, 2));
+    } catch (parseError) {
+      console.error('🤖 [API] JSON parse error:', parseError);
+      console.error('🤖 [API] Invalid JSON:', responseText);
+      throw new Error('AI returned invalid JSON');
+    }
 
     // Validate the response structure
     if (result.success && result.config) {
       // Ensure dates are in correct format
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date();
+      const oneMonthAgo = new Date(today);
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      
       if (!result.config.range) {
         result.config.range = {
-          start: `${new Date().getFullYear()}-01-01`,
-          end: today,
+          start: oneMonthAgo.toISOString().split('T')[0],
+          end: today.toISOString().split('T')[0],
           granularity: 'week',
         };
       }
     }
 
+    console.log('🤖 [API] Returning result:', result.success);
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error parsing report:', error);
+    console.error('🤖 [API] Error parsing report:', error);
+    console.error('🤖 [API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
       {
         success: false,

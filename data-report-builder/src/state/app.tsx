@@ -887,9 +887,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
       const config = action.payload;
       
       console.log('🤖 [AI Config] Applying AI-generated configuration:', config);
+      console.log('🤖 [AI Config] Has multiBlock:', !!config.multiBlock);
       
       // Ensure filtered fields are included in selectedFields
-      // (Users need to see the fields they're filtering on)
       const filterFields = (config.filters || []).map((f: any) => f.field);
       const allFields = [...config.fields];
       
@@ -904,53 +904,95 @@ function appReducer(state: AppState, action: AppAction): AppState {
         }
       });
       
-      // Reset state first
-      const resetBlock: MetricBlock = {
-        id: 'block_1',
-        name: config.metric.name,
-        source: config.metric.source,
-        op: config.metric.op,
-        type: config.metric.type,
-        filters: config.filters || [],
-      };
-      
-      console.log('🤖 [AI Config] Created metric block:', resetBlock);
-      console.log('🤖 [AI Config] Selected objects:', config.objects);
-      console.log('🤖 [AI Config] Selected fields:', allFields);
-      console.log('🤖 [AI Config] Global filters:', config.filters);
-      
-      return {
-        ...state,
-        report: 'blank', // AI-generated reports are custom
-        selectedObjects: config.objects,
-        selectedFields: allFields,
-        fieldOrder: allFields.map((f: { object: string; field: string }) => `${f.object}.${f.field}`),
-        metric: {
+      // Check if this is a multiBlock metric (rate/percentage) or simple metric
+      if (config.multiBlock) {
+        console.log('🤖 [AI Config] Processing multiBlock metric');
+        console.log('🤖 [AI Config] Blocks:', config.multiBlock.blocks);
+        console.log('🤖 [AI Config] Calculation:', config.multiBlock.calculation);
+        
+        // Use multiBlock configuration
+        const metricName = config.multiBlock.blocks[0]?.name || 'Metric';
+        
+        return {
+          ...state,
+          report: 'blank',
+          selectedObjects: config.objects,
+          selectedFields: allFields,
+          fieldOrder: allFields.map((f: { object: string; field: string }) => `${f.object}.${f.field}`),
+          metric: {
+            name: metricName,
+            source: config.multiBlock.blocks[0]?.source,
+            op: config.multiBlock.blocks[0]?.op || 'count',
+            type: config.multiBlock.blocks[0]?.type || 'sum_over_period',
+          },
+          metricFormula: {
+            name: metricName,
+            blocks: config.multiBlock.blocks,
+            calculation: config.multiBlock.calculation,
+            exposeBlocks: [],
+          },
+          start: config.range?.start || state.start,
+          end: config.range?.end || state.end,
+          granularity: config.range?.granularity || state.granularity,
+          filters: {
+            conditions: config.filters || [],
+            logic: 'AND',
+          },
+          chart: {
+            ...state.chart,
+            type: config.chartType || state.chart.type,
+          },
+          showTemplateSelector: false,
+          hasUserMadeChanges: false,
+        };
+      } else {
+        // Simple metric configuration
+        console.log('🤖 [AI Config] Processing simple metric');
+        
+        const resetBlock: MetricBlock = {
+          id: 'block_1',
           name: config.metric.name,
           source: config.metric.source,
           op: config.metric.op,
           type: config.metric.type,
-        },
-        metricFormula: {
-          name: config.metric.name,
-          blocks: [resetBlock],
-          calculation: undefined,
-          exposeBlocks: [],
-        },
-        start: config.range?.start || state.start,
-        end: config.range?.end || state.end,
-        granularity: config.range?.granularity || state.granularity,
-        filters: {
-          conditions: config.filters || [],
-          logic: 'AND',
-        },
-        chart: {
-          ...state.chart,
-          type: config.chartType || state.chart.type,
-        },
-        showTemplateSelector: false, // Hide template selector after applying
-        hasUserMadeChanges: false,
-      };
+          filters: config.filters || [],
+        };
+        
+        console.log('🤖 [AI Config] Created metric block:', resetBlock);
+        
+        return {
+          ...state,
+          report: 'blank',
+          selectedObjects: config.objects,
+          selectedFields: allFields,
+          fieldOrder: allFields.map((f: { object: string; field: string }) => `${f.object}.${f.field}`),
+          metric: {
+            name: config.metric.name,
+            source: config.metric.source,
+            op: config.metric.op,
+            type: config.metric.type,
+          },
+          metricFormula: {
+            name: config.metric.name,
+            blocks: [resetBlock],
+            calculation: undefined,
+            exposeBlocks: [],
+          },
+          start: config.range?.start || state.start,
+          end: config.range?.end || state.end,
+          granularity: config.range?.granularity || state.granularity,
+          filters: {
+            conditions: config.filters || [],
+            logic: 'AND',
+          },
+          chart: {
+            ...state.chart,
+            type: config.chartType || state.chart.type,
+          },
+          showTemplateSelector: false,
+          hasUserMadeChanges: false,
+        };
+      }
     }
 
     default:

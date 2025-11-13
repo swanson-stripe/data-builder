@@ -6,7 +6,16 @@ export default function TemplateReopenButton() {
   const { state, dispatch } = useApp();
 
   // Only show when report is blank and user hasn't made changes
-  if (state.report !== 'blank' || state.hasUserMadeChanges) {
+  // Hide if:
+  // - Report is not blank (preset selected)
+  // - User has made explicit changes
+  // - Any data objects are selected
+  // - Any metric blocks exist (metric generated via prompt or manually)
+  const hasMetricContent = state.selectedObjects.length > 0 || 
+                          state.metricFormula.blocks.length > 0 ||
+                          state.selectedFields.length > 0;
+  
+  if (state.report !== 'blank' || state.hasUserMadeChanges || hasMetricContent) {
     return null;
   }
 

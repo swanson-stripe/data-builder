@@ -45,13 +45,18 @@ export function inferValueKind(object: string, field: string, schema?: SchemaCat
 
 /**
  * Bucket rows by granularity
+ * 
+ * @param isSnapshot - If true, include rows that are "active" during each bucket period
+ *                     (for subscriptions: current_period_start <= bucket <= current_period_end)
+ *                     instead of bucketing by creation timestamp
  */
 export function bucketRows(
   rows: any[],
   object: string,
   start: string,
   end: string,
-  granularity: Granularity
+  granularity: Granularity,
+  isSnapshot = false
 ): Map<string, any[]> {
   const buckets = new Map<string, any[]>();
   const startDate = new Date(start);
@@ -64,19 +69,46 @@ export function bucketRows(
     buckets.set(label, []);
   }
 
-  // Place rows into buckets
-  for (const row of rows) {
-    // pickTimestamp returns the timestamp VALUE, not the field name
-    const timestamp = pickTimestamp(object, row);
-    if (!timestamp) continue;
+  // Snapshot mode: include rows active during each bucket period
+  if (isSnapshot && object === 'subscription') {
+    for (const [labelKey, _] of buckets) {
+      // Get the bucket date
+      const bucketDate = bucketDates.find(d => bucketLabel(d, granularity) === labelKey);
+      if (!bucketDate) continue;
+      
+      // For each subscription, check if it was active at this bucket date
+      for (const row of rows) {
+        const created = row.created ? new Date(row.created) : null;
+        const canceledAt = row.canceled_at ? new Date(row.canceled_at) : null;
+        
+        if (!created) continue;
+        
+        // Include subscription if:
+        // 1. It was created before or at this bucket date
+        // 2. It wasn't canceled, OR it was canceled after this bucket date
+        const wasCreatedByBucket = created <= bucketDate;
+        const wasNotCanceledYet = !canceledAt || canceledAt > bucketDate;
+        
+        if (wasCreatedByBucket && wasNotCanceledYet) {
+          buckets.get(labelKey)!.push(row);
+        }
+      }
+    }
+  } else {
+    // Standard mode: bucket by creation timestamp
+    for (const row of rows) {
+      // pickTimestamp returns the timestamp VALUE, not the field name
+      const timestamp = pickTimestamp(object, row);
+      if (!timestamp) continue;
 
-    const rowDate = new Date(timestamp);
-    if (rowDate < startDate || rowDate > endDate) continue;
+      const rowDate = new Date(timestamp);
+      if (rowDate < startDate || rowDate > endDate) continue;
 
-    const label = bucketLabel(rowDate, granularity);
-    const bucket = buckets.get(label);
-    if (bucket) {
-      bucket.push(row);
+      const label = bucketLabel(rowDate, granularity);
+      const bucket = buckets.get(label);
+      if (bucket) {
+        bucket.push(row);
+      }
     }
   }
 
@@ -408,7 +440,9 @@ export function computeMetric({
   }
 
   // Bucket the rows by timestamp using pickTimestamp
-  const buckets = bucketRows(rows, primaryObject, start, end, granularity);
+  // Use snapshot mode for 'latest' metrics on subscriptions (like MRR)
+  const isSnapshot = def.type === 'latest' && primaryObject === 'subscription';
+  const buckets = bucketRows(rows, primaryObject, start, end, granularity, isSnapshot);
   const bucketEntries = Array.from(buckets.entries()).sort((a, b) =>
     a[0].localeCompare(b[0])
   );

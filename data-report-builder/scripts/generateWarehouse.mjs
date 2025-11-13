@@ -537,6 +537,34 @@ export const warehouseData: Warehouse = ${JSON.stringify(warehouse, null, 2)};
 fs.writeFileSync(outputPath, content, 'utf-8');
 
 // ============================================================================
+// Export JSON Files for Browser
+// ============================================================================
+
+console.log('\n📦 Exporting JSON files for browser...');
+const publicDataDir = path.join(__dirname, '..', 'public', 'data');
+fs.mkdirSync(publicDataDir, { recursive: true });
+
+// Export each entity as a JSON file
+Object.keys(warehouse).forEach(entityName => {
+  const data = warehouse[entityName];
+  const filepath = path.join(publicDataDir, `${entityName}.json`);
+  fs.writeFileSync(filepath, JSON.stringify(data), 'utf-8');
+  const sizeKB = (Buffer.byteLength(JSON.stringify(data)) / 1024).toFixed(0);
+  console.log(`   ✅ ${entityName.padEnd(18)} ${String(data.length).padStart(6)} records  ${sizeKB.padStart(6)} KB`);
+});
+
+// Create manifest
+const manifest = {
+  generated: new Date().toISOString(),
+  entities: Object.keys(warehouse),
+  counts: Object.keys(warehouse).reduce((acc, name) => {
+    acc[name] = warehouse[name].length;
+    return acc;
+  }, {})
+};
+fs.writeFileSync(path.join(publicDataDir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf-8');
+
+// ============================================================================
 // Summary
 // ============================================================================
 

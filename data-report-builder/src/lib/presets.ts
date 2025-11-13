@@ -227,12 +227,12 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       { object: 'invoice', field: 'status' },
       { object: 'invoice', field: 'created' },
     ],
-    // Average revenue per user - latest snapshot
+    // Average revenue per user - average over period (not latest snapshot)
     metric: {
       name: 'Average Revenue Per User (ARPU)',
       source: { object: 'invoice', field: 'amount_paid' },
       op: 'avg',
-      type: 'latest',
+      type: 'average_over_period',
     },
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
     defaultSort: {
