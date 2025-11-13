@@ -239,15 +239,35 @@ export function ChartPanel() {
       // Set calculating to true immediately when dependencies change
       dispatch(actions.setCalculating(true));
       
-      // Clear after longer delay to account for actual computation time
-      // Grouping with 10 values can take 2-3 seconds
-      const timeout = setTimeout(() => {
-        dispatch(actions.setCalculating(false));
-      }, 2500);
+      // Clear after chart data is ready and rendered
+      // Use requestIdleCallback to wait until browser is done with heavy work
+      let timeoutId: NodeJS.Timeout;
       
-      return () => {
-        clearTimeout(timeout);
-      };
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        const idleCallbackId = (window as any).requestIdleCallback(
+          () => {
+            // Additional delay after idle to ensure full render
+            timeoutId = setTimeout(() => {
+              dispatch(actions.setCalculating(false));
+            }, 800);
+          },
+          { timeout: 3000 } // Force after 3s even if not idle
+        );
+        
+        return () => {
+          (window as any).cancelIdleCallback(idleCallbackId);
+          if (timeoutId) clearTimeout(timeoutId);
+        };
+      } else {
+        // Fallback for older browsers
+        timeoutId = setTimeout(() => {
+          dispatch(actions.setCalculating(false));
+        }, 3000);
+        
+        return () => {
+          clearTimeout(timeoutId);
+        };
+      }
     } else {
       // Clear immediately if not a heavy calculation
       dispatch(actions.setCalculating(false));
@@ -860,13 +880,45 @@ export function ChartPanel() {
     return getGroupValues(warehouse, state.groupBy.field, 100);
   }, [state.groupBy?.field, version]);
 
-  // Show loading indicator on initial mount for preset calculations
+  // Show loading indicator on initial mount until page is fully interactive
   useEffect(() => {
+    // Set loading immediately on mount
     dispatch(actions.setCalculating(true));
-    const timeout = setTimeout(() => {
+    
+    // Wait for React to finish rendering and hydration
+    // Use a combination of requestIdleCallback (when browser is idle) and timeout (fallback)
+    let timeoutId: NodeJS.Timeout;
+    let rafId: number;
+    
+    const clearLoading = () => {
       dispatch(actions.setCalculating(false));
-    }, 2000);
-    return () => clearTimeout(timeout);
+    };
+    
+    // Schedule clearing after browser is idle
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const idleCallbackId = (window as any).requestIdleCallback(
+        () => {
+          // Wait a bit more after idle to ensure full interactivity
+          timeoutId = setTimeout(clearLoading, 1000);
+        },
+        { timeout: 4000 } // Force after 4s even if not idle
+      );
+      
+      return () => {
+        (window as any).cancelIdleCallback(idleCallbackId);
+        if (timeoutId) clearTimeout(timeoutId);
+      };
+    } else {
+      // Fallback: use RAF + timeout for older browsers
+      rafId = requestAnimationFrame(() => {
+        timeoutId = setTimeout(clearLoading, 3500);
+      });
+      
+      return () => {
+        cancelAnimationFrame(rafId);
+        if (timeoutId) clearTimeout(timeoutId);
+      };
+    }
   }, []); // Run once on mount
 
   // Handle click outside to close group by popovers
