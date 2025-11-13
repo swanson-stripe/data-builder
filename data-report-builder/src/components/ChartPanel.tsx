@@ -228,6 +228,26 @@ export function ChartPanel() {
     version, // Re-compute when warehouse data changes
   ]);
 
+  // Track when heavy calculations are in progress
+  useEffect(() => {
+    // Set calculating to true when grouping is active or when there are complex calculations
+    const isHeavyCalculation = (state.groupBy?.selectedValues.length || 0) > 0 || 
+                                state.metricFormula.blocks.length > 1;
+    
+    if (isHeavyCalculation) {
+      dispatch(actions.setCalculating(true));
+      
+      // Clear after a short delay to allow UI to update
+      const timeout = setTimeout(() => {
+        dispatch(actions.setCalculating(false));
+      }, 500);
+      
+      return () => clearTimeout(timeout);
+    } else {
+      dispatch(actions.setCalculating(false));
+    }
+  }, [state.groupBy?.selectedValues.length, state.metricFormula.blocks.length, dispatch]);
+
   // Compute grouped metrics if grouping is active
   const groupedMetrics = useMemo(() => {
     if (!state.groupBy || state.groupBy.selectedValues.length === 0) {

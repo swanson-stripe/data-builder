@@ -54,6 +54,7 @@ export type AppState = {
   };
   showTemplateSelector: boolean; // Whether to show the template selection UI
   hasUserMadeChanges: boolean; // Track if user has modified blank state
+  isCalculating: boolean; // Track when heavy calculations are in progress
 };
 
 // Action types
@@ -284,6 +285,11 @@ type ApplyAIConfigAction = {
   payload: any; // AIReportConfig from AI parsing
 };
 
+type SetCalculatingAction = {
+  type: 'SET_CALCULATING';
+  payload: boolean;
+};
+
 export type AppAction =
   | SetTabAction
   | ToggleObjectAction
@@ -330,7 +336,8 @@ export type AppAction =
   | ShowTemplateSelectorAction
   | HideTemplateSelectorAction
   | SetUserMadeChangesAction
-  | ApplyAIConfigAction;
+  | ApplyAIConfigAction
+  | SetCalculatingAction;
 
 // Helper function to build initial state with preset applied
 function buildInitialState(): AppState {
@@ -366,6 +373,7 @@ function buildInitialState(): AppState {
     },
     showTemplateSelector: false, // Don't show by default - MRR preset is loaded
     hasUserMadeChanges: false,
+    isCalculating: false,
   };
 
   // Apply MRR preset synchronously to initial state
@@ -967,6 +975,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
         showTemplateSelector: true, // Show template selector on reset
         hasUserMadeChanges: false,
+        isCalculating: false,
       };
     }
 
@@ -1099,6 +1108,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
         };
       }
     }
+
+    case 'SET_CALCULATING':
+      return {
+        ...state,
+        isCalculating: action.payload,
+      };
 
     default:
       // Exhaustive check
@@ -1343,5 +1358,10 @@ export const actions = {
 
   resetAll: (): ResetAllAction => ({
     type: 'RESET_ALL',
+  }),
+
+  setCalculating: (isCalculating: boolean): SetCalculatingAction => ({
+    type: 'SET_CALCULATING',
+    payload: isCalculating,
   }),
 };

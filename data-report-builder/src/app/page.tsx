@@ -11,6 +11,7 @@ import { ValueTable } from '@/components/ValueTable';
 import { DataList } from '@/components/DataList';
 import { SavePopover } from '@/components/SavePopover';
 import { Toast } from '@/components/Toast';
+import { ProgressIndicator } from '@/components/ProgressIndicator';
 import { useReportHeuristics } from '@/hooks/useReportHeuristics';
 import { PRESET_OPTIONS, applyPreset } from '@/lib/presets';
 import { ReportKey } from '@/types';
@@ -110,6 +111,11 @@ function PageContent() {
           onClose={() => setShowToast(false)}
         />
       )}
+
+      <ProgressIndicator 
+        isLoading={state.isCalculating} 
+        message="Calculating metrics..."
+      />
 
       {/* Hide main content when template selector is showing */}
       {!state.showTemplateSelector && (
