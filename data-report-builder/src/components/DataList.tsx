@@ -1225,6 +1225,23 @@ export function DataList() {
                           <span className="font-normal text-sm truncate" style={{ color: 'var(--text-secondary)' }}>
                             {getFieldLabel(column.object, column.field)}
                           </span>
+                          {/* Group by indicator - show pin icon if this column is used for grouping */}
+                          {state.groupBy && 
+                           state.groupBy.field.object === column.object && 
+                           state.groupBy.field.field === column.field && (
+                            <svg 
+                              width="12" 
+                              height="12" 
+                              viewBox="0 0 16 16" 
+                              fill="none" 
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="flex-shrink-0"
+                              aria-label="Grouped by this column"
+                            >
+                              <path d="M8 3C8 2.44772 8.44772 2 9 2H11C11.5523 2 12 2.44772 12 3V6H13C13.5523 6 14 6.44772 14 7C14 7.55228 13.5523 8 13 8H12V11C12 11.5523 11.5523 12 11 12H9C8.44772 12 8 11.5523 8 11V8H7C6.44772 8 6 7.55228 6 7C6 6.44772 6.44772 6 7 6H8V3Z" fill="#6366f1"/>
+                              <path d="M7.5 13V14.5" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round"/>
+                            </svg>
+                          )}
                           {/* Down arrow icon - always visible when column is sorted, chevron on hover otherwise */}
                           {sortState.column === column.key ? (
                             <svg 
