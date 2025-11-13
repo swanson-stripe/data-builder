@@ -120,8 +120,16 @@ export function ConnectionLines({ containerRef, expandedTables, expandedFields, 
 
     // Find all field-to-filter connections (including expanded fields with no filter yet)
     // First, add connections for fields with actual filters
+    // Use a Set to track which fields we've already connected to avoid duplicates
+    const connectedFields = new Set<string>();
+    
     state.filters.conditions.forEach((condition) => {
       const fieldId = `${condition.field.object}.${condition.field.field}`;
+      
+      // Skip if we've already connected this field
+      if (connectedFields.has(fieldId)) return;
+      connectedFields.add(fieldId);
+      
       const fieldSelector = selectors.fieldSelectors.get(fieldId);
       const filterSelector = selectors.filterSelectors.get(fieldId);
       
