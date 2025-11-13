@@ -509,7 +509,7 @@ export function ValueTable() {
                       </td>
                       {groupPoints.map((point, idx) => {
                         const isSelected = state.selectedBucket?.label === point.date;
-                        const isHovered = state.hoveredBucket === point.date;
+                        const isHovered = state.hoveredBucket === point.date && state.hoveredGroup === groupValue;
                         return (
                           <td
                             key={idx}
@@ -534,8 +534,14 @@ export function ValueTable() {
                                 }));
                               }
                             }}
-                            onMouseEnter={() => dispatch(actions.setHoveredBucket(point.date))}
-                            onMouseLeave={() => dispatch(actions.clearHoveredBucket())}
+                            onMouseEnter={() => {
+                              dispatch(actions.setHoveredBucket(point.date));
+                              dispatch(actions.setHoveredGroup(groupValue));
+                            }}
+                            onMouseLeave={() => {
+                              dispatch(actions.clearHoveredBucket());
+                              dispatch(actions.clearHoveredGroup());
+                            }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();

@@ -1704,7 +1704,7 @@ export function ChartPanel() {
                       dot={(props: any) => {
                         // Respect aggregation basis for grouped metrics (same logic as ungrouped)
                         const isSelected = state.selectedBucket?.label === props.payload.date;
-                        const isHovered = state.hoveredBucket === props.payload.date;
+                        const isHovered = state.hoveredBucket === props.payload.date && state.hoveredGroup === groupValue;
                         const index = props.index;
                         
                         // For "latest" metrics, only show dot on last bucket
@@ -1728,6 +1728,14 @@ export function ChartPanel() {
                             stroke="white"
                             strokeWidth={isSelected ? 2 : 0}
                             style={{ cursor: 'pointer' }}
+                            onMouseEnter={() => {
+                              dispatch(actions.setHoveredBucket(props.payload.date));
+                              dispatch(actions.setHoveredGroup(groupValue));
+                            }}
+                            onMouseLeave={() => {
+                              dispatch(actions.clearHoveredBucket());
+                              dispatch(actions.clearHoveredGroup());
+                            }}
                             onClick={(e) => {
                               e.stopPropagation();
                               // Apply both bucket and group filters
@@ -1908,7 +1916,7 @@ export function ChartPanel() {
                       dot={(props: any) => {
                         // Respect aggregation basis for grouped metrics
                         const isSelected = state.selectedBucket?.label === props.payload.date;
-                        const isHovered = state.hoveredBucket === props.payload.date;
+                        const isHovered = state.hoveredBucket === props.payload.date && state.hoveredGroup === groupValue;
                         const index = props.index;
                         const { key, ...dotProps } = props;
                         
@@ -1932,6 +1940,14 @@ export function ChartPanel() {
                             stroke="white"
                             strokeWidth={isSelected ? 2 : 0}
                             style={{ cursor: 'pointer' }}
+                            onMouseEnter={() => {
+                              dispatch(actions.setHoveredBucket(props.payload.date));
+                              dispatch(actions.setHoveredGroup(groupValue));
+                            }}
+                            onMouseLeave={() => {
+                              dispatch(actions.clearHoveredBucket());
+                              dispatch(actions.clearHoveredGroup());
+                            }}
                             onClick={(e) => {
                               e.stopPropagation();
                               // Apply both bucket and group filters
@@ -2084,7 +2100,7 @@ export function ChartPanel() {
                       shape={(props: any) => {
                         const { x, y, width, height, payload } = props;
                         const isSelected = state.selectedBucket?.label === payload.date;
-                        const isHovered = state.hoveredBucket === payload.date;
+                        const isHovered = state.hoveredBucket === payload.date && state.hoveredGroup === groupValue;
                         return (
                           <rect
                             x={x}
@@ -2092,9 +2108,18 @@ export function ChartPanel() {
                             width={width}
                             height={height}
                             fill={color}
+                            fillOpacity={isHovered ? 0.8 : 1}
                             stroke={isSelected ? 'white' : 'none'}
                             strokeWidth={isSelected ? 2 : 0}
                             style={{ cursor: 'pointer' }}
+                            onMouseEnter={() => {
+                              dispatch(actions.setHoveredBucket(payload.date));
+                              dispatch(actions.setHoveredGroup(groupValue));
+                            }}
+                            onMouseLeave={() => {
+                              dispatch(actions.clearHoveredBucket());
+                              dispatch(actions.clearHoveredGroup());
+                            }}
                             onClick={(e) => {
                               e.stopPropagation();
                               // Apply both bucket and group filters

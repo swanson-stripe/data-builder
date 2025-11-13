@@ -41,6 +41,7 @@ export type AppState = {
     label: string;
   };
   hoveredBucket?: string; // Date label of the currently hovered bucket
+  hoveredGroup?: string; // Group value being hovered (used with groupBy)
   selectedGrid?: GridSelection;
   chart: ChartSettings;
   metric: MetricDef; // Keep for backward compatibility with existing code
@@ -110,6 +111,15 @@ type SetHoveredBucketAction = {
 
 type ClearHoveredBucketAction = {
   type: 'CLEAR_HOVERED_BUCKET';
+};
+
+type SetHoveredGroupAction = {
+  type: 'SET_HOVERED_GROUP';
+  payload: string; // Group value
+};
+
+type ClearHoveredGroupAction = {
+  type: 'CLEAR_HOVERED_GROUP';
 };
 
 type SetChartTypeAction = {
@@ -286,6 +296,8 @@ export type AppAction =
   | ClearSelectedBucketAction
   | SetHoveredBucketAction
   | ClearHoveredBucketAction
+  | SetHoveredGroupAction
+  | ClearHoveredGroupAction
   | SetChartTypeAction
   | SetXSourceAction
   | SetXSourceModeAction
@@ -582,6 +594,18 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         hoveredBucket: undefined,
+      };
+
+    case 'SET_HOVERED_GROUP':
+      return {
+        ...state,
+        hoveredGroup: action.payload,
+      };
+
+    case 'CLEAR_HOVERED_GROUP':
+      return {
+        ...state,
+        hoveredGroup: undefined,
       };
 
     case 'SET_CHART_TYPE':
@@ -1167,6 +1191,15 @@ export const actions = {
 
   clearHoveredBucket: (): ClearHoveredBucketAction => ({
     type: 'CLEAR_HOVERED_BUCKET',
+  }),
+
+  setHoveredGroup: (groupValue: string): SetHoveredGroupAction => ({
+    type: 'SET_HOVERED_GROUP',
+    payload: groupValue,
+  }),
+
+  clearHoveredGroup: (): ClearHoveredGroupAction => ({
+    type: 'CLEAR_HOVERED_GROUP',
   }),
 
   setChartType: (chartType: ChartType): SetChartTypeAction => ({
