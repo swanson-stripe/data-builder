@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useTheme } from 'next-themes';
 
 export type GroupBySelectorProps = {
   availableValues: string[];
@@ -22,7 +21,6 @@ export default function GroupBySelector({
   onCancel,
   maxSelections = 10,
 }: GroupBySelectorProps) {
-  const { theme } = useTheme();
   const [selected, setSelected] = useState<Set<string>>(new Set(initialSelected));
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -154,8 +152,8 @@ export default function GroupBySelector({
           display: flex;
           flex-direction: column;
           width: 300px;
-          background: ${theme === 'dark' ? '#1f2937' : '#ffffff'};
-          border: 1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'};
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-medium);
           border-radius: 8px;
           box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
           overflow: hidden;
@@ -164,7 +162,7 @@ export default function GroupBySelector({
         .search-container {
           position: relative;
           padding: 12px;
-          border-bottom: 1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'};
+          border-bottom: 1px solid var(--border-medium);
         }
 
         .search-icon {
@@ -172,17 +170,17 @@ export default function GroupBySelector({
           left: 24px;
           top: 50%;
           transform: translateY(-50%);
-          color: ${theme === 'dark' ? '#9ca3af' : '#6b7280'};
+          color: var(--text-muted);
           pointer-events: none;
         }
 
         .search-input {
           width: 100%;
           padding: 8px 12px 8px 36px;
-          border: 1px solid ${theme === 'dark' ? '#374151' : '#d1d5db'};
+          border: 1px solid var(--border-medium);
           border-radius: 6px;
-          background: ${theme === 'dark' ? '#111827' : '#ffffff'};
-          color: ${theme === 'dark' ? '#f9fafb' : '#111827'};
+          background: var(--bg-surface);
+          color: var(--text-primary);
           font-size: 14px;
           outline: none;
           transition: border-color 0.15s;
@@ -193,12 +191,12 @@ export default function GroupBySelector({
         }
 
         .search-input::placeholder {
-          color: ${theme === 'dark' ? '#6b7280' : '#9ca3af'};
+          color: var(--text-muted);
         }
 
         .selection-header {
           padding: 12px;
-          border-bottom: 1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'};
+          border-bottom: 1px solid var(--border-medium);
         }
 
         .checkbox-label {
@@ -224,7 +222,7 @@ export default function GroupBySelector({
         .selection-count {
           font-size: 14px;
           font-weight: 500;
-          color: ${theme === 'dark' ? '#f9fafb' : '#111827'};
+          color: var(--text-primary);
         }
 
         .value-list {
@@ -245,26 +243,26 @@ export default function GroupBySelector({
         }
 
         .value-item:hover {
-          background: ${theme === 'dark' ? '#374151' : '#f3f4f6'};
+          background: var(--bg-surface);
         }
 
         .value-label {
           font-size: 14px;
-          color: ${theme === 'dark' ? '#f9fafb' : '#111827'};
+          color: var(--text-primary);
         }
 
         .empty-state {
           padding: 24px;
           text-align: center;
           font-size: 14px;
-          color: ${theme === 'dark' ? '#9ca3af' : '#6b7280'};
+          color: var(--text-muted);
         }
 
         .actions {
           display: flex;
           gap: 8px;
           padding: 12px;
-          border-top: 1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'};
+          border-top: 1px solid var(--border-medium);
           justify-content: flex-end;
         }
 
@@ -280,12 +278,12 @@ export default function GroupBySelector({
         }
 
         .btn-cancel {
-          background: ${theme === 'dark' ? '#374151' : '#f3f4f6'};
-          color: ${theme === 'dark' ? '#f9fafb' : '#111827'};
+          background: var(--bg-surface);
+          color: var(--text-primary);
         }
 
         .btn-cancel:hover {
-          background: ${theme === 'dark' ? '#4b5563' : '#e5e7eb'};
+          background: var(--bg-active);
         }
 
         .btn-apply {
