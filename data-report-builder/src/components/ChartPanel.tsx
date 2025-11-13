@@ -249,33 +249,14 @@ export function ChartPanel() {
     }, duration);
   }, [dispatch]);
   
-  // Track when heavy calculations are in progress
+  // Cleanup timeout on unmount
   useEffect(() => {
-    // Skip on initial mount (handled separately below)
-    if (isInitialMount.current) {
-      return;
-    }
-    
-    const isGrouping = state.groupBy && state.groupBy.selectedValues.length > 0;
-    const isMultiBlock = state.metricFormula.blocks.length > 1;
-    const isHeavyCalculation = isGrouping || isMultiBlock;
-    
-    if (isHeavyCalculation) {
-      // Set loading state for 5 seconds on heavy operations
-      setLoadingState(5000);
-    }
-  }, [
-    state.groupBy?.field.object,
-    state.groupBy?.field.field,
-    state.groupBy?.selectedValues.length,
-    state.metricFormula.blocks.length,
-    state.start,
-    state.end,
-    state.granularity,
-    state.selectedObjects.length,
-    state.selectedFields.length,
-    setLoadingState,
-  ]);
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Compute grouped metrics if grouping is active
   const groupedMetrics = useMemo(() => {
