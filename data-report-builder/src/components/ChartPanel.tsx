@@ -14,6 +14,8 @@ import { useWarehouseStore } from '@/lib/useWarehouse';
 import schema from '@/data/schema';
 import { buildDataListView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
+import { getAvailableGroupFields, getGroupValues } from '@/lib/grouping';
+import GroupBySelector from './GroupBySelector';
 import {
   LineChart,
   Line,
@@ -226,6 +228,77 @@ export function ChartPanel() {
     version, // Re-compute when warehouse data changes
   ]);
 
+  // Compute grouped metrics if grouping is active
+  const groupedMetrics = useMemo(() => {
+    if (!state.groupBy || state.groupBy.selectedValues.length === 0) {
+      return null;
+    }
+
+    // Get the rows for the primary object
+    const primaryObject = state.selectedObjects[0] || state.metricFormula.blocks[0]?.source?.object;
+    if (!primaryObject) return null;
+
+    const allRows = warehouse[primaryObject as keyof Warehouse];
+    if (!Array.isArray(allRows)) return null;
+
+    // Compute metric for each group
+    const results = new Map<string, MetricResult>();
+    
+    for (const groupValue of state.groupBy.selectedValues) {
+      // Filter rows for this group
+      const groupRows = allRows.filter(row => {
+        const value = row[state.groupBy!.field.field];
+        return String(value) === groupValue;
+      });
+
+      // Create a temporary warehouse with only this group's rows
+      const groupWarehouse = {
+        ...warehouse,
+        [primaryObject]: groupRows,
+      };
+
+      // Compute metric for this group
+      if (useFormula) {
+        const { result } = computeFormula({
+          formula: state.metricFormula,
+          start: state.start,
+          end: state.end,
+          granularity: state.granularity,
+          store: groupWarehouse,
+          schema,
+          selectedObjects: state.selectedObjects,
+          selectedFields: state.selectedFields,
+        });
+        results.set(groupValue, result);
+      } else {
+        const result = computeMetric({
+          def: state.metric,
+          start: state.start,
+          end: state.end,
+          granularity: state.granularity,
+          store: groupWarehouse,
+          include: undefined, // Don't apply PK filtering for groups
+          schema,
+          objects: state.selectedObjects,
+        });
+        results.set(groupValue, result);
+      }
+    }
+
+    return results;
+  }, [
+    state.groupBy,
+    state.metricFormula,
+    state.metric,
+    state.start,
+    state.end,
+    state.granularity,
+    state.selectedObjects,
+    state.selectedFields,
+    useFormula,
+    version,
+  ]);
+
   // Extract series from metric result (for compatibility with existing code)
   const series = useMemo(() => {
     if (!metricResult.series) {
@@ -395,6 +468,34 @@ export function ChartPanel() {
   // Format chart data for Recharts - merge current and comparison series
   // IMPORTANT: Convert currency values from pennies to dollars for chart rendering
   const chartData = useMemo(() => {
+    // If grouping is active, prepare data with all groups
+    if (groupedMetrics) {
+      const allDates = series.points.map(p => p.date);
+      
+      return allDates.map((date, index) => {
+        const dataPoint: any = { date };
+        
+        // Add comparison if present (for ungrouped baseline)
+        const comparisonPoint = comparisonSeries?.points[index];
+        if (comparisonPoint && comparisonPoint.value !== null && comparisonPoint.value !== undefined) {
+          dataPoint.comparison = valueKind === 'currency' ? comparisonPoint.value / 100 : comparisonPoint.value;
+        }
+        
+        // Add each group's value
+        for (const [groupValue, groupResult] of groupedMetrics.entries()) {
+          if (groupResult.series && groupResult.series[index]) {
+            const value = groupResult.series[index].value;
+            dataPoint[groupValue] = valueKind === 'currency' ? value / 100 : value;
+          } else {
+            dataPoint[groupValue] = 0;
+          }
+        }
+        
+        return dataPoint;
+      });
+    }
+    
+    // Regular ungrouped data
     const data = series.points.map((point, index) => {
       const currentValue = valueKind === 'currency' ? point.value / 100 : point.value;
       
@@ -411,7 +512,7 @@ export function ChartPanel() {
       };
     });
     return data;
-  }, [series, comparisonSeries, valueKind]);
+  }, [series, comparisonSeries, valueKind, groupedMetrics]);
 
   // Compute X-axis ticks - only label the first occurrence of each month
   const xAxisTicks = useMemo(() => {
@@ -545,6 +646,12 @@ export function ChartPanel() {
   const dateRangeButtonRef = useRef<HTMLButtonElement>(null);
   const dateRangePopoverRef = useRef<HTMLDivElement>(null);
   const dateCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Group By state
+  const [isGroupByFieldSelectorOpen, setIsGroupByFieldSelectorOpen] = useState(false);
+  const [isGroupByValueSelectorOpen, setIsGroupByValueSelectorOpen] = useState(false);
+  const groupByButtonRef = useRef<HTMLButtonElement>(null);
+  const groupByPopoverRef = useRef<HTMLDivElement>(null);
 
   // Handle popover open/close with animation
   useEffect(() => {
@@ -698,6 +805,39 @@ export function ChartPanel() {
   const availablePresetsToAdd = rangePresets
     .filter(p => !activePresets.includes(p.label))
     .concat(moreRangeOptions.filter(p => !activePresets.includes(p.code)).map(p => ({ label: p.code, getValue: p.getValue })));
+
+  // Group By: Get available fields
+  const availableGroupFields = useMemo(() => {
+    return getAvailableGroupFields(state.selectedObjects, schema);
+  }, [state.selectedObjects]);
+
+  // Group By: Get available values for selected field
+  const availableGroupValues = useMemo(() => {
+    if (!state.groupBy) return [];
+    return getGroupValues(warehouse, state.groupBy.field, 100);
+  }, [state.groupBy?.field, version]);
+
+  // Handle click outside to close group by popovers
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        groupByButtonRef.current && 
+        !groupByButtonRef.current.contains(event.target as Node) &&
+        groupByPopoverRef.current &&
+        !groupByPopoverRef.current.contains(event.target as Node)
+      ) {
+        setIsGroupByFieldSelectorOpen(false);
+        setIsGroupByValueSelectorOpen(false);
+      }
+    };
+
+    if (isGroupByFieldSelectorOpen || isGroupByValueSelectorOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isGroupByFieldSelectorOpen, isGroupByValueSelectorOpen]);
 
   return (
     <div className="flex flex-col h-full">
@@ -1326,6 +1466,147 @@ export function ChartPanel() {
             </svg>
           </button>
         )}
+
+        {/* Group By Control */}
+        <div className="relative inline-flex items-center">
+          <button
+            ref={groupByButtonRef}
+            onClick={() => {
+              if (!state.groupBy) {
+                // Open field selector
+                setIsGroupByFieldSelectorOpen(true);
+              } else {
+                // Open value selector
+                setIsGroupByValueSelectorOpen(true);
+              }
+            }}
+            className="text-sm border-none focus:outline-none cursor-pointer flex items-center transition-colors gap-2"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              color: state.groupBy ? 'var(--text-primary)' : 'var(--text-muted)',
+              fontWeight: 400,
+              borderRadius: '50px',
+              padding: '6px 12px',
+              height: '32px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {!state.groupBy && (
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="var(--text-muted)"/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="var(--text-muted)"/>
+              </svg>
+            )}
+            <span>
+              {state.groupBy 
+                ? `${schema.objects.find(o => o.name === state.groupBy.field.object)?.label}.${schema.objects.find(o => o.name === state.groupBy.field.object)?.fields.find(f => f.name === state.groupBy.field.field)?.label} (${state.groupBy.selectedValues.length})`
+                : 'Group by'}
+            </span>
+            {state.groupBy && (
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 3L4 5L6 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </button>
+
+          {/* Field Selector Popover */}
+          {isGroupByFieldSelectorOpen && (
+            <div
+              ref={groupByPopoverRef}
+              className="absolute z-50"
+              style={{
+                top: '40px',
+                left: 0,
+                minWidth: '200px',
+                backgroundColor: 'var(--bg-elevated)',
+                border: '1px solid var(--border-medium)',
+                borderRadius: '8px',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                padding: '8px',
+              }}
+            >
+              {availableGroupFields.length === 0 ? (
+                <div className="px-3 py-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+                  No categorical fields available
+                </div>
+              ) : (
+                availableGroupFields.map((field) => (
+                  <button
+                    key={`${field.object}.${field.field}`}
+                    onClick={() => {
+                      // Get top 10 values for this field
+                      const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
+                      
+                      dispatch(actions.setGroupBy({
+                        field: { object: field.object, field: field.field },
+                        selectedValues: values,
+                        autoAddedField: false,
+                      }));
+                      
+                      setIsGroupByFieldSelectorOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm transition-colors"
+                    style={{
+                      borderRadius: '4px',
+                      color: 'var(--text-primary)',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    {field.label}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Value Selector Popover */}
+          {isGroupByValueSelectorOpen && state.groupBy && (
+            <div
+              ref={groupByPopoverRef}
+              className="absolute z-50"
+              style={{
+                top: '40px',
+                left: 0,
+              }}
+            >
+              <GroupBySelector
+                availableValues={availableGroupValues}
+                selectedValues={state.groupBy.selectedValues}
+                onApply={(selectedValues) => {
+                  dispatch(actions.updateGroupValues(selectedValues));
+                  setIsGroupByValueSelectorOpen(false);
+                }}
+                onCancel={() => {
+                  setIsGroupByValueSelectorOpen(false);
+                }}
+                maxSelections={10}
+              />
+            </div>
+          )}
+
+          {/* Clear button - show when grouping is active */}
+          {state.groupBy && (
+            <button
+              onClick={() => {
+                dispatch(actions.clearGroupBy());
+              }}
+              className="ml-2 flex items-center justify-center transition-colors"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderRadius: '50px',
+                color: 'var(--text-muted)',
+                width: '32px',
+                height: '32px',
+              }}
+              aria-label="Clear grouping"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Warnings */}
@@ -1401,54 +1682,81 @@ export function ChartPanel() {
                   return value;
                 }}
               />
-              <Line
-                type="linear"
-                dataKey="current"
-                name={series.label}
-                      stroke="var(--chart-line-primary)"
-                      strokeWidth={2.5}
-                      isAnimationActive={false}
-                dot={(props: any) => {
-                  const isSelected = state.selectedBucket?.label === props.payload.date;
-                  const isHovered = state.hoveredBucket === props.payload.date;
-                  const { key, ...dotProps } = props;
-                        
-                        // For latest/first value metrics, only show dot on the relevant bucket
-                        // Use formula block type if available, otherwise fall back to legacy metric type
-                        const metricType = useFormula && state.metricFormula.blocks.length > 0
-                          ? state.metricFormula.blocks[0].type
-                          : state.metric.type;
-                        
-                        const shouldShowDot = 
-                          metricType === 'sum_over_period' || 
-                          metricType === 'average_over_period' ||
-                          (metricType === 'latest' && props.index === chartData.length - 1) ||
-                          (metricType === 'first' && props.index === 0);
-                        
-                        if (!shouldShowDot && !isSelected && !isHovered) {
-                          return <g key={key} />;
-                        }
-                        
+              {/* Render grouped lines or single line */}
+              {groupedMetrics ? (
+                // Render a line for each group
+                Array.from(groupedMetrics.keys()).map((groupValue, idx) => {
+                  const colors = [
+                    '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
+                    '#3b82f6', '#ef4444', '#14b8a6', '#f97316', '#84cc16'
+                  ];
+                  const color = colors[idx % colors.length];
+                  
                   return (
-                    <Dot
-                      key={key}
-                      {...dotProps}
-                            r={isSelected ? 6 : isHovered ? 5 : 4}
-                            fill={isSelected ? 'var(--chart-line-primary)' : isHovered ? 'var(--chart-line-primary)' : 'var(--chart-line-primary)'}
-                      stroke={isSelected ? 'var(--bg-elevated)' : 'none'}
-                      strokeWidth={isSelected ? 2 : 0}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => handlePointClick(props.payload)}
+                    <Line
+                      key={groupValue}
+                      type="linear"
+                      dataKey={groupValue}
+                      name={groupValue}
+                      stroke={color}
+                      strokeWidth={2}
+                      isAnimationActive={false}
+                      dot={{ r: 4, fill: color }}
+                      activeDot={{ r: 5, style: { cursor: 'pointer' } }}
                     />
                   );
-                }}
-                activeDot={{
-                  r: 5,
-                  style: { cursor: 'pointer' },
-                  onClick: (e: any, payload: any) => handlePointClick(payload)
-                }}
-              />
-              {comparisonSeries && (
+                })
+              ) : (
+                // Regular single line
+                <Line
+                  type="linear"
+                  dataKey="current"
+                  name={series.label}
+                        stroke="var(--chart-line-primary)"
+                        strokeWidth={2.5}
+                        isAnimationActive={false}
+                  dot={(props: any) => {
+                    const isSelected = state.selectedBucket?.label === props.payload.date;
+                    const isHovered = state.hoveredBucket === props.payload.date;
+                    const { key, ...dotProps } = props;
+                          
+                          // For latest/first value metrics, only show dot on the relevant bucket
+                          // Use formula block type if available, otherwise fall back to legacy metric type
+                          const metricType = useFormula && state.metricFormula.blocks.length > 0
+                            ? state.metricFormula.blocks[0].type
+                            : state.metric.type;
+                          
+                          const shouldShowDot = 
+                            metricType === 'sum_over_period' || 
+                            metricType === 'average_over_period' ||
+                            (metricType === 'latest' && props.index === chartData.length - 1) ||
+                            (metricType === 'first' && props.index === 0);
+                          
+                          if (!shouldShowDot && !isSelected && !isHovered) {
+                            return <g key={key} />;
+                          }
+                          
+                    return (
+                      <Dot
+                        key={key}
+                        {...dotProps}
+                              r={isSelected ? 6 : isHovered ? 5 : 4}
+                              fill={isSelected ? 'var(--chart-line-primary)' : isHovered ? 'var(--chart-line-primary)' : 'var(--chart-line-primary)'}
+                        stroke={isSelected ? 'var(--bg-elevated)' : 'none'}
+                        strokeWidth={isSelected ? 2 : 0}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handlePointClick(props.payload)}
+                      />
+                    );
+                  }}
+                  activeDot={{
+                    r: 5,
+                    style: { cursor: 'pointer' },
+                    onClick: (e: any, payload: any) => handlePointClick(payload)
+                  }}
+                />
+              )}
+              {comparisonSeries && !groupedMetrics && (
                 <Line
                         type="linear"
                   dataKey="comparison"
@@ -1512,68 +1820,96 @@ export function ChartPanel() {
                   return value;
                 }}
               />
-              {comparisonSeries && (
+              {comparisonSeries && !groupedMetrics && (
                 <Area
                   type="monotone"
                   dataKey="comparison"
                   name={comparisonSeries.label}
-                        fill="var(--chart-area-fill-secondary)"
-                        fillOpacity={0.2}
+                      fill="var(--chart-area-fill-secondary)"
+                      fillOpacity={0.2}
                         stroke="var(--chart-line-secondary)"
                   strokeWidth={2}
                         strokeDasharray="4 4"
                   isAnimationActive={false}
                 />
               )}
-              <Area
-                type="monotone"
-                dataKey="current"
-                name={series.label}
-                      fill="var(--chart-area-fill)"
-                      fillOpacity={0.3}
-                      stroke="var(--chart-line-primary)"
-                      strokeWidth={2.5}
-                      isAnimationActive={false}
-                dot={(props: any) => {
-                  const isSelected = state.selectedBucket?.label === props.payload.date;
-                  const isHovered = state.hoveredBucket === props.payload.date;
-                  const { key, ...dotProps } = props;
-                        
-                        // For latest/first value metrics, only show dot on the relevant bucket
-                        // Use formula block type if available, otherwise fall back to legacy metric type
-                        const metricType = useFormula && state.metricFormula.blocks.length > 0
-                          ? state.metricFormula.blocks[0].type
-                          : state.metric.type;
-                        
-                        const shouldShowDot = 
-                          metricType === 'sum_over_period' || 
-                          metricType === 'average_over_period' ||
-                          (metricType === 'latest' && props.index === chartData.length - 1) ||
-                          (metricType === 'first' && props.index === 0);
-                        
-                        if (!shouldShowDot && !isSelected && !isHovered) {
-                          return <g key={key} />;
-                        }
-                        
+              {/* Render grouped areas or single area */}
+              {groupedMetrics ? (
+                // Render an area for each group (stacked)
+                Array.from(groupedMetrics.keys()).map((groupValue, idx) => {
+                  const colors = [
+                    '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
+                    '#3b82f6', '#ef4444', '#14b8a6', '#f97316', '#84cc16'
+                  ];
+                  const color = colors[idx % colors.length];
+                  
                   return (
-                    <Dot
-                      key={key}
-                      {...dotProps}
-                            r={isSelected ? 6 : isHovered ? 5 : 4}
-                            fill={isSelected ? 'var(--chart-line-primary)' : isHovered ? 'var(--chart-line-primary)' : 'var(--chart-line-primary)'}
-                      stroke={isSelected ? 'var(--bg-elevated)' : 'none'}
-                      strokeWidth={isSelected ? 2 : 0}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => handlePointClick(props.payload)}
+                    <Area
+                      key={groupValue}
+                      type="monotone"
+                      dataKey={groupValue}
+                      name={groupValue}
+                      fill={color}
+                      fillOpacity={0.3}
+                      stroke={color}
+                      strokeWidth={2}
+                      isAnimationActive={false}
+                      stackId="stack"
                     />
                   );
-                }}
-                activeDot={{
-                  r: 5,
-                  style: { cursor: 'pointer' },
-                  onClick: (e: any, payload: any) => handlePointClick(payload)
-                }}
-              />
+                })
+              ) : (
+                // Regular single area
+                <Area
+                  type="monotone"
+                  dataKey="current"
+                  name={series.label}
+                        fill="var(--chart-area-fill)"
+                        fillOpacity={0.3}
+                        stroke="var(--chart-line-primary)"
+                        strokeWidth={2.5}
+                        isAnimationActive={false}
+                  dot={(props: any) => {
+                    const isSelected = state.selectedBucket?.label === props.payload.date;
+                    const isHovered = state.hoveredBucket === props.payload.date;
+                    const { key, ...dotProps } = props;
+                          
+                          // For latest/first value metrics, only show dot on the relevant bucket
+                          // Use formula block type if available, otherwise fall back to legacy metric type
+                          const metricType = useFormula && state.metricFormula.blocks.length > 0
+                            ? state.metricFormula.blocks[0].type
+                            : state.metric.type;
+                          
+                          const shouldShowDot = 
+                            metricType === 'sum_over_period' || 
+                            metricType === 'average_over_period' ||
+                            (metricType === 'latest' && props.index === chartData.length - 1) ||
+                            (metricType === 'first' && props.index === 0);
+                          
+                          if (!shouldShowDot && !isSelected && !isHovered) {
+                            return <g key={key} />;
+                          }
+                          
+                    return (
+                      <Dot
+                        key={key}
+                        {...dotProps}
+                              r={isSelected ? 6 : isHovered ? 5 : 4}
+                              fill={isSelected ? 'var(--chart-line-primary)' : isHovered ? 'var(--chart-line-primary)' : 'var(--chart-line-primary)'}
+                        stroke={isSelected ? 'var(--bg-elevated)' : 'none'}
+                        strokeWidth={isSelected ? 2 : 0}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handlePointClick(props.payload)}
+                      />
+                    );
+                  }}
+                  activeDot={{
+                    r: 5,
+                    style: { cursor: 'pointer' },
+                    onClick: (e: any, payload: any) => handlePointClick(payload)
+                  }}
+                />
+              )}
             </AreaChart>
           )}
 
@@ -1626,31 +1962,55 @@ export function ChartPanel() {
                   return value;
                 }}
               />
-              <Bar
-                dataKey="current"
-                name={series.label}
-                      fill="var(--chart-line-primary)"
-                      isAnimationActive={false}
-                shape={(props: any) => {
-                  const { x, y, width, height, payload } = props;
-                  const isSelected = state.selectedBucket?.label === payload.date;
-                  const isHovered = state.hoveredBucket === payload.date;
+              {/* Render grouped bars (stacked) or single bar */}
+              {groupedMetrics ? (
+                // Render a bar for each group (stacked)
+                Array.from(groupedMetrics.keys()).map((groupValue, idx) => {
+                  const colors = [
+                    '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
+                    '#3b82f6', '#ef4444', '#14b8a6', '#f97316', '#84cc16'
+                  ];
+                  const color = colors[idx % colors.length];
+                  
                   return (
-                    <rect
-                      x={x}
-                      y={y}
-                      width={width}
-                      height={height}
-                            fill={isSelected ? 'var(--chart-line-primary)' : isHovered ? 'var(--chart-line-primary)' : 'var(--chart-line-primary)'}
-                      stroke={isSelected ? 'var(--bg-elevated)' : 'none'}
-                      strokeWidth={isSelected ? 2 : 0}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => handlePointClick(payload)}
+                    <Bar
+                      key={groupValue}
+                      dataKey={groupValue}
+                      name={groupValue}
+                      fill={color}
+                      isAnimationActive={false}
+                      stackId="stack"
                     />
                   );
-                }}
-              />
-              {comparisonSeries && (
+                })
+              ) : (
+                // Regular single bar
+                <Bar
+                  dataKey="current"
+                  name={series.label}
+                        fill="var(--chart-line-primary)"
+                        isAnimationActive={false}
+                  shape={(props: any) => {
+                    const { x, y, width, height, payload } = props;
+                    const isSelected = state.selectedBucket?.label === payload.date;
+                    const isHovered = state.hoveredBucket === payload.date;
+                    return (
+                      <rect
+                        x={x}
+                        y={y}
+                        width={width}
+                        height={height}
+                              fill={isSelected ? 'var(--chart-line-primary)' : isHovered ? 'var(--chart-line-primary)' : 'var(--chart-line-primary)'}
+                        stroke={isSelected ? 'var(--bg-elevated)' : 'none'}
+                        strokeWidth={isSelected ? 2 : 0}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handlePointClick(payload)}
+                      />
+                    );
+                  }}
+                />
+              )}
+              {comparisonSeries && !groupedMetrics && (
                 <Bar
                   dataKey="comparison"
                   name={comparisonSeries.label}

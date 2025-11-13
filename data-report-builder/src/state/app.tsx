@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { Granularity } from '@/lib/time';
-import { ReportKey, MetricDef, MetricOp, MetricType, MetricFormula, MetricBlock, CalculationOperator, FilterGroup, FilterCondition, UnitType } from '@/types';
+import { ReportKey, MetricDef, MetricOp, MetricType, MetricFormula, MetricBlock, CalculationOperator, FilterGroup, FilterCondition, UnitType, GroupBy } from '@/types';
 
 // Chart types
 export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year' | 'benchmarks';
@@ -46,6 +46,7 @@ export type AppState = {
   metric: MetricDef; // Keep for backward compatibility with existing code
   metricFormula: MetricFormula; // New multi-block calculation system
   filters: FilterGroup;
+  groupBy?: GroupBy; // Optional grouping for segmenting data
   dataListSort?: {
     column: string; // Qualified field name: "object.field"
     direction: 'asc' | 'desc';
@@ -229,6 +230,20 @@ type ClearFiltersAction = {
   type: 'CLEAR_FILTERS';
 };
 
+type SetGroupByAction = {
+  type: 'SET_GROUP_BY';
+  payload: GroupBy;
+};
+
+type ClearGroupByAction = {
+  type: 'CLEAR_GROUP_BY';
+};
+
+type UpdateGroupValuesAction = {
+  type: 'UPDATE_GROUP_VALUES';
+  payload: string[]; // selectedValues
+};
+
 type SetDataListSortAction = {
   type: 'SET_DATA_LIST_SORT';
   payload: {
@@ -295,6 +310,9 @@ export type AppAction =
   | RemoveFilterAction
   | SetFilterLogicAction
   | ClearFiltersAction
+  | SetGroupByAction
+  | ClearGroupByAction
+  | UpdateGroupValuesAction
   | SetDataListSortAction
   | ResetAllAction
   | ShowTemplateSelectorAction
@@ -806,6 +824,69 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
       };
 
+    case 'SET_GROUP_BY': {
+      const groupBy = action.payload;
+      const qualifiedField = `${groupBy.field.object}.${groupBy.field.field}`;
+      
+      // Auto-add the field if not already present
+      let newSelectedFields = [...state.selectedFields];
+      let newFieldOrder = [...state.fieldOrder];
+      let newSelectedObjects = [...state.selectedObjects];
+      
+      const fieldExists = newSelectedFields.some(
+        f => f.object === groupBy.field.object && f.field === groupBy.field.field
+      );
+      
+      if (!fieldExists) {
+        newSelectedFields.push(groupBy.field);
+        newFieldOrder.push(qualifiedField);
+        groupBy.autoAddedField = true;
+        
+        // Also ensure the parent object is selected
+        if (!newSelectedObjects.includes(groupBy.field.object)) {
+          newSelectedObjects.push(groupBy.field.object);
+        }
+      }
+      
+      return {
+        ...state,
+        groupBy,
+        selectedFields: newSelectedFields,
+        fieldOrder: newFieldOrder,
+        selectedObjects: newSelectedObjects,
+      };
+    }
+
+    case 'CLEAR_GROUP_BY': {
+      // If the field was auto-added, remove it
+      if (state.groupBy?.autoAddedField) {
+        const qualifiedField = `${state.groupBy.field.object}.${state.groupBy.field.field}`;
+        return {
+          ...state,
+          groupBy: undefined,
+          selectedFields: state.selectedFields.filter(
+            f => !(f.object === state.groupBy?.field.object && f.field === state.groupBy?.field.field)
+          ),
+          fieldOrder: state.fieldOrder.filter(f => f !== qualifiedField),
+        };
+      }
+      
+      return {
+        ...state,
+        groupBy: undefined,
+      };
+    }
+
+    case 'UPDATE_GROUP_VALUES':
+      if (!state.groupBy) return state;
+      return {
+        ...state,
+        groupBy: {
+          ...state.groupBy,
+          selectedValues: action.payload,
+        },
+      };
+
     case 'SET_DATA_LIST_SORT':
       return {
         ...state,
@@ -1206,6 +1287,20 @@ export const actions = {
 
   clearFilters: (): ClearFiltersAction => ({
     type: 'CLEAR_FILTERS',
+  }),
+
+  setGroupBy: (groupBy: GroupBy): SetGroupByAction => ({
+    type: 'SET_GROUP_BY',
+    payload: groupBy,
+  }),
+
+  clearGroupBy: (): ClearGroupByAction => ({
+    type: 'CLEAR_GROUP_BY',
+  }),
+
+  updateGroupValues: (selectedValues: string[]): UpdateGroupValuesAction => ({
+    type: 'UPDATE_GROUP_VALUES',
+    payload: selectedValues,
   }),
 
   setDataListSort: (column: string, direction: 'asc' | 'desc'): SetDataListSortAction => ({

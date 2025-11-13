@@ -146,6 +146,15 @@ export type FilterGroup = {
 };
 
 /**
+ * Grouping types
+ */
+export type GroupBy = {
+  field: { object: string; field: string };
+  selectedValues: string[]; // Max 10 values
+  autoAddedField?: boolean; // Track if field was auto-added
+};
+
+/**
  * Data catalog types
  */
 export type Catalog = {

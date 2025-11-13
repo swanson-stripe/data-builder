@@ -80,6 +80,30 @@ function getReportConfig(key: ReportKey) {
         volatility: 0.12,
         floor: 500,
       };
+    case 'customer_acquisition':
+      return {
+        label: 'Customer Acquisition',
+        baseValue: 50,
+        growthRate: 0.04,
+        volatility: 0.25,
+        floor: 5,
+      };
+    case 'payment_success_rate':
+      return {
+        label: 'Payment Success Rate',
+        baseValue: 0.92,
+        growthRate: 0.001,
+        volatility: 0.05,
+        floor: 0.8,
+      };
+    case 'revenue_by_product':
+      return {
+        label: 'Revenue by Product',
+        baseValue: 100000,
+        growthRate: 0.035,
+        volatility: 0.18,
+        floor: 20000,
+      };
   }
 }
 
