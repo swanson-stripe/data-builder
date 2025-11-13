@@ -150,6 +150,77 @@ export function ValueTable() {
     dispatch(actions.setSelectedBucket(start, end, dateStr));
   }, [state.metric.type, state.granularity, metricResult.series, dispatch]);
 
+  // Compute grouped metrics if grouping is active
+  const groupedMetrics = useMemo(() => {
+    if (!state.groupBy || state.groupBy.selectedValues.length === 0) {
+      return null;
+    }
+
+    // Get the rows for the primary object
+    const primaryObject = state.selectedObjects[0] || state.metricFormula.blocks[0]?.source?.object;
+    if (!primaryObject) return null;
+
+    const allRows = warehouse[primaryObject as keyof typeof warehouse];
+    if (!Array.isArray(allRows)) return null;
+
+    // Compute metric for each group
+    const results = new Map<string, typeof metricResult>();
+    
+    for (const groupValue of state.groupBy.selectedValues) {
+      // Filter rows for this group
+      const groupRows = allRows.filter(row => {
+        const value = row[state.groupBy!.field.field];
+        return String(value) === groupValue;
+      });
+
+      // Create a temporary warehouse with only this group's rows
+      const groupWarehouse = {
+        ...warehouse,
+        [primaryObject]: groupRows,
+      };
+
+      // Compute metric for this group
+      if (useFormula) {
+        const { result } = computeFormula({
+          formula: state.metricFormula,
+          start: state.start,
+          end: state.end,
+          granularity: state.granularity,
+          store: groupWarehouse,
+          schema,
+          selectedObjects: state.selectedObjects,
+          selectedFields: state.selectedFields,
+        });
+        results.set(groupValue, result);
+      } else {
+        const result = computeMetric({
+          def: state.metric,
+          start: state.start,
+          end: state.end,
+          granularity: state.granularity,
+          store: groupWarehouse,
+          include: undefined,
+          schema,
+          objects: state.selectedObjects,
+        });
+        results.set(groupValue, result);
+      }
+    }
+
+    return results;
+  }, [
+    state.groupBy,
+    state.metricFormula,
+    state.metric,
+    state.start,
+    state.end,
+    state.granularity,
+    state.selectedObjects,
+    state.selectedFields,
+    useFormula,
+    version,
+  ]);
+
   // Generate current period data (from metric result)
   const currentSeries = useMemo(() => {
     if (!metricResult.series) {
@@ -399,68 +470,203 @@ export function ValueTable() {
             </tr>
           </thead>
           <tbody>
-            {/* Current period row */}
-            <tr className="transition-colors" style={{ borderBottom: comparisonSeries ? '1px solid var(--border-default)' : 'none' }}>
-              <td 
-                className="py-2 pl-2 pr-6 whitespace-nowrap"
-                style={{ 
-                  position: 'sticky',
-                  left: 0,
-                  zIndex: 10,
-                  backgroundColor: 'var(--bg-elevated)'
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  {/* Legend marker - adapt based on chart type */}
-                  {state.chart.type === 'bar' ? (
-                    <div style={{ width: '12px', height: '10px', backgroundColor: 'var(--chart-line-primary)', borderRadius: '2px', flexShrink: 0 }}></div>
-                  ) : (
-                    <div style={{ width: '12px', height: '2px', backgroundColor: 'var(--chart-line-primary)', borderRadius: '1px', flexShrink: 0 }}></div>
-                  )}
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      {state.metric.name}
-                    </span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {formatPeriodLabel(new Date(state.start), new Date(state.end))}
-                    </span>
-                  </div>
-                </div>
-              </td>
-              {currentPoints.map((point, idx) => {
-                const isSelected =
-                  state.selectedBucket?.label === point.date;
-                const isHovered = state.hoveredBucket === point.date;
-                return (
-                  <td
-                    key={idx}
-                    className="py-2 pl-3 pr-3 transition-colors cursor-pointer"
-                    style={{
-                      textAlign: 'right',
-                      fontVariantNumeric: 'tabular-nums',
-                      minWidth: '100px',
-                      backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-hover)' : 'var(--bg-elevated)'
+            {/* Grouped rows or single current period row */}
+            {groupedMetrics ? (
+              <>
+                {/* Render a row for each group */}
+                {Array.from(groupedMetrics.entries()).map(([groupValue, groupResult], groupIdx) => {
+                  const colors = [
+                    '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
+                    '#3b82f6', '#ef4444', '#14b8a6', '#f97316', '#84cc16'
+                  ];
+                  const color = colors[groupIdx % colors.length];
+                  const groupPoints = groupResult.series || [];
+                  
+                  return (
+                    <tr key={groupValue} className="transition-colors">
+                      <td 
+                        className="py-2 pl-2 pr-6 whitespace-nowrap"
+                        style={{ 
+                          position: 'sticky',
+                          left: 0,
+                          zIndex: 10,
+                          backgroundColor: 'var(--bg-elevated)'
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          {/* Legend marker with group color */}
+                          {state.chart.type === 'bar' ? (
+                            <div style={{ width: '12px', height: '10px', backgroundColor: color, borderRadius: '2px', flexShrink: 0 }}></div>
+                          ) : (
+                            <div style={{ width: '12px', height: '2px', backgroundColor: color, borderRadius: '1px', flexShrink: 0 }}></div>
+                          )}
+                          <div className="flex flex-col">
+                            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                              {groupValue}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      {groupPoints.map((point, idx) => {
+                        const isSelected = state.selectedBucket?.label === point.date;
+                        const isHovered = state.hoveredBucket === point.date;
+                        return (
+                          <td
+                            key={idx}
+                            className="py-2 pl-3 pr-3 transition-colors cursor-pointer"
+                            style={{
+                              textAlign: 'right',
+                              fontVariantNumeric: 'tabular-nums',
+                              minWidth: '100px',
+                              backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-hover)' : 'var(--bg-elevated)'
+                            }}
+                            tabIndex={0}
+                            onClick={() => handleBucketClick(point.date)}
+                            onMouseEnter={() => dispatch(actions.setHoveredBucket(point.date))}
+                            onMouseLeave={() => dispatch(actions.clearHoveredBucket())}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleBucketClick(point.date);
+                              }
+                            }}
+                            role="button"
+                            aria-label={`Select period ${shortDate(point.date)}`}
+                          >
+                            <span className="text-sm underline" style={{ color: 'var(--text-primary)' }}>
+                              {formatValue(point.value)}
+                            </span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+                
+                {/* Total row */}
+                <tr className="transition-colors" style={{ borderTop: '1px solid var(--border-default)', fontWeight: 600 }}>
+                  <td 
+                    className="py-2 pl-2 pr-6 whitespace-nowrap"
+                    style={{ 
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 10,
+                      backgroundColor: 'var(--bg-elevated)'
                     }}
-                    tabIndex={0}
-                    onClick={() => handleBucketClick(point.date)}
-                    onMouseEnter={() => dispatch(actions.setHoveredBucket(point.date))}
-                    onMouseLeave={() => dispatch(actions.clearHoveredBucket())}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleBucketClick(point.date);
-                      }
-                    }}
-                    role="button"
-                    aria-label={`Select period ${shortDate(point.date)}`}
                   >
-                    <span className="text-sm underline" style={{ color: 'var(--text-primary)' }}>
-                      {formatValue(point.value)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <div style={{ width: '12px', height: '2px', backgroundColor: 'transparent', flexShrink: 0 }}></div>
+                      <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        Total
+                      </span>
+                    </div>
                   </td>
-                );
-              })}
-            </tr>
+                  {currentPoints.map((point, idx) => {
+                    // Sum all groups for this bucket
+                    let total = 0;
+                    for (const [_, groupResult] of groupedMetrics.entries()) {
+                      if (groupResult.series && groupResult.series[idx]) {
+                        total += groupResult.series[idx].value;
+                      }
+                    }
+                    
+                    const isSelected = state.selectedBucket?.label === point.date;
+                    const isHovered = state.hoveredBucket === point.date;
+                    return (
+                      <td
+                        key={idx}
+                        className="py-2 pl-3 pr-3 transition-colors cursor-pointer"
+                        style={{
+                          textAlign: 'right',
+                          fontVariantNumeric: 'tabular-nums',
+                          minWidth: '100px',
+                          backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-hover)' : 'var(--bg-elevated)'
+                        }}
+                        tabIndex={0}
+                        onClick={() => handleBucketClick(point.date)}
+                        onMouseEnter={() => dispatch(actions.setHoveredBucket(point.date))}
+                        onMouseLeave={() => dispatch(actions.clearHoveredBucket())}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleBucketClick(point.date);
+                          }
+                        }}
+                        role="button"
+                        aria-label={`Select period ${shortDate(point.date)}`}
+                      >
+                        <span className="text-sm underline" style={{ color: 'var(--text-primary)' }}>
+                          {formatValue(total)}
+                        </span>
+                      </td>
+                    );
+                  })}
+                </tr>
+              </>
+            ) : (
+              // Regular single row when no grouping
+              <tr className="transition-colors" style={{ borderBottom: comparisonSeries ? '1px solid var(--border-default)' : 'none' }}>
+                <td 
+                  className="py-2 pl-2 pr-6 whitespace-nowrap"
+                  style={{ 
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 10,
+                    backgroundColor: 'var(--bg-elevated)'
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    {/* Legend marker - adapt based on chart type */}
+                    {state.chart.type === 'bar' ? (
+                      <div style={{ width: '12px', height: '10px', backgroundColor: 'var(--chart-line-primary)', borderRadius: '2px', flexShrink: 0 }}></div>
+                    ) : (
+                      <div style={{ width: '12px', height: '2px', backgroundColor: 'var(--chart-line-primary)', borderRadius: '1px', flexShrink: 0 }}></div>
+                    )}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        {state.metric.name}
+                      </span>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {formatPeriodLabel(new Date(state.start), new Date(state.end))}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                {currentPoints.map((point, idx) => {
+                  const isSelected =
+                    state.selectedBucket?.label === point.date;
+                  const isHovered = state.hoveredBucket === point.date;
+                  return (
+                    <td
+                      key={idx}
+                      className="py-2 pl-3 pr-3 transition-colors cursor-pointer"
+                      style={{
+                        textAlign: 'right',
+                        fontVariantNumeric: 'tabular-nums',
+                        minWidth: '100px',
+                        backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-hover)' : 'var(--bg-elevated)'
+                      }}
+                      tabIndex={0}
+                      onClick={() => handleBucketClick(point.date)}
+                      onMouseEnter={() => dispatch(actions.setHoveredBucket(point.date))}
+                      onMouseLeave={() => dispatch(actions.clearHoveredBucket())}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleBucketClick(point.date);
+                        }
+                      }}
+                      role="button"
+                      aria-label={`Select period ${shortDate(point.date)}`}
+                    >
+                      <span className="text-sm underline" style={{ color: 'var(--text-primary)' }}>
+                        {formatValue(point.value)}
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
+            )}
 
             {/* Comparison row */}
             {comparisonSeries && displayComparisonPoints && (
