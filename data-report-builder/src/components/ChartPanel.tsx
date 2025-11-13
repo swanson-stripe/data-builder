@@ -185,9 +185,15 @@ export function ChartPanel() {
 
   // Compute metric result (includes series) - supports both legacy and multi-block
   const metricResult = useMemo(() => {
+    // Show loading indicator for multi-block formulas
+    if (useFormula && state.metricFormula.blocks.length > 1) {
+      dispatch(actions.setCalculating(true));
+    }
+    
+    let result;
     if (useFormula) {
       // Use multi-block formula system
-      const { result } = computeFormula({
+      const computed = computeFormula({
         formula: state.metricFormula,
         start: state.start,
         end: state.end,
@@ -197,10 +203,10 @@ export function ChartPanel() {
         selectedObjects: state.selectedObjects,
         selectedFields: state.selectedFields,
       });
-      return result;
+      result = computed.result;
     } else {
       // Use legacy single-metric system
-      return computeMetric({
+      result = computeMetric({
         def: state.metric,
         start: state.start,
         end: state.end,
@@ -211,6 +217,15 @@ export function ChartPanel() {
         objects: state.selectedObjects, // Pass selected objects to determine primary table
       });
     }
+    
+    // Clear calculating state after computation
+    if (useFormula && state.metricFormula.blocks.length > 1) {
+      setTimeout(() => {
+        dispatch(actions.setCalculating(false));
+      }, 800);
+    }
+    
+    return result;
   }, [
     useFormula,
     state.metricFormula,
@@ -226,40 +241,32 @@ export function ChartPanel() {
     state.selectedObjects,
     state.selectedFields,
     version, // Re-compute when warehouse data changes
+    dispatch,
   ]);
-
-  // Track when heavy calculations are in progress
-  useEffect(() => {
-    // Set calculating to true when grouping is active or when there are complex calculations
-    const isHeavyCalculation = (state.groupBy?.selectedValues.length || 0) > 0 || 
-                                state.metricFormula.blocks.length > 1;
-    
-    if (isHeavyCalculation) {
-      dispatch(actions.setCalculating(true));
-      
-      // Clear after a short delay to allow UI to update
-      const timeout = setTimeout(() => {
-        dispatch(actions.setCalculating(false));
-      }, 500);
-      
-      return () => clearTimeout(timeout);
-    } else {
-      dispatch(actions.setCalculating(false));
-    }
-  }, [state.groupBy?.selectedValues.length, state.metricFormula.blocks.length, dispatch]);
 
   // Compute grouped metrics if grouping is active
   const groupedMetrics = useMemo(() => {
-    if (!state.groupBy || state.groupBy.selectedValues.length === 0) {
+    const hasGrouping = state.groupBy && state.groupBy.selectedValues.length > 0;
+    
+    if (!hasGrouping) {
       return null;
     }
 
+    // Set calculating state when starting heavy computation
+    dispatch(actions.setCalculating(true));
+
     // Get the rows for the primary object
     const primaryObject = state.selectedObjects[0] || state.metricFormula.blocks[0]?.source?.object;
-    if (!primaryObject) return null;
+    if (!primaryObject) {
+      dispatch(actions.setCalculating(false));
+      return null;
+    }
 
     const allRows = warehouse[primaryObject as keyof Warehouse];
-    if (!Array.isArray(allRows)) return null;
+    if (!Array.isArray(allRows)) {
+      dispatch(actions.setCalculating(false));
+      return null;
+    }
 
     // Compute metric for each group
     const results = new Map<string, MetricResult>();
@@ -305,6 +312,12 @@ export function ChartPanel() {
       }
     }
 
+    // Clear calculating state after computation is done
+    // Use setTimeout to ensure UI has time to show the indicator
+    setTimeout(() => {
+      dispatch(actions.setCalculating(false));
+    }, 800);
+
     return results;
   }, [
     state.groupBy,
@@ -317,6 +330,7 @@ export function ChartPanel() {
     state.selectedFields,
     useFormula,
     version,
+    dispatch,
   ]);
 
   // Extract series from metric result (for compatibility with existing code)
