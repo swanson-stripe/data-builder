@@ -64,6 +64,14 @@ export function DataList() {
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
+  // Selection overlay position
+  const [overlayPosition, setOverlayPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   // Auto-load selected objects that aren't yet loaded
   useEffect(() => {
@@ -311,7 +319,7 @@ export function DataList() {
     });
   }, [state.selectedGrid, sortedRows]);
 
-  // Calculate selection bounding box and edge cells
+  // Calculate selection bounding box for overlay positioning
   const selectionBounds = useMemo(() => {
     if (!state.selectedGrid || state.selectedGrid.cells.length === 0) return null;
     
@@ -324,9 +332,9 @@ export function DataList() {
       colKeys.add(cell.col);
     });
     
-    // Find row indices
+    // Find row indices in paginated rows
     const rowIndices: number[] = [];
-    sortedRows.forEach((row, idx) => {
+    paginatedRows.forEach((row, idx) => {
       const rowKey = getRowKey(row);
       if (rowKeys.has(rowKey)) {
         rowIndices.push(idx);
@@ -349,44 +357,52 @@ export function DataList() {
     const maxCol = Math.max(...colIndices);
     
     return { minRow, maxRow, minCol, maxCol };
-  }, [state.selectedGrid, sortedRows, columns]);
+  }, [state.selectedGrid, paginatedRows, columns]);
 
-  // Check if cell is on selection edge and return border style object
-  const getCellSelectionBorder = useCallback((rowIndex: number, colIndex: number) => {
-    if (!selectionBounds) {
-      return {
-        borderTop: '2px solid transparent',
-        borderRight: '2px solid transparent',
-        borderBottom: '2px solid transparent',
-        borderLeft: '2px solid transparent',
-      };
+  // Calculate overlay position when selection changes or scrolls
+  useEffect(() => {
+    if (!selectionBounds || !tableContainerRef.current) {
+      setOverlayPosition(null);
+      return;
     }
-    
-    const { minRow, maxRow, minCol, maxCol } = selectionBounds;
-    
-    // Check if this cell is selected
-    const colKey = columns[colIndex]?.key;
-    if (!colKey || !isCellSelected(rowIndex, colKey)) {
-      return {
-        borderTop: '2px solid transparent',
-        borderRight: '2px solid transparent',
-        borderBottom: '2px solid transparent',
-        borderLeft: '2px solid transparent',
-      };
-    }
-    
-    const borderColor = 'var(--data-chip-field-bg)';
-    const borderTransparent = '2px solid transparent';
-    const borderVisible = `2px solid ${borderColor}`;
-    
-    // Determine which borders to show
-    return {
-      borderTop: rowIndex === minRow ? borderVisible : borderTransparent,
-      borderRight: colIndex === maxCol ? borderVisible : borderTransparent,
-      borderBottom: rowIndex === maxRow ? borderVisible : borderTransparent,
-      borderLeft: colIndex === minCol ? borderVisible : borderTransparent,
+
+    const updatePosition = () => {
+      const firstCell = tableContainerRef.current?.querySelector(
+        `td[data-row-index="${selectionBounds.minRow}"][data-col-index="${selectionBounds.minCol}"]`
+      ) as HTMLElement;
+      const lastCell = tableContainerRef.current?.querySelector(
+        `td[data-row-index="${selectionBounds.maxRow}"][data-col-index="${selectionBounds.maxCol}"]`
+      ) as HTMLElement;
+      
+      if (!firstCell || !lastCell || !tableContainerRef.current) {
+        setOverlayPosition(null);
+        return;
+      }
+      
+      const containerRect = tableContainerRef.current.getBoundingClientRect();
+      const firstRect = firstCell.getBoundingClientRect();
+      const lastRect = lastCell.getBoundingClientRect();
+      
+      const top = firstRect.top - containerRect.top + tableContainerRef.current.scrollTop;
+      const left = firstRect.left - containerRect.left + tableContainerRef.current.scrollLeft;
+      const width = lastRect.right - firstRect.left;
+      const height = lastRect.bottom - firstRect.top;
+      
+      setOverlayPosition({ top, left, width, height });
     };
-  }, [selectionBounds, columns, isCellSelected]);
+
+    // Initial update
+    const timer = setTimeout(updatePosition, 0);
+    
+    // Update on scroll
+    const container = tableContainerRef.current;
+    container?.addEventListener('scroll', updatePosition);
+    
+    return () => {
+      clearTimeout(timer);
+      container?.removeEventListener('scroll', updatePosition);
+    };
+  }, [selectionBounds, paginatedRows]);
 
   // Check if row is selected
   const isRowSelected = useCallback((rowIndex: number): boolean => {
@@ -1229,7 +1245,7 @@ export function DataList() {
       </div>
 
       {/* Table container with horizontal scroll */}
-      <div ref={tableContainerRef} className="overflow-x-auto" style={{ marginTop: '12px' }}>
+      <div ref={tableContainerRef} className="overflow-x-auto relative" style={{ marginTop: '12px' }}>
         <table className="w-full border-collapse" style={{ fontSize: '14px' }} role="table" aria-label="Data preview table">
           {/* Sticky header */}
           <thead className="sticky top-0 z-10" style={{ backgroundColor: 'var(--bg-primary)' }}>
@@ -1581,6 +1597,7 @@ export function DataList() {
                     height: '44px',
                     backgroundColor: isRowSelected(actualRowIndex) ? 'var(--bg-selected)' : 'transparent'
                   }}
+                  data-row-index={pageRowIndex}
                   onMouseEnter={(e) => {
                     if (!isRowSelected(actualRowIndex)) {
                       e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
@@ -1635,10 +1652,12 @@ export function DataList() {
                     const cellValue = row.display[column.key];
                     const isNumeric = isNumericValue(cellValue);
                     const isSorted = sortState.column === column.key;
-                    const borderStyle = getCellSelectionBorder(actualRowIndex, colIndex);
+                    const isSelected = isCellSelected(actualRowIndex, column.key);
                     return (
                       <td
                         key={column.key}
+                        data-row-index={pageRowIndex}
+                        data-col-index={colIndex}
                         className="py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs cursor-cell"
                         style={{
                           textAlign: isNumeric ? 'right' : 'left',
@@ -1647,8 +1666,7 @@ export function DataList() {
                           paddingLeft: '32px',
                           paddingRight: '12px',
                           color: 'var(--text-primary)',
-                          backgroundColor: 'transparent',
-                          ...borderStyle
+                          backgroundColor: 'transparent'
                         }}
                         onMouseDown={(e) => handleCellMouseDown(e, actualRowIndex, column.key)}
                         onMouseEnter={() => handleCellMouseEnter(actualRowIndex, column.key)}
@@ -1662,6 +1680,23 @@ export function DataList() {
             })}
           </tbody>
         </table>
+        
+        {/* Selection outline overlay */}
+        {overlayPosition && (
+          <div
+            style={{
+              position: 'absolute',
+              top: `${overlayPosition.top}px`,
+              left: `${overlayPosition.left}px`,
+              width: `${overlayPosition.width}px`,
+              height: `${overlayPosition.height}px`,
+              border: '2px solid var(--data-chip-field-bg)',
+              pointerEvents: 'none',
+              zIndex: 5,
+              boxSizing: 'border-box',
+            }}
+          />
+        )}
       </div>
 
       {/* Pagination controls */}
