@@ -1580,14 +1580,15 @@ export function ChartPanel() {
                   setIsGroupByValueSelectorOpen(true);
                 }
               }}
-              className="text-sm border-none focus:outline-none cursor-pointer flex items-center transition-colors gap-2"
+              className="text-sm border-none focus:outline-none cursor-pointer flex items-center justify-center transition-colors gap-2"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 color: state.groupBy ? 'var(--text-primary)' : 'var(--text-muted)',
                 fontWeight: 400,
                 borderRadius: '50px',
-                padding: state.groupBy ? '6px 12px' : '6px',
+                padding: state.groupBy ? '6px 12px' : '0',
                 height: '32px',
+                width: state.groupBy ? 'auto' : '32px',
                 whiteSpace: 'nowrap',
               }}
             >
