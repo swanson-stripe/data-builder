@@ -16,6 +16,7 @@ import { buildDataListView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
 import { getAvailableGroupFields, getGroupValues } from '@/lib/grouping';
 import GroupBySelector from './GroupBySelector';
+import type { MetricResult } from '@/types';
 import {
   LineChart,
   Line,
