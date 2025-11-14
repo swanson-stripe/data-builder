@@ -268,16 +268,17 @@ export default function GroupBySelector({
 
         .search-icon {
           position: absolute;
-          left: 16px;
+          left: 28px;
           top: 50%;
           transform: translateY(-50%);
           color: var(--text-muted);
           pointer-events: none;
+          z-index: 1;
         }
 
         .search-input {
           width: 100%;
-          padding: 12px 12px 12px 40px;
+          padding: 12px 12px 12px 36px;
           border: none;
           background: transparent;
           color: var(--text-primary);
@@ -365,7 +366,7 @@ export default function GroupBySelector({
           flex: 1;
           height: 28px;
           padding: 0 16px;
-          border-radius: 12px;
+          border-radius: 6px;
           font-size: 15px;
           font-weight: 500;
           cursor: pointer;

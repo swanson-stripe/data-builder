@@ -1649,11 +1649,12 @@ export function ChartPanel() {
                     fill="none"
                     style={{
                       position: 'absolute',
-                      left: '12px',
+                      left: '16px',
                       top: '50%',
                       transform: 'translateY(-50%)',
                       color: 'var(--text-muted)',
                       pointerEvents: 'none',
+                      zIndex: 1,
                     }}
                   >
                     <path
@@ -1678,7 +1679,7 @@ export function ChartPanel() {
                     onChange={(e) => setGroupBySearchQuery(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '8px 12px 8px 36px',
+                      padding: '8px 12px 8px 28px',
                       border: '1px solid var(--border-default)',
                       borderRadius: '8px',
                       backgroundColor: 'var(--bg-surface)',
