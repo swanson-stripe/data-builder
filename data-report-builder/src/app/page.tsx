@@ -211,7 +211,7 @@ function PageContent() {
           bottom: '20px', 
           right: '40px', 
           borderRadius: '16px', 
-          padding: '8px 16px', 
+          padding: '8px', 
           width: 'fit-content',
           cursor: devToolsExpanded ? 'default' : 'pointer',
           boxShadow: '0 5px 15px rgba(0, 0, 0, 0.16)',
@@ -219,7 +219,7 @@ function PageContent() {
         }}
         onClick={() => !devToolsExpanded && setDevToolsExpanded(true)}
       >
-        <div className="flex items-center gap-3" style={{ justifyContent: 'space-between', width: '100%' }}>
+        <div className="flex items-center gap-3" style={{ justifyContent: 'space-between', width: '100%', paddingLeft: '8px', paddingRight: '10px' }}>
           <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Dev tools</span>
           {loadingProgress > 0 ? (
             // Progress bar when loading - expands from circle
@@ -233,7 +233,7 @@ function PageContent() {
                 flexBasis: '0%',
                 flexGrow: 1,
                 maxWidth: '100%',
-                transition: 'flex-grow 0.3s ease-out, flex-basis 0.3s ease-out',
+                transition: 'flex-grow 0.4s ease-out, flex-basis 0.4s ease-out',
               }}
             >
               <div
