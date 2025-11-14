@@ -369,16 +369,14 @@ export function MetricTab() {
             {isGroupByFieldSelectorOpen && (
               <div
                 ref={groupByPopoverRef}
-                className="absolute z-50"
+                className="absolute py-1 z-50"
                 style={{
-                  top: '40px',
+                  top: 0,
                   left: 0,
                   minWidth: '240px',
                   backgroundColor: 'var(--bg-elevated)',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                  padding: '4px',
+                  borderRadius: '16px',
+                  boxShadow: '0 5px 15px rgba(0, 0, 0, 0.16)',
                 }}
               >
                 {availableGroupFields.length === 0 ? (
@@ -387,24 +385,27 @@ export function MetricTab() {
                   </div>
                 ) : (
                   availableGroupFields.map((field) => (
-                    <button
-                      key={`${field.object}.${field.field}`}
-                      onClick={() => {
-                        const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
-                        dispatch(actions.setGroupBy({
-                          field: { object: field.object, field: field.field },
-                          selectedValues: values,
-                          autoAddedField: false,
-                        }));
-                        setIsGroupByFieldSelectorOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 transition-colors flex flex-col gap-1"
-                      style={{
-                        borderRadius: '6px',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
+                  <button
+                    key={`${field.object}.${field.field}`}
+                    onClick={() => {
+                      const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
+                      dispatch(actions.setGroupBy({
+                        field: { object: field.object, field: field.field },
+                        selectedValues: values,
+                        autoAddedField: false,
+                      }));
+                      setIsGroupByFieldSelectorOpen(false);
+                    }}
+                    className="w-full text-left transition-colors flex flex-col gap-1"
+                    style={{
+                      paddingLeft: '16px',
+                      paddingRight: '16px',
+                      paddingTop: '8px',
+                      paddingBottom: '8px',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
                       <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
                         {field.label}
                       </span>
