@@ -13,30 +13,37 @@ export function ProgressIndicator({ isLoading, message = 'Loading...' }: Progres
   // Handle loading state - progress animation
   useEffect(() => {
     if (isLoading) {
+      console.log('[ProgressIndicator] Starting load animation');
       setShowComplete(false);
       setProgress(0);
       
       // Simulate progress (0-90% while loading)
       const interval = setInterval(() => {
         setProgress((prev) => {
-          if (prev >= 90) return 90;
-          return prev + Math.random() * 15;
+          const newProgress = prev >= 90 ? 90 : prev + Math.random() * 15;
+          console.log('[ProgressIndicator] Progress:', newProgress.toFixed(1), '% (loading)');
+          return newProgress;
         });
       }, 200);
 
-      return () => clearInterval(interval);
+      return () => {
+        console.log('[ProgressIndicator] Stopping load animation');
+        clearInterval(interval);
+      };
     }
   }, [isLoading]); // Only depend on isLoading to avoid loop
   
   // Handle completion state - separate effect
   useEffect(() => {
     if (!isLoading && progress > 0) {
+      console.log('[ProgressIndicator] Completing at', progress.toFixed(1), '%');
       // Complete the progress bar quickly
       setProgress(100);
       setShowComplete(true);
       
       // Hide after showing complete state
       const timeout = setTimeout(() => {
+        console.log('[ProgressIndicator] Hiding');
         setProgress(0);
         setShowComplete(false);
       }, 800);

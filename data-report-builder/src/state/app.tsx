@@ -1118,6 +1118,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'START_COMPONENT_LOADING': {
       const newLoadingComponents = new Set(state.loadingComponents);
       newLoadingComponents.add(action.payload);
+      console.log('[LoadingState] START:', action.payload, '| Active:', Array.from(newLoadingComponents));
       return {
         ...state,
         loadingComponents: newLoadingComponents,
@@ -1127,6 +1128,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'FINISH_COMPONENT_LOADING': {
       const newLoadingComponents = new Set(state.loadingComponents);
       newLoadingComponents.delete(action.payload);
+      console.log('[LoadingState] FINISH:', action.payload, '| Active:', Array.from(newLoadingComponents));
       return {
         ...state,
         loadingComponents: newLoadingComponents,
