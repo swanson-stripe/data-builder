@@ -228,11 +228,11 @@ export function ChartPanel() {
     version, // Re-compute when warehouse data changes
   ]);
 
-  // Track loading state with ref to prevent multiple effects from interfering
+  // Track loading state - simple timeout based approach
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Clear any existing timeout and set new one (stable ref, no deps)
-  const setLoadingState = useCallback((duration: number) => {
+  // Clear any existing timeout and set new one
+  const setLoadingWithTimeout = useCallback((duration: number) => {
     // Clear any existing timeout
     if (loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
@@ -241,17 +241,17 @@ export function ChartPanel() {
     // Set calculating to true
     dispatch(actions.setCalculating(true));
     
-    // Schedule clearing
+    // Schedule clearing after full render cycle completes
     loadingTimeoutRef.current = setTimeout(() => {
       dispatch(actions.setCalculating(false));
       loadingTimeoutRef.current = null;
     }, duration);
-  }, []); // Empty deps - dispatch is stable
+  }, [dispatch]);
   
-  // Show loading indicator on initial mount only
+  // Show loading indicator on initial mount
+  // 10 seconds to account for: metric calculation + chart render + DataList filtering (7568 rows)
   useEffect(() => {
-    // Set loading state for 7 seconds on initial mount
-    setLoadingState(7000);
+    setLoadingWithTimeout(10000);
     
     // Cleanup on unmount
     return () => {
@@ -259,7 +259,7 @@ export function ChartPanel() {
         clearTimeout(loadingTimeoutRef.current);
       }
     };
-  }, []); // Run once on mount, empty deps
+  }, []); // Run once on mount
 
   // Compute grouped metrics if grouping is active
   const groupedMetrics = useMemo(() => {
@@ -1573,8 +1573,8 @@ export function ChartPanel() {
                   <button
                     key={`${field.object}.${field.field}`}
                     onClick={() => {
-                      // Set calculating state immediately before heavy operation
-                      setLoadingState(5000);
+                      // Set calculating state for grouping operation (7s for recalculation + rerender)
+                      setLoadingWithTimeout(7000);
                       
                       // Get top 10 values for this field
                       const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
@@ -1616,8 +1616,8 @@ export function ChartPanel() {
                 availableValues={availableGroupValues}
                 selectedValues={state.groupBy.selectedValues}
                 onApply={(selectedValues) => {
-                  // Set calculating state immediately before updating group values
-                  setLoadingState(5000);
+                  // Set calculating state for grouping value update (7s for recalculation + rerender)
+                  setLoadingWithTimeout(7000);
                   dispatch(actions.updateGroupValues(selectedValues));
                   setIsGroupByValueSelectorOpen(false);
                 }}
