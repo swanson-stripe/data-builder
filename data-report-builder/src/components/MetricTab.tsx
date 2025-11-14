@@ -22,6 +22,7 @@ export function MetricTab() {
   // Group By state
   const [isGroupByFieldSelectorOpen, setIsGroupByFieldSelectorOpen] = useState(false);
   const [isGroupByValueSelectorOpen, setIsGroupByValueSelectorOpen] = useState(false);
+  const [groupBySearchQuery, setGroupBySearchQuery] = useState('');
   const groupByButtonRef = useRef<HTMLButtonElement>(null);
   const groupByPopoverRef = useRef<HTMLDivElement>(null);
 
@@ -40,10 +41,49 @@ export function MetricTab() {
   // Use draft formula for display if it exists, otherwise use state
   const activeFormula = draftFormula || state.metricFormula;
 
-  // Available fields for grouping
+  // Available fields for grouping with categorization
   const availableGroupFields = useMemo(() => {
-    return getAvailableGroupFields(state.selectedObjects, schema);
+    const allFields = getAvailableGroupFields(state.selectedObjects, schema);
+    
+    // Common field names to prioritize (status, currency, type, etc.)
+    const commonFieldNames = ['status', 'currency', 'type', 'country', 'brand', 'category', 'method', 'tier'];
+    
+    // Categorize into common and other
+    const common: typeof allFields = [];
+    const other: typeof allFields = [];
+    
+    allFields.forEach(field => {
+      const fieldName = field.field.toLowerCase();
+      if (commonFieldNames.some(commonName => fieldName.includes(commonName))) {
+        common.push(field);
+      } else {
+        other.push(field);
+      }
+    });
+    
+    return { common, other, all: allFields };
   }, [state.selectedObjects]);
+  
+  // Filtered group by fields based on search
+  const filteredGroupFields = useMemo(() => {
+    if (!groupBySearchQuery) {
+      return availableGroupFields;
+    }
+    
+    const query = groupBySearchQuery.toLowerCase();
+    const filterFields = (fields: typeof availableGroupFields.all) => 
+      fields.filter(f => 
+        f.label.toLowerCase().includes(query) ||
+        f.object.toLowerCase().includes(query) ||
+        f.field.toLowerCase().includes(query)
+      );
+    
+    return {
+      common: filterFields(availableGroupFields.common),
+      other: filterFields(availableGroupFields.other),
+      all: filterFields(availableGroupFields.all),
+    };
+  }, [availableGroupFields, groupBySearchQuery]);
 
   // Available values for the selected group field
   const availableGroupValues = useMemo(() => {
@@ -60,9 +100,9 @@ export function MetricTab() {
       
       // Don't close if clicking the button
       if (groupByButtonRef.current?.contains(target)) {
-        return;
-      }
-      
+      return;
+    }
+
       // Close if clicking outside the popover
       if (groupByPopoverRef.current && !groupByPopoverRef.current.contains(target)) {
         setIsGroupByFieldSelectorOpen(false);
@@ -229,11 +269,11 @@ export function MetricTab() {
     <div className="flex flex-col h-full overflow-y-auto">
       <div className="space-y-4">
         {/* Calculation Blocks - always visible */}
-        <div>
+      <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
               Build a metric
-            </label>
+        </label>
             {isMultiBlock && hasUnappliedChanges && (
               <button
                 onClick={handleApplyChanges}
@@ -257,8 +297,8 @@ export function MetricTab() {
               >
                 Apply
               </button>
-            )}
-          </div>
+        )}
+      </div>
 
           {activeFormula.blocks.map((block) => {
             const blockResult = blockResults.find((r) => r.blockId === block.id);
@@ -306,7 +346,7 @@ export function MetricTab() {
             </svg>
             Add block
           </button>
-        </div>
+      </div>
 
         {/* Formula Builder - only shown when 2+ blocks */}
         {activeFormula.blocks.length >= 2 && (
@@ -321,10 +361,10 @@ export function MetricTab() {
         )}
 
         {/* Group By Section */}
-        <div>
+      <div>
           <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--text-primary)' }}>
             Group by
-          </label>
+        </label>
           <div className="relative inline-flex items-center gap-2">
             <button
               ref={groupByButtonRef}
@@ -384,47 +424,165 @@ export function MetricTab() {
                   top: 0,
                   left: 0,
                   minWidth: '240px',
+                  maxHeight: '360px',
                   backgroundColor: 'var(--bg-elevated)',
                   borderRadius: '16px',
                   boxShadow: '0 5px 15px rgba(0, 0, 0, 0.16)',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
               >
-                {availableGroupFields.length === 0 ? (
-                  <div className="px-3 py-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-                    No categorical fields available
+                {/* Search bar */}
+                <div style={{ padding: '12px', borderBottom: '1px solid var(--border-default)' }}>
+                  <div style={{ position: 'relative' }}>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      style={{
+                        position: 'absolute',
+                        left: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: 'var(--text-muted)',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <path
+                        d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M10.5 10.5L14 14"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+              <input
+                      type="text"
+                      placeholder="Search fields..."
+                      value={groupBySearchQuery}
+                      onChange={(e) => setGroupBySearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px 8px 36px',
+                        border: '1px solid var(--border-default)',
+                        borderRadius: '8px',
+                        backgroundColor: 'var(--bg-surface)',
+                        color: 'var(--text-primary)',
+                        fontSize: '14px',
+                        outline: 'none',
+                      }}
+                    />
                   </div>
-                ) : (
-                  availableGroupFields.map((field) => (
-                  <button
-                    key={`${field.object}.${field.field}`}
-                    onClick={() => {
-                      const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
-                      dispatch(actions.setGroupBy({
-                        field: { object: field.object, field: field.field },
-                        selectedValues: values,
-                        autoAddedField: false,
-                      }));
-                      setIsGroupByFieldSelectorOpen(false);
-                    }}
-                    className="w-full text-left transition-colors flex flex-col gap-1"
-                    style={{
-                      paddingLeft: '16px',
-                      paddingRight: '16px',
-                      paddingTop: '8px',
-                      paddingBottom: '8px',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                      <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                        {field.label}
-                      </span>
-                      <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
-                        {field.object}.{field.field}
-                      </span>
-                    </button>
-                  ))
-                )}
+                </div>
+                
+                {/* Scrollable field list */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+                  {filteredGroupFields.all.length === 0 ? (
+                    <div className="px-4 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+                      No matching fields
+                    </div>
+                  ) : (
+                    <>
+                      {/* Common section */}
+                      {filteredGroupFields.common.length > 0 && (
+                        <>
+                          <div className="px-4 py-2 text-xs" style={{ color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Common
+                          </div>
+                          {filteredGroupFields.common.map((field) => (
+                            <button
+                              key={`${field.object}.${field.field}`}
+                              onClick={() => {
+                                // Set the field and get top 10 values, then open value selector
+                                const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
+                                
+                                dispatch(actions.setGroupBy({
+                                  field: { object: field.object, field: field.field },
+                                  selectedValues: values,
+                                  autoAddedField: false,
+                                }));
+                                
+                                // Transition to value selector
+                                setIsGroupByFieldSelectorOpen(false);
+                                setGroupBySearchQuery(''); // Clear search
+                                setTimeout(() => setIsGroupByValueSelectorOpen(true), 100);
+                              }}
+                              className="w-full text-left transition-colors flex flex-col gap-1"
+                              style={{
+                                paddingLeft: '16px',
+                                paddingRight: '16px',
+                                paddingTop: '8px',
+                                paddingBottom: '8px',
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                              <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                                {field.label}
+                              </span>
+                              <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
+                                {field.object}.{field.field}
+                              </span>
+                            </button>
+                          ))}
+                        </>
+                      )}
+                      
+                      {/* Other section */}
+                      {filteredGroupFields.other.length > 0 && (
+                        <>
+                          <div className="px-4 py-2 text-xs" style={{ color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            {filteredGroupFields.common.length > 0 ? 'Other' : 'All Fields'}
+                          </div>
+                          {filteredGroupFields.other.map((field) => (
+                            <button
+                              key={`${field.object}.${field.field}`}
+                              onClick={() => {
+                                // Set the field and get top 10 values, then open value selector
+                                const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
+                                
+                                dispatch(actions.setGroupBy({
+                                  field: { object: field.object, field: field.field },
+                                  selectedValues: values,
+                                  autoAddedField: false,
+                                }));
+                                
+                                // Transition to value selector
+                                setIsGroupByFieldSelectorOpen(false);
+                                setGroupBySearchQuery(''); // Clear search
+                                setTimeout(() => setIsGroupByValueSelectorOpen(true), 100);
+                              }}
+                              className="w-full text-left transition-colors flex flex-col gap-1"
+                              style={{
+                                paddingLeft: '16px',
+                                paddingRight: '16px',
+                                paddingTop: '8px',
+                                paddingBottom: '8px',
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                              <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                                {field.label}
+                              </span>
+                              <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
+                                {field.object}.{field.field}
+                              </span>
+                            </button>
+                          ))}
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
 
