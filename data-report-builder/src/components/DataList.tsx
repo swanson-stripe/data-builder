@@ -1595,7 +1595,7 @@ export function DataList() {
                   style={{
                     borderBottom: '1px solid var(--border-default)',
                     height: '44px',
-                    backgroundColor: isRowSelected(actualRowIndex) ? 'var(--bg-selected)' : 'transparent'
+                    backgroundColor: 'transparent'
                   }}
                   data-row-index={pageRowIndex}
                   onMouseEnter={(e) => {
