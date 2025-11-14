@@ -518,7 +518,7 @@ export function ValueTable() {
                               textAlign: 'right',
                               fontVariantNumeric: 'tabular-nums',
                               minWidth: '100px',
-                              backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-hover)' : 'var(--bg-elevated)'
+                              backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : 'var(--bg-elevated)'
                             }}
                             tabIndex={0}
                             onClick={() => {
@@ -598,7 +598,8 @@ export function ValueTable() {
                     }
                     
                     const isSelected = state.selectedBucket?.label === point.date;
-                    const isHovered = state.hoveredBucket === point.date;
+                    // Total row only highlights when hovering directly on it (no hoveredGroup)
+                    const isHovered = state.hoveredBucket === point.date && !state.hoveredGroup;
                     return (
                       <td
                         key={idx}
@@ -607,7 +608,7 @@ export function ValueTable() {
                           textAlign: 'right',
                           fontVariantNumeric: 'tabular-nums',
                           minWidth: '100px',
-                          backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-hover)' : 'var(--bg-elevated)'
+                          backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : 'var(--bg-elevated)'
                         }}
                         tabIndex={0}
                         onClick={() => handleBucketClick(point.date)}
@@ -671,7 +672,7 @@ export function ValueTable() {
                         textAlign: 'right',
                         fontVariantNumeric: 'tabular-nums',
                         minWidth: '100px',
-                        backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-hover)' : 'var(--bg-elevated)'
+                        backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : 'var(--bg-elevated)'
                       }}
                       tabIndex={0}
                       onClick={() => handleBucketClick(point.date)}
