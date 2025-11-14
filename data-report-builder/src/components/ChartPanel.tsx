@@ -233,9 +233,7 @@ export function ChartPanel() {
 
   // Compute grouped metrics if grouping is active
   const groupedMetrics = useMemo(() => {
-    const hasGrouping = state.groupBy && state.groupBy.selectedValues.length > 0;
-    
-    if (!hasGrouping) {
+    if (!state.groupBy || state.groupBy.selectedValues.length === 0) {
       return null;
     }
 
@@ -253,11 +251,12 @@ export function ChartPanel() {
 
     // Compute metric for each group
     const results = new Map<string, MetricResult>();
+    const groupBy = state.groupBy; // TypeScript narrowing
     
-    for (const groupValue of state.groupBy.selectedValues) {
+    for (const groupValue of groupBy.selectedValues) {
       // Filter rows for this group
       const groupRows = allRows.filter(row => {
-        const value = row[state.groupBy!.field.field];
+        const value = row[groupBy.field.field];
         return String(value) === groupValue;
       });
 
