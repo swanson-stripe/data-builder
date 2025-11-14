@@ -230,9 +230,8 @@ export function ChartPanel() {
 
   // Track loading state with ref to prevent multiple effects from interfering
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isInitialMount = useRef(true);
   
-  // Clear any existing timeout and set new one
+  // Clear any existing timeout and set new one (stable ref, no deps)
   const setLoadingState = useCallback((duration: number) => {
     // Clear any existing timeout
     if (loadingTimeoutRef.current) {
@@ -247,16 +246,20 @@ export function ChartPanel() {
       dispatch(actions.setCalculating(false));
       loadingTimeoutRef.current = null;
     }, duration);
-  }, [dispatch]);
+  }, []); // Empty deps - dispatch is stable
   
-  // Cleanup timeout on unmount
+  // Show loading indicator on initial mount only
   useEffect(() => {
+    // Set loading state for 7 seconds on initial mount
+    setLoadingState(7000);
+    
+    // Cleanup on unmount
     return () => {
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
       }
     };
-  }, []);
+  }, []); // Run once on mount, empty deps
 
   // Compute grouped metrics if grouping is active
   const groupedMetrics = useMemo(() => {
@@ -852,15 +855,6 @@ export function ChartPanel() {
     if (!state.groupBy) return [];
     return getGroupValues(warehouse, state.groupBy.field, 100);
   }, [state.groupBy?.field, version]);
-
-  // Show loading indicator on initial mount until page is fully interactive
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      // Set loading state for 7 seconds on initial mount
-      setLoadingState(7000);
-    }
-  }, [setLoadingState]);
 
   // Handle click outside to close group by popovers
   useEffect(() => {
