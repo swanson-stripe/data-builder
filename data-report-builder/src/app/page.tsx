@@ -31,11 +31,35 @@ function PageContent() {
   const [showPresetOptions, setShowPresetOptions] = useState(false);
   const [showSavePopover, setShowSavePopover] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
   const saveButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // Enable automatic report switching based on object selection
   useReportHeuristics();
+
+  // Animate loading progress
+  useEffect(() => {
+    if (state.loadingComponents.size > 0) {
+      setLoadingProgress(0);
+      
+      const interval = setInterval(() => {
+        setLoadingProgress((prev) => {
+          if (prev >= 90) return 90;
+          return prev + Math.random() * 15;
+        });
+      }, 200);
+
+      return () => clearInterval(interval);
+    } else if (loadingProgress > 0) {
+      // Complete to 100%
+      setLoadingProgress(100);
+      const timeout = setTimeout(() => {
+        setLoadingProgress(0);
+      }, 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [state.loadingComponents.size, loadingProgress]);
 
   // Handle resize
   useEffect(() => {
@@ -112,11 +136,6 @@ function PageContent() {
         />
       )}
 
-      <ProgressIndicator 
-        isLoading={state.loadingComponents.size > 0} 
-        message="Loading..."
-      />
-
       {/* Hide main content when template selector is showing */}
       {!state.showTemplateSelector && (
         <>
@@ -186,62 +205,42 @@ function PageContent() {
         }}
         onClick={() => !devToolsExpanded && setDevToolsExpanded(true)}
       >
-        <div className="flex items-center gap-3" style={{ justifyContent: devToolsExpanded ? 'space-between' : 'flex-start' }}>
+        <div className="flex items-center gap-3" style={{ justifyContent: 'space-between', width: '100%' }}>
           <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Dev tools</span>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              setDevToolsExpanded(!devToolsExpanded);
-              // Reset to main view when collapsing
-              if (devToolsExpanded) {
-                setShowPresetOptions(false);
-              }
-            }}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            aria-label={devToolsExpanded ? "Collapse dev tools" : "Expand dev tools"}
-            style={{ 
-              marginLeft: devToolsExpanded ? 'auto' : '0',
-              marginTop: devToolsExpanded ? '-4px' : '0',
-              marginBottom: devToolsExpanded ? '-4px' : '0',
-              cursor: 'pointer',
-              background: devToolsExpanded ? 'transparent' : 'var(--bg-elevated)',
-              backgroundColor: devToolsExpanded ? 'transparent' : 'var(--bg-elevated)',
-              padding: devToolsExpanded ? '4px 8px' : '0',
-              border: 'none',
-              outline: 'none',
-              borderRadius: devToolsExpanded ? '6px' : '0',
-              boxShadow: 'none',
-              WebkitAppearance: 'none',
-              MozAppearance: 'none',
-              appearance: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            } as React.CSSProperties}
-            onMouseEnter={(e) => {
-              if (devToolsExpanded) {
-                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (devToolsExpanded) {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }
-            }}
-          >
-            {devToolsExpanded ? (
-              // Inward arrows (collapse)
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fillRule="evenodd" clipRule="evenodd" d="M0.75 7.25C0.75 6.83578 1.08579 6.5 1.5 6.5H4.75C5.16421 6.5 5.5 6.83578 5.5 7.25V10.5C5.5 10.9142 5.16421 11.25 4.75 11.25C4.33579 11.25 4 10.9142 4 10.5V9.06066L1.53033 11.5303C1.23744 11.8232 0.762563 11.8232 0.46967 11.5303C0.176777 11.2374 0.176777 10.7626 0.46967 10.4697L2.93934 8H1.5C1.08579 8 0.75 7.66421 0.75 7.25Z" fill="var(--text-muted)"/>
-                <path fillRule="evenodd" clipRule="evenodd" d="M11.5303 0.46967C11.8232 0.762563 11.8232 1.23744 11.5303 1.53033L9.06066 4H10.5C10.9142 4 11.25 4.33579 11.25 4.75C11.25 5.16421 10.9142 5.5 10.5 5.5H7.25C7.05109 5.5 6.86032 5.42098 6.71967 5.28033C6.57902 5.13968 6.5 4.94891 6.5 4.75V1.5C6.5 1.08579 6.83579 0.75 7.25 0.75C7.66421 0.75 8 1.08579 8 1.5V2.93934L10.4697 0.46967C10.7626 0.176777 11.2374 0.176777 11.5303 0.46967Z" fill="var(--text-muted)"/>
-              </svg>
-            ) : (
-              // Outward arrows (expand)
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fillRule="evenodd" clipRule="evenodd" d="M6.75 2.5C6.33579 2.5 6 2.16421 6 1.75C6 1.33579 6.33579 1 6.75 1H10.25C10.6642 1 11 1.33579 11 1.75V5.25C11 5.66421 10.6642 6 10.25 6C9.83579 6 9.5 5.66421 9.5 5.25V3.56066L3.56066 9.5H5.25C5.66421 9.5 6 9.83579 6 10.25C6 10.6642 5.66421 11 5.25 11H1.75C1.33579 11 1 10.6642 1 10.25V6.75C1 6.33579 1.33579 6 1.75 6C2.16421 6 2.5 6.33579 2.5 6.75V8.43934L8.43934 2.5H6.75Z" fill="var(--text-muted)"/>
-              </svg>
-            )}
-          </button>
+          {loadingProgress > 0 ? (
+            // Progress bar when loading
+            <div
+              style={{
+                flex: 1,
+                height: '8px',
+                backgroundColor: 'var(--bg-surface)',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                marginLeft: '12px',
+              }}
+            >
+              <div
+                style={{
+                  width: `${loadingProgress}%`,
+                  height: '100%',
+                  backgroundColor: loadingProgress === 100 ? '#10b981' : '#675DFF',
+                  borderRadius: '4px',
+                  transition: 'width 0.3s ease-out, background-color 0.3s ease-out',
+                }}
+              />
+            </div>
+          ) : (
+            // Green circle when idle
+            <div
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#10b981',
+                marginLeft: 'auto',
+              }}
+            />
+          )}
         </div>
         {devToolsExpanded && (
           <div className="mt-2">
