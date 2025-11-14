@@ -38,28 +38,42 @@ function PageContent() {
   // Enable automatic report switching based on object selection
   useReportHeuristics();
 
-  // Animate loading progress
+  // Animate loading progress - split into two effects to avoid infinite loop
+  const isLoading = state.loadingComponents.size > 0;
+  
+  // Effect 1: Handle loading animation
   useEffect(() => {
-    if (state.loadingComponents.size > 0) {
-      setLoadingProgress(0);
+    if (isLoading) {
+      console.log('[PageContent] Starting progress animation');
+      setLoadingProgress(1); // Start at 1 to trigger visibility
       
       const interval = setInterval(() => {
         setLoadingProgress((prev) => {
-          if (prev >= 90) return 90;
-          return prev + Math.random() * 15;
+          const newProgress = prev >= 90 ? 90 : prev + Math.random() * 15;
+          console.log('[PageContent] Progress:', newProgress.toFixed(1), '%');
+          return newProgress;
         });
       }, 200);
 
-      return () => clearInterval(interval);
-    } else if (loadingProgress > 0) {
-      // Complete to 100%
+      return () => {
+        console.log('[PageContent] Stopping progress animation');
+        clearInterval(interval);
+      };
+    }
+  }, [isLoading]);
+  
+  // Effect 2: Handle completion
+  useEffect(() => {
+    if (!isLoading && loadingProgress > 0) {
+      console.log('[PageContent] Completing progress');
       setLoadingProgress(100);
       const timeout = setTimeout(() => {
+        console.log('[PageContent] Resetting progress');
         setLoadingProgress(0);
       }, 500);
       return () => clearTimeout(timeout);
     }
-  }, [state.loadingComponents.size, loadingProgress]);
+  }, [isLoading, loadingProgress]);
 
   // Handle resize
   useEffect(() => {
