@@ -1561,9 +1561,7 @@ export function DataList() {
                     return (
                       <td
                         key={column.key}
-                        className={`py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs cursor-cell ${
-                          isCellSelected(actualRowIndex, column.key) ? 'ring-1 ring-blue-500' : ''
-                        }`}
+                        className="py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs cursor-cell"
                         style={{
                           textAlign: isNumeric ? 'right' : 'left',
                           fontVariantNumeric: isNumeric ? 'tabular-nums' : 'normal',
@@ -1571,7 +1569,8 @@ export function DataList() {
                           paddingLeft: '32px',
                           paddingRight: '12px',
                           color: 'var(--text-primary)',
-                          backgroundColor: isCellSelected(actualRowIndex, column.key) ? 'var(--bg-selected)' : 'transparent'
+                          backgroundColor: 'transparent',
+                          border: isCellSelected(actualRowIndex, column.key) ? '2px solid var(--data-chip-field-bg)' : '2px solid transparent'
                         }}
                         onMouseDown={(e) => handleCellMouseDown(e, actualRowIndex, column.key)}
                         onMouseEnter={() => handleCellMouseEnter(actualRowIndex, column.key)}
