@@ -23,6 +23,17 @@ export function DataList() {
   const { state, dispatch } = useApp();
   const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
   
+  // Track DataList loading state
+  useEffect(() => {
+    // Start loading on mount
+    dispatch(actions.startComponentLoading('datalist'));
+    
+    return () => {
+      // Clean up on unmount
+      dispatch(actions.finishComponentLoading('datalist'));
+    };
+  }, [dispatch]);
+  
   // Use sort from global state if available, otherwise use local state for backwards compatibility
   const [localSortState, setLocalSortState] = useState<SortState>({
     column: null,
@@ -276,6 +287,22 @@ export function DataList() {
   useEffect(() => {
     setCurrentPage(0);
   }, [sortState.column, sortState.direction, state.filters, state.selectedBucket]);
+  
+  // Mark DataList as loaded when rows are processed and ready
+  useEffect(() => {
+    if (paginatedRows.length > 0 || sortedRows.length === 0) {
+      // Rows are ready to display (or there are no rows)
+      // Small delay to allow React to render the DOM
+      const timer = setTimeout(() => {
+        dispatch(actions.finishComponentLoading('datalist'));
+      }, 800); // 800ms buffer for heavy row rendering
+      
+      return () => clearTimeout(timer);
+    } else {
+      // Still processing, ensure we're marked as loading
+      dispatch(actions.startComponentLoading('datalist'));
+    }
+  }, [paginatedRows.length, sortedRows.length, dispatch]);
 
   // Check if cell is selected
   const isCellSelected = useCallback((rowIndex: number, colKey: string): boolean => {

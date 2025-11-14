@@ -113,8 +113,8 @@ function PageContent() {
       )}
 
       <ProgressIndicator 
-        isLoading={state.isCalculating} 
-        message="Calculating metrics..."
+        isLoading={state.loadingComponents.size > 0} 
+        message="Loading..."
       />
 
       {/* Hide main content when template selector is showing */}

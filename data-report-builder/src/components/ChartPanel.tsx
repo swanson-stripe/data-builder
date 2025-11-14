@@ -228,42 +228,32 @@ export function ChartPanel() {
     version, // Re-compute when warehouse data changes
   ]);
 
-  // Track loading state - simple timeout based approach
-  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Function to set loading state with timeout (not a callback to avoid recreation issues)
-  const setLoadingWithTimeout = (duration: number) => {
-    // Clear any existing timeout
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-    }
-    
-    // Set calculating to true
-    dispatch(actions.setCalculating(true));
-    
-    // Schedule clearing after full render cycle completes
-    loadingTimeoutRef.current = setTimeout(() => {
-      dispatch(actions.setCalculating(false));
-      loadingTimeoutRef.current = null;
-    }, duration);
-  };
-  
-  // Show loading indicator on initial mount ONLY
-  // 10 seconds to account for: metric calculation + chart render + DataList filtering (7568 rows)
-  const hasInitialized = useRef(false);
+  // Track ChartPanel loading state
   useEffect(() => {
-    if (!hasInitialized.current) {
-      hasInitialized.current = true;
-      setLoadingWithTimeout(10000);
-    }
+    // Start loading on mount
+    dispatch(actions.startComponentLoading('chart'));
     
-    // Cleanup on unmount
     return () => {
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-      }
+      // Clean up on unmount
+      dispatch(actions.finishComponentLoading('chart'));
     };
-  }, []); // Empty deps - truly run once
+  }, [dispatch]);
+  
+  // Mark chart as loaded when data is ready
+  useEffect(() => {
+    if (chartData.length > 0) {
+      // Chart data is computed and ready to render
+      // Small delay to allow React to commit the render
+      const timer = setTimeout(() => {
+        dispatch(actions.finishComponentLoading('chart'));
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    } else {
+      // No data yet, ensure we're marked as loading
+      dispatch(actions.startComponentLoading('chart'));
+    }
+  }, [chartData.length, groupedMetrics?.size, dispatch]);
 
   // Compute grouped metrics if grouping is active
   const groupedMetrics = useMemo(() => {
@@ -1577,9 +1567,6 @@ export function ChartPanel() {
                   <button
                     key={`${field.object}.${field.field}`}
                     onClick={() => {
-                      // Set calculating state for grouping operation (7s for recalculation + rerender)
-                      setLoadingWithTimeout(7000);
-                      
                       // Get top 10 values for this field
                       const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
                       
@@ -1620,8 +1607,6 @@ export function ChartPanel() {
                 availableValues={availableGroupValues}
                 selectedValues={state.groupBy.selectedValues}
                 onApply={(selectedValues) => {
-                  // Set calculating state for grouping value update (7s for recalculation + rerender)
-                  setLoadingWithTimeout(7000);
                   dispatch(actions.updateGroupValues(selectedValues));
                   setIsGroupByValueSelectorOpen(false);
                 }}

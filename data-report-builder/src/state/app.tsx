@@ -54,7 +54,7 @@ export type AppState = {
   };
   showTemplateSelector: boolean; // Whether to show the template selection UI
   hasUserMadeChanges: boolean; // Track if user has modified blank state
-  isCalculating: boolean; // Track when heavy calculations are in progress
+  loadingComponents: Set<string>; // Track which components are currently loading
 };
 
 // Action types
@@ -285,9 +285,14 @@ type ApplyAIConfigAction = {
   payload: any; // AIReportConfig from AI parsing
 };
 
-type SetCalculatingAction = {
-  type: 'SET_CALCULATING';
-  payload: boolean;
+type StartComponentLoadingAction = {
+  type: 'START_COMPONENT_LOADING';
+  payload: string; // component name
+};
+
+type FinishComponentLoadingAction = {
+  type: 'FINISH_COMPONENT_LOADING';
+  payload: string; // component name
 };
 
 export type AppAction =
@@ -337,7 +342,8 @@ export type AppAction =
   | HideTemplateSelectorAction
   | SetUserMadeChangesAction
   | ApplyAIConfigAction
-  | SetCalculatingAction;
+  | StartComponentLoadingAction
+  | FinishComponentLoadingAction;
 
 // Helper function to build initial state with preset applied
 function buildInitialState(): AppState {
@@ -373,7 +379,7 @@ function buildInitialState(): AppState {
     },
     showTemplateSelector: false, // Don't show by default - MRR preset is loaded
     hasUserMadeChanges: false,
-    isCalculating: false,
+    loadingComponents: new Set<string>(),
   };
 
   // Apply MRR preset synchronously to initial state
@@ -975,7 +981,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
         showTemplateSelector: true, // Show template selector on reset
         hasUserMadeChanges: false,
-        isCalculating: false,
+        loadingComponents: new Set<string>(),
       };
     }
 
@@ -1109,11 +1115,23 @@ function appReducer(state: AppState, action: AppAction): AppState {
       }
     }
 
-    case 'SET_CALCULATING':
+    case 'START_COMPONENT_LOADING': {
+      const newLoadingComponents = new Set(state.loadingComponents);
+      newLoadingComponents.add(action.payload);
       return {
         ...state,
-        isCalculating: action.payload,
+        loadingComponents: newLoadingComponents,
       };
+    }
+
+    case 'FINISH_COMPONENT_LOADING': {
+      const newLoadingComponents = new Set(state.loadingComponents);
+      newLoadingComponents.delete(action.payload);
+      return {
+        ...state,
+        loadingComponents: newLoadingComponents,
+      };
+    }
 
     default:
       // Exhaustive check
@@ -1360,8 +1378,13 @@ export const actions = {
     type: 'RESET_ALL',
   }),
 
-  setCalculating: (isCalculating: boolean): SetCalculatingAction => ({
-    type: 'SET_CALCULATING',
-    payload: isCalculating,
+  startComponentLoading: (component: string): StartComponentLoadingAction => ({
+    type: 'START_COMPONENT_LOADING',
+    payload: component,
+  }),
+
+  finishComponentLoading: (component: string): FinishComponentLoadingAction => ({
+    type: 'FINISH_COMPONENT_LOADING',
+    payload: component,
   }),
 };
