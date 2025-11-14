@@ -551,10 +551,10 @@ export function ChartPanel() {
   useEffect(() => {
     if (chartData.length > 0) {
       // Chart data is computed and ready to render
-      // Small delay to allow React to commit the render
+      // Longer delay to account for Recharts rendering (2-3 seconds for complex charts)
       const timer = setTimeout(() => {
         dispatch(actions.finishComponentLoading('chart'));
-      }, 500);
+      }, 3000);
       
       return () => clearTimeout(timer);
     } else {

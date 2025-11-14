@@ -292,10 +292,11 @@ export function DataList() {
   useEffect(() => {
     if (paginatedRows.length > 0 || sortedRows.length === 0) {
       // Rows are ready to display (or there are no rows)
-      // Small delay to allow React to render the DOM
+      // Longer delay to account for heavy DOM rendering and browser paint
+      // Console logs show 6-8 seconds of activity for 7568 rows
       const timer = setTimeout(() => {
         dispatch(actions.finishComponentLoading('datalist'));
-      }, 800); // 800ms buffer for heavy row rendering
+      }, 5000); // 5 second buffer for heavy row rendering and filtering
       
       return () => clearTimeout(timer);
     } else {
