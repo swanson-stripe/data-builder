@@ -373,12 +373,12 @@ export function MetricTab() {
                 style={{
                   top: '40px',
                   left: 0,
-                  minWidth: '200px',
+                  minWidth: '240px',
                   backgroundColor: 'var(--bg-elevated)',
-                  border: '1px solid var(--border-medium)',
+                  border: '1px solid var(--border-default)',
                   borderRadius: '8px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                  padding: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                  padding: '4px',
                 }}
               >
                 {availableGroupFields.length === 0 ? (
@@ -398,15 +398,19 @@ export function MetricTab() {
                         }));
                         setIsGroupByFieldSelectorOpen(false);
                       }}
-                      className="w-full text-left px-3 py-2 text-sm transition-colors"
+                      className="w-full text-left px-3 py-2 transition-colors flex flex-col gap-1"
                       style={{
-                        borderRadius: '4px',
-                        color: 'var(--text-primary)',
+                        borderRadius: '6px',
                       }}
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
-                      {field.label}
+                      <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                        {field.label}
+                      </span>
+                      <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
+                        {field.object}.{field.field}
+                      </span>
                     </button>
                   ))
                 )}

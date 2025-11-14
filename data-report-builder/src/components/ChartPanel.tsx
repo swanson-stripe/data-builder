@@ -200,16 +200,16 @@ export function ChartPanel() {
       return result;
     } else {
       // Use legacy single-metric system
-      return computeMetric({
-        def: state.metric,
-        start: state.start,
-        end: state.end,
-        granularity: state.granularity,
-        store: warehouse,
-        include: includeSet,
-        schema,
-        objects: state.selectedObjects, // Pass selected objects to determine primary table
-      });
+    return computeMetric({
+      def: state.metric,
+      start: state.start,
+      end: state.end,
+      granularity: state.granularity,
+      store: warehouse,
+      include: includeSet,
+      schema,
+      objects: state.selectedObjects, // Pass selected objects to determine primary table
+    });
     }
   }, [
     useFormula,
@@ -401,7 +401,7 @@ export function ChartPanel() {
               formula: state.metricFormula,
               start: shiftedStart.toISOString().split('T')[0],
               end: shiftedEnd.toISOString().split('T')[0],
-              granularity: state.granularity,
+          granularity: state.granularity,
               store: warehouse,
               schema,
               selectedObjects: state.selectedObjects,
@@ -416,7 +416,7 @@ export function ChartPanel() {
               include: includeSet,
               schema,
               objects: state.selectedObjects,
-            });
+        });
 
         return {
           key: state.report,
@@ -437,7 +437,7 @@ export function ChartPanel() {
               formula: state.metricFormula,
               start: yearStart.toISOString().split('T')[0],
               end: yearEnd.toISOString().split('T')[0],
-              granularity: state.granularity,
+          granularity: state.granularity,
               store: warehouse,
               schema,
               selectedObjects: state.selectedObjects,
@@ -452,7 +452,7 @@ export function ChartPanel() {
               include: includeSet,
               schema,
               objects: state.selectedObjects,
-            });
+        });
 
         return {
           key: state.report,
@@ -514,7 +514,7 @@ export function ChartPanel() {
         : undefined;
       
       return {
-        date: point.date,
+      date: point.date,
         current: currentValue,
         comparison: comparisonValue,
       };
@@ -1036,40 +1036,40 @@ export function ChartPanel() {
                 <>
                   {/* Granularity Section - hide when editing */}
                   {!isEditingPresets && (
-                    <div>
-                      {/* Granularity label - not clickable */}
+                  <div>
+                    {/* Granularity label - not clickable */}
                       <div className="py-2 text-xs" style={{ paddingLeft: '16px', paddingRight: '16px', color: 'var(--text-muted)', fontWeight: 400 }}>
-                        Granularity
-                      </div>
-                      
-                      {/* Current granularity - clickable to toggle view */}
-                      <button
-                        onClick={() => setShowGranularityOptions(true)}
-                        className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
-                        style={{
-                          paddingLeft: '16px',
-                          paddingRight: '16px',
+                      Granularity
+        </div>
+                    
+                    {/* Current granularity - clickable to toggle view */}
+                    <button
+                      onClick={() => setShowGranularityOptions(true)}
+                      className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                      style={{
+                        paddingLeft: '16px',
+                        paddingRight: '16px',
                           color: 'var(--text-primary)',
-                          fontWeight: 600,
-                          height: '32px',
-                          cursor: 'pointer',
-                        }}
+                        fontWeight: 600,
+                        height: '32px',
+                        cursor: 'pointer',
+                      }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <span>{state.granularity.charAt(0).toUpperCase() + state.granularity.slice(1)}</span>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
                       >
-                        <span>{state.granularity.charAt(0).toUpperCase() + state.granularity.slice(1)}</span>
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 12 12"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path d="M3 4.5L6 2L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M3 7.5L6 10L9 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                    </div>
+                        <path d="M3 4.5L6 2L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M3 7.5L6 10L9 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+      </div>
                   )}
 
                   {/* Preset List */}
@@ -1178,8 +1178,8 @@ export function ChartPanel() {
                                       moreRangeOptions.find(p => p.code === presetLabel);
                         if (!preset) return null;
                         
-                        const range = preset.getValue();
-                        const isSelected = state.start === range.start && state.end === range.end;
+                    const range = preset.getValue();
+                    const isSelected = state.start === range.start && state.end === range.end;
                         const displayLabel = ('code' in preset ? preset.code : preset.label) as string;
                         const displayName = ('code' in preset ? preset.label : (
                           presetLabel === '1D' ? 'Last 24 hours' :
@@ -1189,51 +1189,51 @@ export function ChartPanel() {
                           presetLabel === '1Y' ? 'Last 12 months' :
                           presetLabel === 'YTD' ? 'Year to date' : presetLabel
                         )) as string;
-
-                        return (
-                          <button
+                    
+                    return (
+                      <button
                             key={presetLabel}
-                            onClick={() => {
-                              dispatch(actions.setRange(range.start, range.end));
-                              setIsDateRangePopoverOpen(false);
-                            }}
-                            className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
-                            style={{
-                              paddingLeft: '16px',
-                              paddingRight: '16px',
+                        onClick={() => {
+                          dispatch(actions.setRange(range.start, range.end));
+                          setIsDateRangePopoverOpen(false);
+                        }}
+                        className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                        style={{
+                          paddingLeft: '16px',
+                          paddingRight: '16px',
                               color: 'var(--text-primary)',
-                              fontWeight: 600,
-                              height: '32px',
-                              cursor: 'pointer',
-                            }}
+                          fontWeight: 600,
+                          height: '32px',
+                          cursor: 'pointer',
+                        }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="flex items-center justify-center text-xs"
-                                style={{
-                                  minWidth: '42px',
-                                  height: '24px',
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="flex items-center justify-center text-xs"
+                            style={{
+                              minWidth: '42px',
+                              height: '24px',
                                   backgroundColor: isSelected ? 'var(--bg-surface)' : 'transparent',
-                                  borderRadius: '50px',
+                              borderRadius: '50px',
                                   color: isSelected ? 'var(--text-primary)' : 'var(--text-muted)',
-                                  fontWeight: isSelected ? 600 : 400,
-                                }}
-                              >
+                              fontWeight: isSelected ? 600 : 400,
+                            }}
+                          >
                                 {displayLabel}
-                              </span>
+                          </span>
                               <span>{displayName}</span>
-                            </div>
-                            {isSelected && (
-                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        </div>
+                        {isSelected && (
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <circle cx="8" cy="8" r="8" fill="var(--text-primary)"/>
-                                <path d="M11 5.5L7 10L5 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                            )}
-                          </button>
-                        );
-                      })}
+                            <path d="M11 5.5L7 10L5 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
                     </>
                   )}
 
@@ -1309,80 +1309,80 @@ export function ChartPanel() {
                   ) : (
                     /* Normal Mode - Show all options */
                     <>
-                      {moreRangeOptions.map((option) => {
-                        const range = option.getValue();
-                        const isSelected = state.start === range.start && state.end === range.end;
-                        
-                        return (
-                          <button
-                            key={option.code}
-                            onClick={() => {
-                              dispatch(actions.setRange(range.start, range.end));
-                              setIsDateRangePopoverOpen(false);
-                            }}
-                            className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
-                            style={{
-                              paddingLeft: '16px',
-                              paddingRight: '16px',
+                  {moreRangeOptions.map((option) => {
+                    const range = option.getValue();
+                    const isSelected = state.start === range.start && state.end === range.end;
+                    
+                    return (
+                      <button
+                        key={option.code}
+                        onClick={() => {
+                          dispatch(actions.setRange(range.start, range.end));
+                          setIsDateRangePopoverOpen(false);
+                        }}
+                        className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                        style={{
+                          paddingLeft: '16px',
+                          paddingRight: '16px',
                               color: 'var(--text-primary)',
-                              fontWeight: 600,
-                              height: '32px',
-                              cursor: 'pointer',
-                            }}
+                          fontWeight: 600,
+                          height: '32px',
+                          cursor: 'pointer',
+                        }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="flex items-center justify-center text-xs"
+                            style={{
+                              minWidth: '42px',
+                              height: '24px',
+                              backgroundColor: isSelected ? '#f5f6f8' : 'transparent',
+                              borderRadius: '50px',
+                              color: isSelected ? '#000000' : '#6b7280',
+                              fontWeight: isSelected ? 600 : 400,
+                            }}
                           >
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="flex items-center justify-center text-xs"
-                                style={{
-                                  minWidth: '42px',
-                                  height: '24px',
-                                  backgroundColor: isSelected ? '#f5f6f8' : 'transparent',
-                                  borderRadius: '50px',
-                                  color: isSelected ? '#000000' : '#6b7280',
-                                  fontWeight: isSelected ? 600 : 400,
-                                }}
-                              >
-                                {option.code}
-                              </span>
-                              <span>{option.label}</span>
-                            </div>
-                            {isSelected && (
-                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            {option.code}
+                          </span>
+                          <span>{option.label}</span>
+                        </div>
+                        {isSelected && (
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <circle cx="8" cy="8" r="8" fill="var(--text-primary)"/>
-                                <path d="M11 5.5L7 10L5 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                            )}
-                          </button>
-                        );
-                      })}
+                            <path d="M11 5.5L7 10L5 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
                     </>
                   )}
                   
                   {/* Custom option - only show when not editing */}
                   {!isEditingPresets && (
-                    <button
-                      className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
-                      style={{
-                        paddingLeft: '16px',
-                        paddingRight: '16px',
+                  <button
+                    className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                    style={{
+                      paddingLeft: '16px',
+                      paddingRight: '16px',
                         color: 'var(--text-primary)',
-                        fontWeight: 600,
-                        height: '32px',
-                        cursor: 'pointer',
-                      }}
+                      fontWeight: 600,
+                      height: '32px',
+                      cursor: 'pointer',
+                    }}
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span style={{ minWidth: '42px' }}></span>
-                        <span>Custom</span>
-                      </div>
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span style={{ minWidth: '42px' }}></span>
+                      <span>Custom</span>
+                    </div>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
                   )}
                 </>
               )}
@@ -1545,12 +1545,12 @@ export function ChartPanel() {
               style={{
                 top: '40px',
                 left: 0,
-                minWidth: '200px',
+                minWidth: '240px',
                 backgroundColor: 'var(--bg-elevated)',
-                border: '1px solid var(--border-medium)',
+                border: '1px solid var(--border-default)',
                 borderRadius: '8px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                padding: '8px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                padding: '4px',
               }}
             >
               {availableGroupFields.length === 0 ? (
@@ -1573,15 +1573,19 @@ export function ChartPanel() {
                       
                       setIsGroupByFieldSelectorOpen(false);
                     }}
-                    className="w-full text-left px-3 py-2 text-sm transition-colors"
+                    className="w-full text-left px-3 py-2 transition-colors flex flex-col gap-1"
                     style={{
-                      borderRadius: '4px',
-                      color: 'var(--text-primary)',
+                      borderRadius: '6px',
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
-                    {field.label}
+                    <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                      {field.label}
+                    </span>
+                    <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
+                      {field.object}.{field.field}
+                    </span>
                   </button>
                 ))
               )}
@@ -1794,25 +1798,25 @@ export function ChartPanel() {
                 })
               ) : (
                 // Regular single line
-                <Line
-                  type="linear"
-                  dataKey="current"
-                  name={series.label}
+              <Line
+                      type="linear"
+                dataKey="current"
+                name={series.label}
                         stroke="var(--chart-line-primary)"
-                        strokeWidth={2.5}
+                      strokeWidth={2.5}
                         isAnimationActive={false}
-                  dot={(props: any) => {
-                    const isSelected = state.selectedBucket?.label === props.payload.date;
+                dot={(props: any) => {
+                  const isSelected = state.selectedBucket?.label === props.payload.date;
                     const isHovered = state.hoveredBucket === props.payload.date;
-                    const { key, ...dotProps } = props;
-                          
-                          // For latest/first value metrics, only show dot on the relevant bucket
+                  const { key, ...dotProps } = props;
+                        
+                        // For latest/first value metrics, only show dot on the relevant bucket
                           // Use formula block type if available, otherwise fall back to legacy metric type
                           const metricType = useFormula && state.metricFormula.blocks.length > 0
                             ? state.metricFormula.blocks[0].type
                             : state.metric.type;
                           
-                          const shouldShowDot = 
+                        const shouldShowDot = 
                             metricType === 'sum_over_period' || 
                             metricType === 'average_over_period' ||
                             (metricType === 'latest' && props.index === chartData.length - 1) ||
@@ -1820,27 +1824,27 @@ export function ChartPanel() {
                           
                           if (!shouldShowDot && !isSelected && !isHovered) {
                             return <g key={key} />;
-                          }
-                          
-                    return (
-                      <Dot
-                        key={key}
-                        {...dotProps}
+                        }
+                        
+                  return (
+                    <Dot
+                      key={key}
+                      {...dotProps}
                               r={isSelected ? 6 : isHovered ? 5 : 4}
                               fill={isSelected ? 'var(--chart-line-primary)' : isHovered ? 'var(--chart-line-primary)' : 'var(--chart-line-primary)'}
                         stroke={isSelected ? 'var(--bg-elevated)' : 'none'}
-                        strokeWidth={isSelected ? 2 : 0}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handlePointClick(props.payload)}
-                      />
-                    );
-                  }}
-                  activeDot={{
-                    r: 5,
-                    style: { cursor: 'pointer' },
-                    onClick: (e: any, payload: any) => handlePointClick(payload)
-                  }}
-                />
+                      strokeWidth={isSelected ? 2 : 0}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handlePointClick(props.payload)}
+                    />
+                  );
+                }}
+                activeDot={{
+                  r: 5,
+                  style: { cursor: 'pointer' },
+                  onClick: (e: any, payload: any) => handlePointClick(payload)
+                }}
+              />
               )}
               {comparisonSeries && !groupedMetrics && (
                 <Line
@@ -1912,7 +1916,7 @@ export function ChartPanel() {
                   dataKey="comparison"
                   name={comparisonSeries.label}
                       fill="var(--chart-area-fill-secondary)"
-                      fillOpacity={0.2}
+                        fillOpacity={0.2}
                         stroke="var(--chart-line-secondary)"
                   strokeWidth={2}
                         strokeDasharray="4 4"
@@ -2005,27 +2009,27 @@ export function ChartPanel() {
                 })
               ) : (
                 // Regular single area
-                <Area
-                  type="monotone"
-                  dataKey="current"
-                  name={series.label}
+              <Area
+                type="monotone"
+                dataKey="current"
+                name={series.label}
                         fill="var(--chart-area-fill)"
-                        fillOpacity={0.3}
+                      fillOpacity={0.3}
                         stroke="var(--chart-line-primary)"
-                        strokeWidth={2.5}
+                      strokeWidth={2.5}
                         isAnimationActive={false}
-                  dot={(props: any) => {
-                    const isSelected = state.selectedBucket?.label === props.payload.date;
+                dot={(props: any) => {
+                  const isSelected = state.selectedBucket?.label === props.payload.date;
                     const isHovered = state.hoveredBucket === props.payload.date;
-                    const { key, ...dotProps } = props;
-                          
-                          // For latest/first value metrics, only show dot on the relevant bucket
+                  const { key, ...dotProps } = props;
+                        
+                        // For latest/first value metrics, only show dot on the relevant bucket
                           // Use formula block type if available, otherwise fall back to legacy metric type
                           const metricType = useFormula && state.metricFormula.blocks.length > 0
                             ? state.metricFormula.blocks[0].type
                             : state.metric.type;
                           
-                          const shouldShowDot = 
+                        const shouldShowDot = 
                             metricType === 'sum_over_period' || 
                             metricType === 'average_over_period' ||
                             (metricType === 'latest' && props.index === chartData.length - 1) ||
@@ -2033,27 +2037,27 @@ export function ChartPanel() {
                           
                           if (!shouldShowDot && !isSelected && !isHovered) {
                             return <g key={key} />;
-                          }
-                          
-                    return (
-                      <Dot
-                        key={key}
-                        {...dotProps}
+                        }
+                        
+                  return (
+                    <Dot
+                      key={key}
+                      {...dotProps}
                               r={isSelected ? 6 : isHovered ? 5 : 4}
                               fill={isSelected ? 'var(--chart-line-primary)' : isHovered ? 'var(--chart-line-primary)' : 'var(--chart-line-primary)'}
                         stroke={isSelected ? 'var(--bg-elevated)' : 'none'}
-                        strokeWidth={isSelected ? 2 : 0}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handlePointClick(props.payload)}
-                      />
-                    );
-                  }}
-                  activeDot={{
-                    r: 5,
-                    style: { cursor: 'pointer' },
-                    onClick: (e: any, payload: any) => handlePointClick(payload)
-                  }}
-                />
+                      strokeWidth={isSelected ? 2 : 0}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handlePointClick(props.payload)}
+                    />
+                  );
+                }}
+                activeDot={{
+                  r: 5,
+                  style: { cursor: 'pointer' },
+                  onClick: (e: any, payload: any) => handlePointClick(payload)
+                }}
+              />
               )}
             </AreaChart>
           )}
@@ -2177,30 +2181,30 @@ export function ChartPanel() {
                 })
               ) : (
                 // Regular single bar
-                <Bar
-                  dataKey="current"
-                  name={series.label}
+              <Bar
+                dataKey="current"
+                name={series.label}
                         fill="var(--chart-line-primary)"
                         isAnimationActive={false}
-                  shape={(props: any) => {
-                    const { x, y, width, height, payload } = props;
-                    const isSelected = state.selectedBucket?.label === payload.date;
+                shape={(props: any) => {
+                  const { x, y, width, height, payload } = props;
+                  const isSelected = state.selectedBucket?.label === payload.date;
                     const isHovered = state.hoveredBucket === payload.date;
-                    return (
-                      <rect
-                        x={x}
-                        y={y}
-                        width={width}
-                        height={height}
+                  return (
+                    <rect
+                      x={x}
+                      y={y}
+                      width={width}
+                      height={height}
                               fill={isSelected ? 'var(--chart-line-primary)' : isHovered ? 'var(--chart-line-primary)' : 'var(--chart-line-primary)'}
                         stroke={isSelected ? 'var(--bg-elevated)' : 'none'}
-                        strokeWidth={isSelected ? 2 : 0}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handlePointClick(payload)}
-                      />
-                    );
-                  }}
-                />
+                      strokeWidth={isSelected ? 2 : 0}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handlePointClick(payload)}
+                    />
+                  );
+                }}
+              />
               )}
               {comparisonSeries && !groupedMetrics && (
                 <Bar
