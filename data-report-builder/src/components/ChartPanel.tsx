@@ -552,8 +552,8 @@ export function ChartPanel() {
       
       return () => {
         clearTimeout(timer);
-        // Ensure we clean up loading state if effect re-runs
-        dispatch(actions.finishComponentLoading('chart'));
+        // Don't call finishComponentLoading in cleanup - let the timeout handle it
+        // Otherwise cleanup fires on re-render and finishes loading prematurely
       };
     }
   }, [chartData.length, groupedMetrics?.size, dispatch]);

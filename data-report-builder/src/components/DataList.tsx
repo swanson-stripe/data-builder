@@ -290,12 +290,12 @@ export function DataList() {
       // Console logs show 6-8 seconds of activity for 7568 rows
       const timer = setTimeout(() => {
         dispatch(actions.finishComponentLoading('datalist'));
-      }, 5000); // 5 second buffer for heavy row rendering and filtering
+      }, 8000); // 8 second buffer to cover warehouse loading + metrics computation
       
       return () => {
         clearTimeout(timer);
-        // Ensure we clean up loading state if effect re-runs
-        dispatch(actions.finishComponentLoading('datalist'));
+        // Don't call finishComponentLoading in cleanup - let the timeout handle it
+        // Otherwise cleanup fires on re-render and finishes loading prematurely
       };
     }
   }, [paginatedRows.length, sortedRows.length, dispatch]);
