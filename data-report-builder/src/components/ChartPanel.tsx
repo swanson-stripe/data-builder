@@ -946,10 +946,10 @@ export function ChartPanel() {
       <MetricHeader />
 
       {/* Controls */}
-      <div className="flex items-center gap-2 mt-10">
+      <div className="flex items-center gap-1 mt-10">
         {/* Date Range Control */}
         <div className="relative inline-flex items-center">
-          <div className="flex items-center gap-2 px-1" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '50px', height: '32px' }}>
+          <div className="flex items-center gap-1 px-1" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '50px', height: '32px' }}>
         {/* Range presets - use activePresets order */}
           {activePresets.map((presetLabel) => {
             const preset = rangePresets.find(p => p.label === presetLabel) ||
