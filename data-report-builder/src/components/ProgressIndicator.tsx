@@ -10,6 +10,7 @@ export function ProgressIndicator({ isLoading, message = 'Loading...' }: Progres
   const [progress, setProgress] = useState(0);
   const [showComplete, setShowComplete] = useState(false);
 
+  // Handle loading state - progress animation
   useEffect(() => {
     if (isLoading) {
       setShowComplete(false);
@@ -24,7 +25,12 @@ export function ProgressIndicator({ isLoading, message = 'Loading...' }: Progres
       }, 200);
 
       return () => clearInterval(interval);
-    } else if (progress > 0) {
+    }
+  }, [isLoading]); // Only depend on isLoading to avoid loop
+  
+  // Handle completion state - separate effect
+  useEffect(() => {
+    if (!isLoading && progress > 0) {
       // Complete the progress bar quickly
       setProgress(100);
       setShowComplete(true);
@@ -37,7 +43,7 @@ export function ProgressIndicator({ isLoading, message = 'Loading...' }: Progres
       
       return () => clearTimeout(timeout);
     }
-  }, [isLoading, progress]);
+  }, [isLoading, progress]); // Both deps needed for completion logic
 
   if (progress === 0 && !isLoading) return null;
 
