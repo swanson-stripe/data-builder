@@ -90,6 +90,26 @@ export function MetricTab() {
     if (!state.groupBy || !warehouse) return [];
     return getGroupValues(warehouse, state.groupBy.field, 50); // Get top 50, user can select max 10
   }, [state.groupBy?.field, version]);
+  
+  // Format group by label showing actual values
+  const groupByLabel = useMemo(() => {
+    if (!state.groupBy) return 'Add grouping';
+    
+    const values = state.groupBy.selectedValues;
+    if (values.length === 0) return 'Add grouping';
+    
+    if (values.length === 1) {
+      return values[0];
+    } else if (values.length === 2) {
+      return `${values[0]} and ${values[1]}`;
+    } else if (values.length === 3) {
+      return `${values[0]}, ${values[1]}, and ${values[2]}`;
+    } else {
+      // Show first 3 and count remaining
+      const remaining = values.length - 3;
+      return `${values[0]}, ${values[1]}, ${values[2]}, and ${remaining} more`;
+    }
+  }, [state.groupBy?.selectedValues]);
 
   // Close Group By popovers when clicking outside
   useEffect(() => {
@@ -404,9 +424,7 @@ export function MetricTab() {
                 </svg>
               )}
               <span>
-                {state.groupBy 
-                  ? `${schema.objects.find(o => o.name === state.groupBy.field.object)?.label}.${schema.objects.find(o => o.name === state.groupBy.field.object)?.fields.find(f => f.name === state.groupBy.field.field)?.label} (${state.groupBy.selectedValues.length})`
-                  : 'Add grouping'}
+                {groupByLabel}
               </span>
               {state.groupBy && (
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">

@@ -884,6 +884,26 @@ export function ChartPanel() {
     if (!state.groupBy) return [];
     return getGroupValues(warehouse, state.groupBy.field, 100);
   }, [state.groupBy?.field, version]);
+  
+  // Format group by label showing actual values
+  const groupByLabel = useMemo(() => {
+    if (!state.groupBy) return 'Group by';
+    
+    const values = state.groupBy.selectedValues;
+    if (values.length === 0) return 'Group by';
+    
+    if (values.length === 1) {
+      return values[0];
+    } else if (values.length === 2) {
+      return `${values[0]} and ${values[1]}`;
+    } else if (values.length === 3) {
+      return `${values[0]}, ${values[1]}, and ${values[2]}`;
+    } else {
+      // Show first 3 and count remaining
+      const remaining = values.length - 3;
+      return `${values[0]}, ${values[1]}, ${values[2]}, and ${remaining} more`;
+    }
+  }, [state.groupBy?.selectedValues]);
 
   // Handle click outside to close group by popovers
   useEffect(() => {
@@ -1576,9 +1596,7 @@ export function ChartPanel() {
                 </svg>
               )}
               <span>
-                {state.groupBy 
-                  ? `${schema.objects.find(o => o.name === state.groupBy.field.object)?.label}.${schema.objects.find(o => o.name === state.groupBy.field.object)?.fields.find(f => f.name === state.groupBy.field.field)?.label} (${state.groupBy.selectedValues.length})`
-                  : 'Group by'}
+                {groupByLabel}
               </span>
               {state.groupBy && (
                 <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
