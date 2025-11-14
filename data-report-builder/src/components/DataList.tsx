@@ -311,6 +311,83 @@ export function DataList() {
     });
   }, [state.selectedGrid, sortedRows]);
 
+  // Calculate selection bounding box and edge cells
+  const selectionBounds = useMemo(() => {
+    if (!state.selectedGrid || state.selectedGrid.cells.length === 0) return null;
+    
+    // Get all unique row and column keys from selected cells
+    const rowKeys = new Set<string>();
+    const colKeys = new Set<string>();
+    
+    state.selectedGrid.cells.forEach(cell => {
+      rowKeys.add(`${cell.rowId.object}:${cell.rowId.id}`);
+      colKeys.add(cell.col);
+    });
+    
+    // Find row indices
+    const rowIndices: number[] = [];
+    sortedRows.forEach((row, idx) => {
+      const rowKey = getRowKey(row);
+      if (rowKeys.has(rowKey)) {
+        rowIndices.push(idx);
+      }
+    });
+    
+    // Find column indices
+    const colIndices: number[] = [];
+    columns.forEach((col, idx) => {
+      if (colKeys.has(col.key)) {
+        colIndices.push(idx);
+      }
+    });
+    
+    if (rowIndices.length === 0 || colIndices.length === 0) return null;
+    
+    const minRow = Math.min(...rowIndices);
+    const maxRow = Math.max(...rowIndices);
+    const minCol = Math.min(...colIndices);
+    const maxCol = Math.max(...colIndices);
+    
+    return { minRow, maxRow, minCol, maxCol };
+  }, [state.selectedGrid, sortedRows, columns]);
+
+  // Check if cell is on selection edge and return border style object
+  const getCellSelectionBorder = useCallback((rowIndex: number, colIndex: number) => {
+    if (!selectionBounds) {
+      return {
+        borderTop: '2px solid transparent',
+        borderRight: '2px solid transparent',
+        borderBottom: '2px solid transparent',
+        borderLeft: '2px solid transparent',
+      };
+    }
+    
+    const { minRow, maxRow, minCol, maxCol } = selectionBounds;
+    
+    // Check if this cell is selected
+    const colKey = columns[colIndex]?.key;
+    if (!colKey || !isCellSelected(rowIndex, colKey)) {
+      return {
+        borderTop: '2px solid transparent',
+        borderRight: '2px solid transparent',
+        borderBottom: '2px solid transparent',
+        borderLeft: '2px solid transparent',
+      };
+    }
+    
+    const borderColor = 'var(--data-chip-field-bg)';
+    const borderTransparent = '2px solid transparent';
+    const borderVisible = `2px solid ${borderColor}`;
+    
+    // Determine which borders to show
+    return {
+      borderTop: rowIndex === minRow ? borderVisible : borderTransparent,
+      borderRight: colIndex === maxCol ? borderVisible : borderTransparent,
+      borderBottom: rowIndex === maxRow ? borderVisible : borderTransparent,
+      borderLeft: colIndex === minCol ? borderVisible : borderTransparent,
+    };
+  }, [selectionBounds, columns, isCellSelected]);
+
   // Check if row is selected
   const isRowSelected = useCallback((rowIndex: number): boolean => {
     if (!state.selectedGrid) return false;
@@ -1554,10 +1631,11 @@ export function DataList() {
                       actualRowIndex + 1
                     )}
                   </td>
-                  {columns.map((column) => {
+                  {columns.map((column, colIndex) => {
                     const cellValue = row.display[column.key];
                     const isNumeric = isNumericValue(cellValue);
                     const isSorted = sortState.column === column.key;
+                    const borderStyle = getCellSelectionBorder(actualRowIndex, colIndex);
                     return (
                       <td
                         key={column.key}
@@ -1570,7 +1648,7 @@ export function DataList() {
                           paddingRight: '12px',
                           color: 'var(--text-primary)',
                           backgroundColor: 'transparent',
-                          border: isCellSelected(actualRowIndex, column.key) ? '2px solid var(--data-chip-field-bg)' : '2px solid transparent'
+                          ...borderStyle
                         }}
                         onMouseDown={(e) => handleCellMouseDown(e, actualRowIndex, column.key)}
                         onMouseEnter={() => handleCellMouseEnter(actualRowIndex, column.key)}
