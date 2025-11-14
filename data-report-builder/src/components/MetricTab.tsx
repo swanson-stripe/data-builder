@@ -91,11 +91,22 @@ export function MetricTab() {
     return getGroupValues(warehouse, state.groupBy.field, 50); // Get top 50, user can select max 10
   }, [state.groupBy?.field, version]);
   
+  // Helper to format value to sentence case
+  const formatValueLabel = (value: string) => {
+    return value
+      .replace(/_/g, ' ')
+      .replace(/([A-Z])/g, ' $1')
+      .trim()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+  
   // Format group by label showing actual values
   const groupByLabel = useMemo(() => {
     if (!state.groupBy) return 'Add grouping';
     
-    const values = state.groupBy.selectedValues;
+    const values = state.groupBy.selectedValues.map(formatValueLabel);
     if (values.length === 0) return 'Add grouping';
     
     if (values.length === 1) {
@@ -636,6 +647,7 @@ export function MetricTab() {
                     setIsGroupByValueSelectorOpen(false);
                   }}
                   maxSelections={10}
+                  chipLabel={groupByLabel}
                 />
               </div>
             )}
