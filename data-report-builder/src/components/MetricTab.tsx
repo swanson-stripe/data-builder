@@ -471,7 +471,7 @@ export function MetricTab() {
                       fill="none"
                       style={{
                         position: 'absolute',
-                        left: '16px',
+                        left: '20px',
                         top: '50%',
                         transform: 'translateY(-50%)',
                         color: 'var(--text-muted)',
@@ -501,7 +501,7 @@ export function MetricTab() {
                       onChange={(e) => setGroupBySearchQuery(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '8px 12px 8px 28px',
+                        padding: '8px 12px 8px 44px',
                         border: '1px solid var(--border-default)',
                         borderRadius: '8px',
                         backgroundColor: 'var(--bg-surface)',
