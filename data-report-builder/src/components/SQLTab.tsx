@@ -53,7 +53,7 @@ export function SQLTab() {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col" style={{ paddingTop: '20px' }}>
       {/* Header */}
       <div className="mb-3 text-sm text-gray-600 dark:text-gray-400">
         SQL representation of your current query

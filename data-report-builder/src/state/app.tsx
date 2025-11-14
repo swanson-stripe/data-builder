@@ -55,6 +55,7 @@ export type AppState = {
   showTemplateSelector: boolean; // Whether to show the template selection UI
   hasUserMadeChanges: boolean; // Track if user has modified blank state
   loadingComponents: Set<string>; // Track which components are currently loading
+  showSearch: boolean; // Whether to show the search input in data tab
 };
 
 // Action types
@@ -295,6 +296,10 @@ type FinishComponentLoadingAction = {
   payload: string; // component name
 };
 
+type ToggleSearchAction = {
+  type: 'TOGGLE_SEARCH';
+};
+
 export type AppAction =
   | SetTabAction
   | ToggleObjectAction
@@ -343,7 +348,8 @@ export type AppAction =
   | SetUserMadeChangesAction
   | ApplyAIConfigAction
   | StartComponentLoadingAction
-  | FinishComponentLoadingAction;
+  | FinishComponentLoadingAction
+  | ToggleSearchAction;
 
 // Helper function to build initial state with preset applied
 function buildInitialState(): AppState {
@@ -380,6 +386,7 @@ function buildInitialState(): AppState {
     showTemplateSelector: false, // Don't show by default - MRR preset is loaded
     hasUserMadeChanges: false,
     loadingComponents: new Set<string>(),
+    showSearch: false, // Search input hidden by default
   };
 
   // Apply MRR preset synchronously to initial state
@@ -982,6 +989,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         showTemplateSelector: true, // Show template selector on reset
         hasUserMadeChanges: false,
         loadingComponents: new Set<string>(),
+        showSearch: false, // Hide search on reset
       };
     }
 
@@ -1132,6 +1140,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         loadingComponents: newLoadingComponents,
+      };
+    }
+
+    case 'TOGGLE_SEARCH': {
+      return {
+        ...state,
+        showSearch: !state.showSearch,
       };
     }
 
@@ -1388,5 +1403,9 @@ export const actions = {
   finishComponentLoading: (component: string): FinishComponentLoadingAction => ({
     type: 'FINISH_COMPONENT_LOADING',
     payload: component,
+  }),
+
+  toggleSearch: (): ToggleSearchAction => ({
+    type: 'TOGGLE_SEARCH',
   }),
 };

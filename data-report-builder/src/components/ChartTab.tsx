@@ -109,7 +109,7 @@ export function ChartTab() {
   };
 
   return (
-    <div className="flex flex-col h-full space-y-4">
+    <div className="flex flex-col h-full space-y-4" style={{ paddingTop: '20px' }}>
       {/* Chart Type */}
       <div>
         <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>

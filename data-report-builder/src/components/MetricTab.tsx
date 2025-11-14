@@ -297,7 +297,7 @@ export function MetricTab() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <div className="flex flex-col h-full overflow-y-auto" style={{ paddingTop: '20px' }}>
       <div className="space-y-4">
         {/* Calculation Blocks - always visible */}
       <div>

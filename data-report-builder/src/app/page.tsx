@@ -112,7 +112,7 @@ function PageContent() {
       {state.showTemplateSelector && <TemplateSelector />}
 
       {/* Header always visible */}
-      <header className="flex items-center justify-between px-10 relative" style={{ height: '56px', backgroundColor: 'var(--bg-primary)' }} role="banner">
+      <header className="flex items-center justify-between px-10 relative" style={{ height: '56px', backgroundColor: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)' }} role="banner">
         <button className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '6px', width: '30px', height: '30px' }} aria-label="Close report builder">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
             <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -153,17 +153,17 @@ function PageContent() {
       {/* Hide main content when template selector is showing */}
       {!state.showTemplateSelector && (
         <>
-      <main className="flex flex-1 overflow-hidden pl-10 gap-10" role="main">
+      <main className="flex flex-1 overflow-hidden gap-10" role="main">
         <aside 
           ref={sidebarRef}
-          className="flex flex-col relative py-6"
-          style={{ width: `${sidebarWidth}px`, flexShrink: 0 }}
+          className="flex flex-col relative"
+          style={{ width: `${sidebarWidth}px`, flexShrink: 0, borderRight: '1px solid var(--border-subtle)' }}
           role="complementary" 
           aria-label="Configuration sidebar"
         >
           <SidebarTabs />
 
-          <div className="flex-1 overflow-auto custom-scrollbar mt-3">
+          <div className="flex-1 overflow-auto custom-scrollbar" style={{ padding: '0 8px 0 20px' }}>
             {state.activeTab === 'data' && <DataTab />}
             {state.activeTab === 'chart' && <ChartTab />}
             {state.activeTab === 'metric' && <MetricTab />}
