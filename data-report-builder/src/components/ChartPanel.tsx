@@ -966,12 +966,14 @@ export function ChartPanel() {
                 onClick={() => {
                   dispatch(actions.setRange(range.start, range.end));
                 }}
-                  className="px-3 text-sm font-medium transition-colors focus:outline-none flex items-center"
+                  className="text-sm font-medium transition-colors focus:outline-none flex items-center"
                   style={{
                     backgroundColor: isSelected ? 'var(--bg-active)' : 'transparent',
                     borderRadius: '50px',
                     color: isSelected ? 'var(--text-primary)' : 'var(--text-muted)',
                     height: '24px',
+                    paddingLeft: '8px',
+                    paddingRight: '8px',
                     cursor: 'pointer',
                   }}
                 onMouseEnter={(e) => {

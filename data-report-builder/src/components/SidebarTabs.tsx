@@ -23,13 +23,13 @@ export function SidebarTabs() {
             aria-controls={`${tab.id}-panel`}
             className="px-2 py-1.5 text-sm text-center focus:outline-none transition-colors cursor-pointer"
             style={{ 
-              backgroundColor: state.activeTab === tab.id ? 'var(--border-subtle)' : 'transparent',
+              backgroundColor: state.activeTab === tab.id ? 'var(--bg-surface)' : 'transparent',
               borderRadius: '4px',
               color: state.activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-muted)'
             }}
             onMouseEnter={(e) => {
               if (state.activeTab !== tab.id) {
-                e.currentTarget.style.backgroundColor = 'var(--border-subtle)';
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
               }
             }}
             onMouseLeave={(e) => {
@@ -49,12 +49,12 @@ export function SidebarTabs() {
             className="p-1.5 transition-colors cursor-pointer ml-auto"
             style={{
               color: state.showSearch ? 'var(--text-primary)' : 'var(--text-muted)',
-              backgroundColor: state.showSearch ? 'var(--border-subtle)' : 'transparent',
+              backgroundColor: state.showSearch ? 'var(--bg-surface)' : 'transparent',
               borderRadius: '4px'
             }}
             onMouseEnter={(e) => {
               if (!state.showSearch) {
-                e.currentTarget.style.backgroundColor = 'var(--border-subtle)';
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
               }
             }}
             onMouseLeave={(e) => {
@@ -102,7 +102,7 @@ export function SidebarTabs() {
               borderRadius: '4px'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--border-subtle)';
+              e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent';
