@@ -228,7 +228,7 @@ export function ChartPanel() {
     version, // Re-compute when warehouse data changes
   ]);
 
-  // Track ChartPanel loading state
+  // Track ChartPanel loading state on mount
   useEffect(() => {
     // Start loading on mount
     dispatch(actions.startComponentLoading('chart'));
@@ -238,22 +238,6 @@ export function ChartPanel() {
       dispatch(actions.finishComponentLoading('chart'));
     };
   }, [dispatch]);
-  
-  // Mark chart as loaded when data is ready
-  useEffect(() => {
-    if (chartData.length > 0) {
-      // Chart data is computed and ready to render
-      // Small delay to allow React to commit the render
-      const timer = setTimeout(() => {
-        dispatch(actions.finishComponentLoading('chart'));
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    } else {
-      // No data yet, ensure we're marked as loading
-      dispatch(actions.startComponentLoading('chart'));
-    }
-  }, [chartData.length, groupedMetrics?.size, dispatch]);
 
   // Compute grouped metrics if grouping is active
   const groupedMetrics = useMemo(() => {
@@ -562,6 +546,22 @@ export function ChartPanel() {
       })
       .map((point) => point.date);
   }, [chartData]);
+
+  // Mark chart as loaded when data is ready
+  useEffect(() => {
+    if (chartData.length > 0) {
+      // Chart data is computed and ready to render
+      // Small delay to allow React to commit the render
+      const timer = setTimeout(() => {
+        dispatch(actions.finishComponentLoading('chart'));
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    } else {
+      // No data yet, ensure we're marked as loading
+      dispatch(actions.startComponentLoading('chart'));
+    }
+  }, [chartData.length, groupedMetrics?.size, dispatch]);
 
   // Format number for display based on value kind (compact for chart axes)
   // Note: Values are already converted to dollars in chartData, so we format directly
