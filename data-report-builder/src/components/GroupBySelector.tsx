@@ -6,6 +6,7 @@ export type GroupBySelectorProps = {
   availableValues: string[];
   selectedValues: string[];
   onApply: (selectedValues: string[]) => void;
+  onRemove: () => void;
   onCancel: () => void;
   maxSelections?: number;
 };
@@ -18,6 +19,7 @@ export default function GroupBySelector({
   availableValues,
   selectedValues: initialSelected,
   onApply,
+  onRemove,
   onCancel,
   maxSelections = 10,
 }: GroupBySelectorProps) {
@@ -139,8 +141,8 @@ export default function GroupBySelector({
 
       {/* Action buttons */}
       <div className="actions">
-        <button onClick={onCancel} className="btn-cancel">
-          Cancel
+        <button onClick={onRemove} className="btn-remove">
+          Remove
         </button>
         <button onClick={handleApply} className="btn-apply">
           Apply
@@ -151,11 +153,8 @@ export default function GroupBySelector({
         .group-by-selector {
           display: flex;
           flex-direction: column;
-          width: 300px;
-          background: var(--bg-elevated);
-          border: 1px solid var(--border-medium);
-          border-radius: 8px;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          width: 100%;
+          height: 100%;
           overflow: hidden;
         }
 
@@ -226,17 +225,16 @@ export default function GroupBySelector({
         }
 
         .value-list {
-          max-height: 300px;
+          flex: 1;
           overflow-y: auto;
-          padding: 8px 12px;
+          padding: 8px 0;
         }
 
         .value-item {
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 8px;
-          border-radius: 4px;
+          padding: 8px 16px;
           cursor: pointer;
           user-select: none;
           transition: background 0.15s;
@@ -261,42 +259,44 @@ export default function GroupBySelector({
         .actions {
           display: flex;
           gap: 8px;
-          padding: 12px;
-          border-top: 1px solid var(--border-medium);
-          justify-content: flex-end;
+          padding: 16px;
+          background: var(--bg-elevated);
+          position: sticky;
+          bottom: 0;
         }
 
-        .btn-cancel,
+        .btn-remove,
         .btn-apply {
-          padding: 8px 16px;
-          border-radius: 6px;
-          font-size: 14px;
+          flex: 1;
+          padding: 10px 16px;
+          border-radius: 12px;
+          font-size: 15px;
           font-weight: 500;
           cursor: pointer;
           border: none;
           transition: all 0.15s;
         }
 
-        .btn-cancel {
+        .btn-remove {
           background: var(--bg-surface);
           color: var(--text-primary);
         }
 
-        .btn-cancel:hover {
+        .btn-remove:hover {
           background: var(--bg-active);
         }
 
         .btn-apply {
-          background: #6366f1;
+          background: #635BFF;
           color: #ffffff;
         }
 
         .btn-apply:hover {
-          background: #4f46e5;
+          background: #5851E6;
         }
 
         .btn-apply:active {
-          background: #4338ca;
+          background: #4E47CC;
         }
       `}</style>
     </div>

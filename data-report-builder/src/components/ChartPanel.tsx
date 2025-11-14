@@ -1497,45 +1497,55 @@ export function ChartPanel() {
 
         {/* Group By Control */}
         <div className="relative inline-flex items-center">
-          <button
-            ref={groupByButtonRef}
-            onClick={() => {
-              if (!state.groupBy) {
-                // Open field selector
-                setIsGroupByFieldSelectorOpen(true);
-              } else {
-                // Open value selector
-                setIsGroupByValueSelectorOpen(true);
-              }
-            }}
-            className="text-sm border-none focus:outline-none cursor-pointer flex items-center transition-colors gap-2"
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              color: state.groupBy ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontWeight: 400,
-              borderRadius: '50px',
-              padding: '6px 12px',
-              height: '32px',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {!state.groupBy && (
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="var(--text-muted)"/>
-                <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="var(--text-muted)"/>
-              </svg>
-            )}
-            <span>
-              {state.groupBy 
-                ? `${schema.objects.find(o => o.name === state.groupBy.field.object)?.label}.${schema.objects.find(o => o.name === state.groupBy.field.object)?.fields.find(f => f.name === state.groupBy.field.field)?.label} (${state.groupBy.selectedValues.length})`
-                : 'Group by'}
-            </span>
-            {state.groupBy && (
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2 3L4 5L6 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            )}
-          </button>
+            <button
+              ref={groupByButtonRef}
+              onClick={() => {
+                if (!state.groupBy) {
+                  // Open field selector
+                  setIsGroupByFieldSelectorOpen(true);
+                } else {
+                  // Open value selector
+                  setIsGroupByValueSelectorOpen(true);
+                }
+              }}
+              className="text-sm border-none focus:outline-none cursor-pointer flex items-center transition-colors gap-2"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                color: state.groupBy ? 'var(--text-primary)' : 'var(--text-muted)',
+                fontWeight: 400,
+                borderRadius: '50px',
+                padding: '6px 12px',
+                height: '32px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {state.groupBy ? (
+                // Icon when grouping is applied
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1.3125 3.1875C1.82812 3.1875 2.25 2.76562 2.25 2.25C2.25 1.73438 1.82812 1.3125 1.3125 1.3125C0.796875 1.3125 0.375 1.73438 0.375 2.25C0.375 2.775 0.796875 3.1875 1.3125 3.1875Z" fill="currentColor"/>
+                  <path d="M1.3125 6.9375C1.82812 6.9375 2.25 6.51562 2.25 6C2.25 5.48438 1.82812 5.0625 1.3125 5.0625C0.796875 5.0625 0.375 5.48438 0.375 6C0.375 6.525 0.796875 6.9375 1.3125 6.9375Z" fill="currentColor"/>
+                  <path d="M1.3125 10.6875C1.82812 10.6875 2.25 10.2656 2.25 9.75C2.25 9.23438 1.82812 8.8125 1.3125 8.8125C0.796875 8.8125 0.375 9.23438 0.375 9.75C0.375 10.275 0.796875 10.6875 1.3125 10.6875Z" fill="currentColor"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M3 2.15625C3 1.79381 3.29381 1.5 3.65625 1.5H10.9688C11.3312 1.5 11.625 1.79381 11.625 2.15625C11.625 2.51869 11.3312 2.8125 10.9688 2.8125H3.65625C3.29381 2.8125 3 2.51869 3 2.15625Z" fill="currentColor"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M3 6.00073C3 5.6383 3.29381 5.34448 3.65625 5.34448H10.9688C11.3312 5.34448 11.625 5.6383 11.625 6.00073C11.625 6.36317 11.3312 6.65698 10.9688 6.65698H3.65625C3.29381 6.65698 3 6.36317 3 6.00073Z" fill="currentColor"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M3 9.84375C3 9.48131 3.29381 9.1875 3.65625 9.1875H10.9688C11.3312 9.1875 11.625 9.48131 11.625 9.84375C11.625 10.2062 11.3312 10.5 10.9688 10.5H3.65625C3.29381 10.5 3 10.2062 3 9.84375Z" fill="currentColor"/>
+                </svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="var(--text-muted)"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="var(--text-muted)"/>
+                </svg>
+              )}
+              <span>
+                {state.groupBy 
+                  ? `${schema.objects.find(o => o.name === state.groupBy.field.object)?.label}.${schema.objects.find(o => o.name === state.groupBy.field.object)?.fields.find(f => f.name === state.groupBy.field.field)?.label} (${state.groupBy.selectedValues.length})`
+                  : 'Group by'}
+              </span>
+              {state.groupBy && (
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 3L4 5L6 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </button>
 
           {/* Field Selector Popover */}
           {isGroupByFieldSelectorOpen && (
@@ -1597,10 +1607,17 @@ export function ChartPanel() {
           {isGroupByValueSelectorOpen && state.groupBy && (
             <div
               ref={groupByPopoverRef}
-              className="absolute z-50"
+              className="absolute py-1 z-50"
               style={{
-                top: '40px',
+                top: 0,
                 left: 0,
+                minWidth: '240px',
+                maxHeight: '360px',
+                backgroundColor: 'var(--bg-elevated)',
+                borderRadius: '16px',
+                boxShadow: '0 5px 15px rgba(0, 0, 0, 0.16)',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
               <GroupBySelector
@@ -1610,34 +1627,16 @@ export function ChartPanel() {
                   dispatch(actions.updateGroupValues(selectedValues));
                   setIsGroupByValueSelectorOpen(false);
                 }}
+                onRemove={() => {
+                  dispatch(actions.clearGroupBy());
+                  setIsGroupByValueSelectorOpen(false);
+                }}
                 onCancel={() => {
                   setIsGroupByValueSelectorOpen(false);
                 }}
                 maxSelections={10}
               />
             </div>
-          )}
-
-          {/* Clear button - show when grouping is active */}
-          {state.groupBy && (
-            <button
-              onClick={() => {
-                dispatch(actions.clearGroupBy());
-              }}
-              className="ml-2 flex items-center justify-center transition-colors"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderRadius: '50px',
-                color: 'var(--text-muted)',
-                width: '32px',
-                height: '32px',
-              }}
-              aria-label="Clear grouping"
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
           )}
         </div>
       </div>
