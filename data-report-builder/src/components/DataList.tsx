@@ -23,16 +23,7 @@ export function DataList() {
   const { state, dispatch } = useApp();
   const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
   
-  // Track DataList loading state
-  useEffect(() => {
-    // Start loading on mount
-    dispatch(actions.startComponentLoading('datalist'));
-    
-    return () => {
-      // Clean up on unmount
-      dispatch(actions.finishComponentLoading('datalist'));
-    };
-  }, [dispatch]);
+  // Remove the mount-only effect - we'll track loading based on data readiness instead
   
   // Use sort from global state if available, otherwise use local state for backwards compatibility
   const [localSortState, setLocalSortState] = useState<SortState>({
@@ -288,9 +279,12 @@ export function DataList() {
     setCurrentPage(0);
   }, [sortState.column, sortState.direction, state.filters, state.selectedBucket]);
   
-  // Mark DataList as loaded when rows are processed and ready
+  // Track DataList loading based on data readiness
   useEffect(() => {
     if (paginatedRows.length > 0 || sortedRows.length === 0) {
+      // Start loading when we begin rendering
+      dispatch(actions.startComponentLoading('datalist'));
+      
       // Rows are ready to display (or there are no rows)
       // Longer delay to account for heavy DOM rendering and browser paint
       // Console logs show 6-8 seconds of activity for 7568 rows
@@ -298,10 +292,11 @@ export function DataList() {
         dispatch(actions.finishComponentLoading('datalist'));
       }, 5000); // 5 second buffer for heavy row rendering and filtering
       
-      return () => clearTimeout(timer);
-    } else {
-      // Still processing, ensure we're marked as loading
-      dispatch(actions.startComponentLoading('datalist'));
+      return () => {
+        clearTimeout(timer);
+        // Ensure we clean up loading state if effect re-runs
+        dispatch(actions.finishComponentLoading('datalist'));
+      };
     }
   }, [paginatedRows.length, sortedRows.length, dispatch]);
 

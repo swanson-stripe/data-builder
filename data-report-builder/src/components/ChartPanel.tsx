@@ -228,16 +228,7 @@ export function ChartPanel() {
     version, // Re-compute when warehouse data changes
   ]);
 
-  // Track ChartPanel loading state on mount
-  useEffect(() => {
-    // Start loading on mount
-    dispatch(actions.startComponentLoading('chart'));
-    
-    return () => {
-      // Clean up on unmount
-      dispatch(actions.finishComponentLoading('chart'));
-    };
-  }, [dispatch]);
+  // Remove the mount-only effect - we'll track loading based on data readiness instead
 
   // Compute grouped metrics if grouping is active
   const groupedMetrics = useMemo(() => {
@@ -547,19 +538,23 @@ export function ChartPanel() {
       .map((point) => point.date);
   }, [chartData]);
 
-  // Mark chart as loaded when data is ready
+  // Track chart loading based on data readiness
   useEffect(() => {
     if (chartData.length > 0) {
+      // Start loading when we begin rendering
+      dispatch(actions.startComponentLoading('chart'));
+      
       // Chart data is computed and ready to render
       // Longer delay to account for Recharts rendering (2-3 seconds for complex charts)
       const timer = setTimeout(() => {
         dispatch(actions.finishComponentLoading('chart'));
       }, 3000);
       
-      return () => clearTimeout(timer);
-    } else {
-      // No data yet, ensure we're marked as loading
-      dispatch(actions.startComponentLoading('chart'));
+      return () => {
+        clearTimeout(timer);
+        // Ensure we clean up loading state if effect re-runs
+        dispatch(actions.finishComponentLoading('chart'));
+      };
     }
   }, [chartData.length, groupedMetrics?.size, dispatch]);
 
