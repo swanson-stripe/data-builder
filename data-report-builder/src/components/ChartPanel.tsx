@@ -244,7 +244,8 @@ export function ChartPanel() {
       return null;
     }
 
-    const allRows = warehouse[primaryObject as keyof Warehouse];
+    const warehouseData = warehouse as Record<string, any[]>;
+    const allRows = warehouseData[primaryObject];
     if (!Array.isArray(allRows)) {
       return null;
     }
