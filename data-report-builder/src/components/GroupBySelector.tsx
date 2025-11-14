@@ -208,7 +208,7 @@ export default function GroupBySelector({
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 16px;
+          padding: 4px 16px;
         }
         
         .chip-label-header svg {
@@ -225,7 +225,7 @@ export default function GroupBySelector({
         .toggle-container {
           display: flex;
           gap: 8px;
-          padding: 12px 16px;
+          padding: 4px 16px;
         }
         
         .toggle-button {
@@ -268,7 +268,7 @@ export default function GroupBySelector({
 
         .search-icon {
           position: absolute;
-          left: 28px;
+          left: 16px;
           top: 50%;
           transform: translateY(-50%);
           color: var(--text-muted);
@@ -277,7 +277,7 @@ export default function GroupBySelector({
 
         .search-input {
           width: 100%;
-          padding: 12px 12px 12px 36px;
+          padding: 12px 12px 12px 40px;
           border: none;
           background: transparent;
           color: var(--text-primary);
@@ -354,7 +354,7 @@ export default function GroupBySelector({
         .actions {
           display: flex;
           gap: 8px;
-          padding: 4px 16px 12px 16px;
+          padding: 4px 16px 8px 16px;
           background: var(--bg-elevated);
           position: sticky;
           bottom: 0;
