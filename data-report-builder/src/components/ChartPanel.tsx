@@ -1930,12 +1930,12 @@ export function ChartPanel() {
                         
                         // For "latest" metrics, only show dot on last bucket
                         if (state.metric.type === 'latest' && index !== chartData.length - 1) {
-                          return null;
+                          return <></>;
                         }
                         
                         // For "first" metrics, only show dot on first bucket
                         if (state.metric.type === 'first' && index !== 0) {
-                          return null;
+                          return <></>;
                         }
                         
                         // Show dot with click handler

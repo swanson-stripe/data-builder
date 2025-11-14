@@ -1,4 +1,5 @@
-import type { SchemaCatalog, SchemaField, Warehouse } from '@/types';
+import type { SchemaCatalog, SchemaField } from '@/types';
+import type { Warehouse } from '@/data/warehouse';
 
 /**
  * Grouping utilities for segmenting data by categorical fields
@@ -40,11 +41,11 @@ export function getAvailableGroupFields(
  * Returns up to `limit` most common values
  */
 export function getGroupValues(
-  store: Warehouse,
+  store: any, // Accept any type since warehouse store is Partial
   field: { object: string; field: string },
   limit: number = 100
 ): string[] {
-  const data = store[field.object as keyof Warehouse];
+  const data = store[field.object];
   if (!data || !Array.isArray(data)) return [];
 
   // Count occurrences of each value
