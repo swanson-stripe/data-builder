@@ -571,7 +571,7 @@ export function ValueTable() {
                 })}
                 
                 {/* Total row */}
-                <tr className="transition-colors" style={{ borderTop: '1px solid var(--border-default)', fontWeight: 600 }}>
+                <tr className="transition-colors" style={{ borderTop: '1px solid var(--border-default)' }}>
                   <td 
                     className="py-2 pl-2 pr-6 whitespace-nowrap"
                     style={{ 
@@ -583,7 +583,7 @@ export function ValueTable() {
                   >
                     <div className="flex items-center gap-2">
                       <div style={{ width: '12px', height: '2px', backgroundColor: 'transparent', flexShrink: 0 }}></div>
-                      <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
                         Total
                       </span>
                     </div>
