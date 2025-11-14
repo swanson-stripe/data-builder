@@ -231,8 +231,8 @@ export function ChartPanel() {
   // Track loading state - simple timeout based approach
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Clear any existing timeout and set new one
-  const setLoadingWithTimeout = useCallback((duration: number) => {
+  // Function to set loading state with timeout (not a callback to avoid recreation issues)
+  const setLoadingWithTimeout = (duration: number) => {
     // Clear any existing timeout
     if (loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
@@ -246,12 +246,16 @@ export function ChartPanel() {
       dispatch(actions.setCalculating(false));
       loadingTimeoutRef.current = null;
     }, duration);
-  }, [dispatch]);
+  };
   
-  // Show loading indicator on initial mount
+  // Show loading indicator on initial mount ONLY
   // 10 seconds to account for: metric calculation + chart render + DataList filtering (7568 rows)
+  const hasInitialized = useRef(false);
   useEffect(() => {
-    setLoadingWithTimeout(10000);
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      setLoadingWithTimeout(10000);
+    }
     
     // Cleanup on unmount
     return () => {
@@ -259,7 +263,7 @@ export function ChartPanel() {
         clearTimeout(loadingTimeoutRef.current);
       }
     };
-  }, []); // Run once on mount
+  }, []); // Empty deps - truly run once
 
   // Compute grouped metrics if grouping is active
   const groupedMetrics = useMemo(() => {
