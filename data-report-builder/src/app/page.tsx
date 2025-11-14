@@ -222,24 +222,27 @@ function PageContent() {
         <div className="flex items-center gap-3" style={{ justifyContent: 'space-between', width: '100%' }}>
           <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Dev tools</span>
           {loadingProgress > 0 ? (
-            // Progress bar when loading
+            // Progress bar when loading - expands from circle
             <div
               style={{
-                flex: 1,
                 height: '8px',
                 backgroundColor: 'var(--bg-surface)',
                 borderRadius: '4px',
                 overflow: 'hidden',
-                marginLeft: '12px',
+                marginLeft: 'auto',
+                flexBasis: '0%',
+                flexGrow: 1,
+                maxWidth: '100%',
+                transition: 'flex-grow 0.3s ease-out, flex-basis 0.3s ease-out',
               }}
             >
               <div
                 style={{
                   width: `${loadingProgress}%`,
                   height: '100%',
-                  backgroundColor: loadingProgress === 100 ? '#10b981' : '#675DFF',
+                  backgroundColor: '#10b981',
                   borderRadius: '4px',
-                  transition: 'width 0.3s ease-out, background-color 0.3s ease-out',
+                  transition: 'width 0.3s ease-out',
                 }}
               />
             </div>
@@ -252,6 +255,7 @@ function PageContent() {
                 borderRadius: '50%',
                 backgroundColor: '#10b981',
                 marginLeft: 'auto',
+                flexShrink: 0,
               }}
             />
           )}
