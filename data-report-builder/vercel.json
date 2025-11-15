@@ -1,6 +1,0 @@
-{
-  "buildCommand": "cd data-report-builder && npm run build",
-  "installCommand": "cd data-report-builder && npm install",
-  "framework": "nextjs"
-}
-
