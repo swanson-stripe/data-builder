@@ -245,18 +245,18 @@ export function ChartTab() {
       {/* Description */}
       <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
         <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Comparison types</h4>
-        <dl className="space-y-2 text-xs">
+        <dl className="text-xs" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div>
-            <dt className="font-medium text-gray-700 dark:text-gray-300">Period start baseline</dt>
-            <dd className="text-gray-500 dark:text-gray-400">Compare current value to the first bucket in the period</dd>
+            <dt className="font-medium text-gray-700 dark:text-gray-300" style={{ fontSize: '14px' }}>Period start baseline</dt>
+            <dd className="text-gray-500 dark:text-gray-400" style={{ fontSize: '14px' }}>Compare current value to the first bucket in the period</dd>
           </div>
           <div>
-            <dt className="font-medium text-gray-700 dark:text-gray-300">Previous period</dt>
-            <dd className="text-gray-500 dark:text-gray-400">Compare with the previous bucket (e.g., last month)</dd>
+            <dt className="font-medium text-gray-700 dark:text-gray-300" style={{ fontSize: '14px' }}>Previous period</dt>
+            <dd className="text-gray-500 dark:text-gray-400" style={{ fontSize: '14px' }}>Compare with the previous bucket (e.g., last month)</dd>
           </div>
           <div>
-            <dt className="font-medium text-gray-700 dark:text-gray-300">Previous year</dt>
-            <dd className="text-gray-500 dark:text-gray-400">Compare with the same bucket one year ago</dd>
+            <dt className="font-medium text-gray-700 dark:text-gray-300" style={{ fontSize: '14px' }}>Previous year</dt>
+            <dd className="text-gray-500 dark:text-gray-400" style={{ fontSize: '14px' }}>Compare with the same bucket one year ago</dd>
           </div>
         </dl>
       </div>

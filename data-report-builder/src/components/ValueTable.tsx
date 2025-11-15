@@ -412,10 +412,8 @@ export function ValueTable() {
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <div className="text-gray-400 dark:text-gray-500 text-center">
-          <div className="text-4xl mb-2">📊</div>
-          <p className="text-sm font-medium">No metric configured</p>
-          <p className="text-xs mt-1">
-            {metricResult.note || 'Select a source field in the Metric tab.'}
+          <p className="text-sm">
+            Select a field to begin building your report
           </p>
         </div>
       </div>

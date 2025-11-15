@@ -164,8 +164,8 @@ export function FieldFilter({
       <label 
         htmlFor="filter-type" 
         style={{ 
-          fontSize: '12px', 
-          fontWeight: 500, 
+          fontSize: '14px', 
+          fontWeight: 600, 
           color: 'var(--text-secondary)',
           display: 'block',
           marginBottom: '4px'
@@ -192,7 +192,7 @@ export function FieldFilter({
         <div className="space-y-4">
           {renderFilterTypeSelector()}
           
-          <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
             Apply a filter
           </div>
           <div className="flex gap-2">
@@ -287,7 +287,7 @@ export function FieldFilter({
         <div className="space-y-4">
           <div>{renderFilterTypeSelector()}</div>
           
-          <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
             Apply a filter
           </div>
           
@@ -412,7 +412,7 @@ export function FieldFilter({
         <div className="space-y-4">
           {renderFilterTypeSelector()}
           
-          <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
             Apply a filter
           </div>
           <select
@@ -544,7 +544,7 @@ export function FieldFilter({
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {renderFilterTypeSelector()}
           
-          <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)', marginBottom: '8px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
             Apply a filter
           </div>
           <div>
@@ -650,7 +650,7 @@ export function FieldFilter({
       <div className="space-y-4">
         {renderFilterTypeSelector()}
         
-        <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>
+        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
           Apply a filter
         </div>
         <input

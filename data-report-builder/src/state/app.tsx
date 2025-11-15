@@ -351,6 +351,34 @@ export type AppAction =
   | FinishComponentLoadingAction
   | ToggleSearchAction;
 
+// Helper function to determine metric configuration based on field type
+function getAutoMetricConfig(fieldType: string): { op: MetricOp; type: MetricType; unit?: UnitType } {
+  switch (fieldType) {
+    case 'string':
+    case 'varchar':
+      return { op: 'distinct_count', type: 'sum_over_period' };
+    case 'number':
+    case 'volume':
+      return { op: 'sum', type: 'sum_over_period' };
+    case 'boolean':
+      // For boolean: count true values, display as rate
+      return { op: 'count', type: 'latest', unit: 'rate' };
+    case 'date':
+      return { op: 'count', type: 'sum_over_period' };
+    case 'id':
+      return { op: 'distinct_count', type: 'sum_over_period' };
+    default:
+      return { op: 'count', type: 'sum_over_period' };
+  }
+}
+
+// Helper function to get object label from schema
+function getObjectLabel(objectName: string): string {
+  const { default: schema } = require('@/data/schema');
+  const obj = schema.objects.find((o: any) => o.name === objectName);
+  return obj?.label || objectName;
+}
+
 // Helper function to build initial state with preset applied
 function buildInitialState(): AppState {
   const baseState: AppState = {
@@ -547,11 +575,67 @@ function appReducer(state: AppState, action: AppAction): AppState {
           ? state.fieldOrder
           : [...state.fieldOrder, qualifiedField];
 
+        // Auto-create metric if this is the first field and no metric source exists
+        const isFirstField = state.selectedFields.length === 0;
+        const hasNoMetricSource = !state.metricFormula.blocks[0]?.source;
+        const shouldAutoCreateMetric = isFirstField && hasNoMetricSource;
+
+        let updatedMetric = state.metric;
+        let updatedMetricFormula = state.metricFormula;
+
+        if (shouldAutoCreateMetric) {
+          // Get field type from schema
+          const { default: schema } = require('@/data/schema');
+          const schemaObj = schema.objects.find((o: any) => o.name === object);
+          const schemaField = schemaObj?.fields.find((f: any) => f.name === field);
+          const fieldType = schemaField?.type || 'string';
+
+          // Determine metric configuration based on field type
+          const { op, type, unit } = getAutoMetricConfig(fieldType);
+
+          // Get object label for block name
+          const objectLabel = getObjectLabel(object);
+
+          // For boolean fields with rate, add a filter for true values
+          const blockFilters: any[] = [];
+          if (fieldType === 'boolean' && unit === 'rate') {
+            blockFilters.push({
+              field: { object, field },
+              operator: 'is_true',
+            });
+          }
+
+          // Update metric
+          updatedMetric = {
+            ...state.metric,
+            source: { object, field },
+            op,
+            type,
+          };
+
+          // Update metric formula with the new block
+          updatedMetricFormula = {
+            ...state.metricFormula,
+            blocks: [{
+              id: 'block_1',
+              name: objectLabel, // Use object label instead of "Block 1"
+              source: { object, field },
+              op,
+              type,
+              filters: blockFilters,
+              unitType: unit, // Set unit type for booleans (rate)
+            }],
+          };
+        }
+
         return {
           ...state,
           selectedObjects,
           selectedFields: [...state.selectedFields, { object, field }],
           fieldOrder: newFieldOrder,
+          metric: updatedMetric,
+          metricFormula: updatedMetricFormula,
+          hasUserMadeChanges: state.report === 'blank' ? true : state.hasUserMadeChanges,
         };
       }
     }

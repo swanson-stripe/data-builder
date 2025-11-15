@@ -52,6 +52,9 @@ export function DataList() {
   const columnDropdownRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(0);
   const rowsPerPage = 20;
@@ -264,14 +267,34 @@ export function DataList() {
     return filtered;
   }, [dateFilteredRows, state.filters, state.metricFormula.blocks, state.selectedBucket]);
 
-  // Sort rows based on current sort state using sortRowsByField
-  const sortedRows = useMemo(() => {
-    if (!sortState.column || !sortState.direction) {
+  // Filter rows based on search query (search across all fields in the row)
+  const searchFilteredRows = useMemo(() => {
+    if (!searchQuery.trim()) {
       return fieldFilteredRows;
     }
 
-    return sortRowsByField(fieldFilteredRows, sortState.column, sortState.direction);
-  }, [fieldFilteredRows, sortState]);
+    const query = searchQuery.toLowerCase().trim();
+    
+    return fieldFilteredRows.filter((row) => {
+      // Search across all display values in the row
+      return Object.values(row.display).some((value) => {
+        if (value == null) return false;
+        
+        // Convert value to string and search
+        const stringValue = String(value).toLowerCase();
+        return stringValue.includes(query);
+      });
+    });
+  }, [fieldFilteredRows, searchQuery]);
+
+  // Sort rows based on current sort state using sortRowsByField
+  const sortedRows = useMemo(() => {
+    if (!sortState.column || !sortState.direction) {
+      return searchFilteredRows;
+    }
+
+    return sortRowsByField(searchFilteredRows, sortState.column, sortState.direction);
+  }, [searchFilteredRows, sortState]);
 
   // Paginated rows (moved before early returns to fix hook order)
   const paginatedRows = useMemo(() => {
@@ -282,10 +305,10 @@ export function DataList() {
 
   const totalPages = Math.ceil(sortedRows.length / rowsPerPage);
 
-  // Reset to first page when sorting or filtering changes (moved before early returns to fix hook order)
+  // Reset to first page when sorting, filtering, or search changes (moved before early returns to fix hook order)
   useEffect(() => {
     setCurrentPage(0);
-  }, [sortState.column, sortState.direction, state.filters, state.selectedBucket]);
+  }, [sortState.column, sortState.direction, state.filters, state.selectedBucket, searchQuery]);
   
   // Track DataList loading based on data readiness
   useEffect(() => {
@@ -992,29 +1015,11 @@ export function DataList() {
   }, [state.selectedGrid, dispatch]);
 
   // Empty state
-  if (state.selectedObjects.length === 0) {
+  if (state.selectedFields.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <div className="text-gray-400 dark:text-gray-500 text-4xl mb-3">📊</div>
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-          No Data Selected
-        </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs">
-          Select objects and fields from the Data tab to see sample data here.
-        </p>
-      </div>
-    );
-  }
-
-  if (columns.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <div className="text-gray-400 dark:text-gray-500 text-4xl mb-3">📋</div>
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-          No Fields Selected
-        </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs">
-          Expand objects in the Data tab and select specific fields to display.
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Select a field to begin building your report
         </p>
       </div>
     );
@@ -1062,7 +1067,7 @@ export function DataList() {
         </h2>
 
         {/* Filter Chips */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center mb-3" style={{ gap: '12px' }}>
           {/* All chip - selected when no bucket filter */}
           <button
             className="inline-flex items-center transition-colors"
@@ -1219,12 +1224,14 @@ export function DataList() {
           <input
             type="text"
             placeholder="Filter table using natural language"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 text-sm focus:outline-none"
             style={{ 
               fontSize: '14px', 
               borderRadius: '50px',
               paddingLeft: '16px',
-              paddingRight: '16px',
+              paddingRight: searchQuery ? '40px' : '16px',
               paddingTop: '4px',
               paddingBottom: '4px',
               height: '40px',
@@ -1241,6 +1248,26 @@ export function DataList() {
               e.target.style.outline = 'none';
             }}
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded focus:outline-none"
+              title="Clear search"
+              aria-label="Clear search"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 

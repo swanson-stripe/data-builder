@@ -113,7 +113,15 @@ function PageContent() {
 
       {/* Header always visible */}
       <header className="flex items-center justify-between relative" style={{ height: '56px', backgroundColor: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', paddingLeft: '20px', paddingRight: '20px' }} role="banner">
-        <button className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '6px', width: '30px', height: '30px' }} aria-label="Close report builder">
+        <button 
+          onClick={() => {
+            dispatch(actions.resetAll());
+            dispatch({ type: 'HIDE_TEMPLATE_SELECTOR' });
+          }}
+          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center" 
+          style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '6px', width: '30px', height: '30px' }} 
+          aria-label="Reset report builder"
+        >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
             <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -125,7 +133,7 @@ function PageContent() {
               ref={saveButtonRef}
               onClick={() => setShowSavePopover(!showSavePopover)}
               className="flex items-center gap-2 text-sm font-semibold px-2 py-1 border transition-colors"
-              style={{ backgroundColor: 'var(--button-primary-bg)', borderColor: 'var(--button-primary-border)', color: 'var(--button-primary-text)', borderRadius: '6px' }}
+              style={{ backgroundColor: 'var(--button-primary-bg)', borderColor: 'var(--button-primary-border)', color: 'var(--button-primary-text)', borderRadius: '6px', cursor: 'pointer' }}
               aria-label={`${buttonText} report`}
             >
               {buttonText}
@@ -163,7 +171,7 @@ function PageContent() {
         >
           <SidebarTabs />
 
-          <div className="flex-1 overflow-auto custom-scrollbar" style={{ padding: '0 8px 0 20px' }}>
+          <div className="flex-1 overflow-auto custom-scrollbar" style={{ padding: '0 20px 0 20px' }}>
             {state.activeTab === 'data' && <DataTab />}
             {state.activeTab === 'chart' && <ChartTab />}
             {state.activeTab === 'metric' && <MetricTab />}
@@ -188,15 +196,20 @@ function PageContent() {
         </aside>
 
         <section className="flex-1 py-6 overflow-y-auto custom-scrollbar" style={{ paddingRight: '32px', backgroundColor: 'var(--bg-primary)' }} role="region" aria-label="Report visualizations">
-          {/* Chart Panel - now includes integrated summary table when comparison is enabled */}
-          <div className="flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }} role="region" aria-label="Time series chart">
-            <ChartPanel />
-          </div>
+          {/* Only show chart and metric sections when fields are selected */}
+          {state.selectedFields.length > 0 && (
+            <>
+              {/* Chart Panel - now includes integrated summary table when comparison is enabled */}
+              <div className="flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }} role="region" aria-label="Time series chart">
+                <ChartPanel />
+              </div>
 
-          {/* Value Table - now integrated into ChartPanel, kept here for future use if needed */}
+              {/* Value Table - now integrated into ChartPanel, kept here for future use if needed */}
+            </>
+          )}
 
-          {/* Data List */}
-          <div style={{ marginTop: '40px', backgroundColor: 'var(--bg-primary)' }} role="region" aria-label="Data preview">
+          {/* Data List - always visible */}
+          <div style={{ marginTop: state.selectedFields.length > 0 ? '40px' : '0', backgroundColor: 'var(--bg-primary)' }} role="region" aria-label="Data preview">
             <DataList />
           </div>
         </section>

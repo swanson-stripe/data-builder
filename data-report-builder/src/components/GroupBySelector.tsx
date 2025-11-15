@@ -79,6 +79,16 @@ export default function GroupBySelector({
     onApply(Array.from(selected));
   };
 
+  const headerLabel = useMemo(() => {
+    if (selected.size === 0) return chipLabel;
+    const values = Array.from(selected).map(formatValueLabel);
+    if (values.length === 1) return values[0];
+    if (values.length === 2) return `${values[0]} and ${values[1]}`;
+    if (values.length === 3) return `${values[0]}, ${values[1]}, and ${values[2]}`;
+    const remaining = values.length - 3;
+    return `${values[0]}, ${values[1]}, ${values[2]}, and ${remaining} more`;
+  }, [selected, chipLabel]);
+
   const isAllSelected = filteredValues.length > 0 && filteredValues.every(v => selected.has(v));
   const atMaxLimit = selected.size >= maxSelections;
 
@@ -94,7 +104,7 @@ export default function GroupBySelector({
           <path fillRule="evenodd" clipRule="evenodd" d="M3 6.00073C3 5.6383 3.29381 5.34448 3.65625 5.34448H10.9688C11.3312 5.34448 11.625 5.6383 11.625 6.00073C11.625 6.36317 11.3312 6.65698 10.9688 6.65698H3.65625C3.29381 6.65698 3 6.36317 3 6.00073Z" fill="currentColor"/>
           <path fillRule="evenodd" clipRule="evenodd" d="M3 9.84375C3 9.48131 3.29381 9.1875 3.65625 9.1875H10.9688C11.3312 9.1875 11.625 9.48131 11.625 9.84375C11.625 10.2062 11.3312 10.5 10.9688 10.5H3.65625C3.29381 10.5 3 10.2062 3 9.84375Z" fill="currentColor"/>
         </svg>
-        <span className="chip-label-text">{chipLabel}</span>
+        <span className="chip-label-text">{headerLabel}</span>
       </div>
       
       {/* Filter/Group toggle (non-functional for now) */}
@@ -120,35 +130,37 @@ export default function GroupBySelector({
       
       {/* Search input */}
       <div className="search-container">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          className="search-icon"
-        >
-          <path
-            d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        <div className="search-field">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            className="search-icon"
+          >
+            <path
+              d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M10.5 10.5L14 14"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="search-input"
           />
-          <path
-            d="M10.5 10.5L14 14"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        <input
-          type="text"
-          placeholder="Search..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="search-input"
-        />
+        </div>
       </div>
 
       {/* Value list with selection header inside */}
@@ -261,29 +273,35 @@ export default function GroupBySelector({
         }
 
         .search-container {
-          position: relative;
           padding: 0 16px;
           border-bottom: 1px solid var(--border-default);
         }
 
+        .search-field {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          border: none;
+          border-radius: 10px;
+          padding: 10px 0;
+          background-color: transparent;
+        }
+
         .search-icon {
-          position: absolute;
-          left: 28px;
-          top: 50%;
-          transform: translateY(-50%);
           color: var(--text-muted);
-          pointer-events: none;
-          z-index: 1;
+          flex-shrink: 0;
+          width: 16px;
+          height: 16px;
         }
 
         .search-input {
-          width: 100%;
-          padding: 12px 12px 12px 36px;
+          flex: 1;
           border: none;
           background: transparent;
           color: var(--text-primary);
           font-size: 14px;
           outline: none;
+          padding: 0;
         }
 
         .search-input::placeholder {

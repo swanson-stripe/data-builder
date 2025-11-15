@@ -101,6 +101,12 @@ export function MetricTab() {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   };
+
+  const getFieldDisplayLabel = (label: string) => {
+    if (!label) return '';
+    const parts = label.split('.');
+    return parts[parts.length - 1];
+  };
   
   // Format group by label showing actual values
   const groupByLabel = useMemo(() => {
@@ -331,6 +337,7 @@ export function MetricTab() {
         )}
       </div>
 
+      <div>
           {activeFormula.blocks.map((block) => {
             const blockResult = blockResults.find((r) => r.blockId === block.id);
             return (
@@ -352,51 +359,36 @@ export function MetricTab() {
             onClick={handleAddBlock}
             className="w-auto transition-colors"
             style={{
-              backgroundColor: 'var(--bg-primary)',
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--border-default)',
-              borderRadius: '8px',
+              backgroundColor: 'var(--bg-surface)',
+              color: 'var(--text-muted)',
+              border: 'none',
+              borderRadius: '50px',
               padding: '6px 12px',
               fontSize: '14px',
-              fontWeight: 300,
+              fontWeight: 400,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              marginTop: '8px',
+              gap: '8px',
+              marginTop: '20px',
+              height: '32px',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+              e.currentTarget.style.backgroundColor = 'var(--bg-active)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+              e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1V13M1 7H13" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" />
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="currentColor"/>
+              <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="currentColor"/>
             </svg>
             Add block
           </button>
-      </div>
-
-        {/* Formula Builder - only shown when 2+ blocks */}
-        {activeFormula.blocks.length >= 2 && (
-          <FormulaBuilder
-            blocks={activeFormula.blocks}
-            calculation={activeFormula.calculation}
-            onCalculationChange={handleCalculationChange}
-            finalValue={result.value}
-            blockResults={blockResults}
-            resultUnitType={result.unitType}
-          />
-        )}
-
-        {/* Group By Section */}
-      <div>
-          <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--text-primary)' }}>
-            Group by
-        </label>
-          <div className="relative inline-flex items-center gap-2">
+          
+          {/* Group By Button - directly below Add block */}
+          <div className="relative inline-flex items-center" style={{ marginTop: '8px' }}>
             <button
               ref={groupByButtonRef}
               onClick={() => {
@@ -418,6 +410,12 @@ export function MetricTab() {
                 height: '32px',
                 whiteSpace: 'nowrap',
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-active)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+              }}
             >
               {state.groupBy ? (
                 // Icon when grouping is applied
@@ -430,12 +428,13 @@ export function MetricTab() {
                   <path fillRule="evenodd" clipRule="evenodd" d="M3 9.84375C3 9.48131 3.29381 9.1875 3.65625 9.1875H10.9688C11.3312 9.1875 11.625 9.48131 11.625 9.84375C11.625 10.2062 11.3312 10.5 10.9688 10.5H3.65625C3.29381 10.5 3 10.2062 3 9.84375Z" fill="currentColor"/>
                 </svg>
               ) : (
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="currentColor"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="currentColor"/>
                 </svg>
               )}
               <span>
-                {groupByLabel}
+                {state.groupBy ? groupByLabel : 'Group by'}
               </span>
               {state.groupBy && (
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -461,23 +460,77 @@ export function MetricTab() {
                   flexDirection: 'column',
                 }}
               >
+                {/* Toggle */}
+                <div style={{ padding: '12px', display: 'flex', gap: '8px' }}>
+                  <button
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: 'var(--text-muted)',
+                      backgroundColor: 'var(--bg-surface)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M2 4.5H14M4.5 8H11.5M6.5 11.5H9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    <span>Filter</span>
+                  </button>
+                  <button
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: 'var(--text-primary)',
+                      backgroundColor: 'var(--bg-elevated)',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M1.3125 3.1875C1.82812 3.1875 2.25 2.76562 2.25 2.25C2.25 1.73438 1.82812 1.3125 1.3125 1.3125C0.796875 1.3125 0.375 1.73438 0.375 2.25C0.375 2.775 0.796875 3.1875 1.3125 3.1875Z" fill="currentColor"/>
+                      <path d="M1.3125 6.9375C1.82812 6.9375 2.25 6.51562 2.25 6C2.25 5.48438 1.82812 5.0625 1.3125 5.0625C0.796875 5.0625 0.375 5.48438 0.375 6C0.375 6.525 0.796875 6.9375 1.3125 6.9375Z" fill="currentColor"/>
+                      <path d="M1.3125 10.6875C1.82812 10.6875 2.25 10.2656 2.25 9.75C2.25 9.23438 1.82812 8.8125 1.3125 8.8125C0.796875 8.8125 0.375 9.23438 0.375 9.75C0.375 10.275 0.796875 10.6875 1.3125 10.6875Z" fill="currentColor"/>
+                      <path fillRule="evenodd" clipRule="evenodd" d="M3 2.15625C3 1.79381 3.29381 1.5 3.65625 1.5H10.9688C11.3312 1.5 11.625 1.79381 11.625 2.15625C11.625 2.51869 11.3312 2.8125 10.9688 2.8125H3.65625C3.29381 2.8125 3 2.51869 3 2.15625Z" fill="currentColor"/>
+                      <path fillRule="evenodd" clipRule="evenodd" d="M3 6.00073C3 5.6383 3.29381 5.34448 3.65625 5.34448H10.9688C11.3312 5.34448 11.625 5.6383 11.625 6.00073C11.625 6.36317 11.3312 6.65698 10.9688 6.65698H3.65625C3.29381 6.65698 3 6.36317 3 6.00073Z" fill="currentColor"/>
+                      <path fillRule="evenodd" clipRule="evenodd" d="M3 9.84375C3 9.48131 3.29381 9.1875 3.65625 9.1875H10.9688C11.3312 9.1875 11.625 9.48131 11.625 9.84375C11.625 10.2062 11.3312 10.5 10.9688 10.5H3.65625C3.29381 10.5 3 10.2062 3 9.84375Z" fill="currentColor"/>
+                    </svg>
+                    <span>Group</span>
+                  </button>
+                </div>
+
                 {/* Search bar */}
-                <div style={{ padding: '12px', borderBottom: '1px solid var(--border-default)' }}>
-                  <div style={{ position: 'relative' }}>
+                <div style={{ padding: '0 12px', borderBottom: '1px solid var(--border-default)' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 0',
+                      backgroundColor: 'transparent',
+                    }}
+                  >
                     <svg
                       width="16"
                       height="16"
                       viewBox="0 0 16 16"
                       fill="none"
-                      style={{
-                        position: 'absolute',
-                        left: '24px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        color: 'var(--text-muted)',
-                        pointerEvents: 'none',
-                        zIndex: 1,
-                      }}
+                      style={{ color: 'var(--text-muted)' }}
                     >
                       <path
                         d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z"
@@ -496,18 +549,17 @@ export function MetricTab() {
                     </svg>
               <input
                       type="text"
-                      placeholder="Search fields..."
+                      placeholder="Search"
                       value={groupBySearchQuery}
                       onChange={(e) => setGroupBySearchQuery(e.target.value)}
                       style={{
-                        width: '100%',
-                        padding: '8px 12px 8px 36px',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: '8px',
-                        backgroundColor: 'var(--bg-surface)',
+                        flex: 1,
+                        border: 'none',
+                        backgroundColor: 'transparent',
                         color: 'var(--text-primary)',
                         fontSize: '14px',
                         outline: 'none',
+                        padding: 0,
                       }}
                     />
                   </div>
@@ -527,16 +579,15 @@ export function MetricTab() {
                           <div className="px-4 py-2 text-xs" style={{ color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Common
                           </div>
-                          {filteredGroupFields.common.map((field) => (
-                            <button
+                          {filteredGroupFields.common.map((field) => {
+                            const plainLabel = getFieldDisplayLabel(field.label);
+                            return (
+                              <button
                               key={`${field.object}.${field.field}`}
                               onClick={() => {
-                                // Set the field and get top 10 values, then open value selector
-                                const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
-                                
                                 dispatch(actions.setGroupBy({
                                   field: { object: field.object, field: field.field },
-                                  selectedValues: values,
+                                  selectedValues: [],
                                   autoAddedField: false,
                                 }));
                                 
@@ -555,14 +606,15 @@ export function MetricTab() {
                               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
                               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             >
-                              <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                                {field.label}
+                              <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>
+                                {plainLabel}
                               </span>
                               <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
                                 {field.object}.{field.field}
                               </span>
-                            </button>
-                          ))}
+                              </button>
+                            );
+                          })}
                         </>
                       )}
                       
@@ -572,16 +624,15 @@ export function MetricTab() {
                           <div className="px-4 py-2 text-xs" style={{ color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             {filteredGroupFields.common.length > 0 ? 'Other' : 'All Fields'}
                           </div>
-                          {filteredGroupFields.other.map((field) => (
-                            <button
+                          {filteredGroupFields.other.map((field) => {
+                            const plainLabel = getFieldDisplayLabel(field.label);
+                            return (
+                              <button
                               key={`${field.object}.${field.field}`}
                               onClick={() => {
-                                // Set the field and get top 10 values, then open value selector
-                                const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
-                                
                                 dispatch(actions.setGroupBy({
                                   field: { object: field.object, field: field.field },
-                                  selectedValues: values,
+                                  selectedValues: [],
                                   autoAddedField: false,
                                 }));
                                 
@@ -600,14 +651,15 @@ export function MetricTab() {
                               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
                               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             >
-                              <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                                {field.label}
+                              <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>
+                                {plainLabel}
                               </span>
                               <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
                                 {field.object}.{field.field}
                               </span>
-                            </button>
-                          ))}
+                              </button>
+                            );
+                          })}
                         </>
                       )}
                     </>
@@ -648,12 +700,24 @@ export function MetricTab() {
                     setIsGroupByValueSelectorOpen(false);
                   }}
                   maxSelections={10}
-                  chipLabel={groupByLabel}
                 />
               </div>
             )}
           </div>
+
+          {/* Formula Builder - only shown when 2+ blocks */}
+          {activeFormula.blocks.length >= 2 && (
+            <FormulaBuilder
+              blocks={activeFormula.blocks}
+              calculation={activeFormula.calculation}
+              onCalculationChange={handleCalculationChange}
+              finalValue={result.value}
+              blockResults={blockResults}
+              resultUnitType={result.unitType}
+            />
+          )}
         </div>
+      </div>
       </div>
     </div>
   );

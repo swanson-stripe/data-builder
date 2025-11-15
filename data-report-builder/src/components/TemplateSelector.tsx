@@ -9,6 +9,8 @@ export default function TemplateSelector() {
   const { dispatch } = useApp();
 
   const handleExploreOwn = () => {
+    // Reset to blank state and hide template selector
+    dispatch({ type: 'RESET_ALL' });
     dispatch({ type: 'HIDE_TEMPLATE_SELECTOR' });
     dispatch({ type: 'SET_USER_MADE_CHANGES', payload: false });
   };

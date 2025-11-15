@@ -16,7 +16,8 @@ import { buildDataListView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
 import { getAvailableGroupFields, getGroupValues } from '@/lib/grouping';
 import GroupBySelector from './GroupBySelector';
-import type { MetricResult } from '@/types';
+import { FieldFilter } from './FieldFilter';
+import type { MetricResult, FilterCondition, SchemaField } from '@/types';
 import {
   LineChart,
   Line,
@@ -680,8 +681,14 @@ export function ChartPanel() {
   const [isGroupByFieldSelectorOpen, setIsGroupByFieldSelectorOpen] = useState(false);
   const [isGroupByValueSelectorOpen, setIsGroupByValueSelectorOpen] = useState(false);
   const [groupBySearchQuery, setGroupBySearchQuery] = useState('');
-  const groupByButtonRef = useRef<HTMLButtonElement>(null);
+  const [filterSearchQuery, setFilterSearchQuery] = useState('');
+  const [groupPopoverMode, setGroupPopoverMode] = useState<'filter' | 'group'>('filter');
+  const [activeFilterField, setActiveFilterField] = useState<string | null>(null);
+  const [activeChipLabel, setActiveChipLabel] = useState<string>('');
+  const groupByButtonRef = useRef<HTMLDivElement>(null);
   const groupByPopoverRef = useRef<HTMLDivElement>(null);
+  const activeChipRef = useRef<HTMLButtonElement | null>(null);
+  const prevGroupPopoverState = useRef<{ open: boolean; mode: 'filter' | 'group' }>({ open: false, mode: 'filter' });
 
   // Handle popover open/close with animation
   useEffect(() => {
@@ -886,8 +893,69 @@ export function ChartPanel() {
     return getGroupValues(warehouse, state.groupBy.field, 100);
   }, [state.groupBy?.field, version]);
   
+  const enabledFields = useMemo(() => {
+    const orderMap = new Map<string, number>();
+    state.fieldOrder.forEach((key, index) => orderMap.set(key, index));
+    return state.selectedFields
+      .map((ref) => {
+        const schemaObject = schema.objects.find((obj) => obj.name === ref.object);
+        const schemaField = schemaObject?.fields.find((fld) => fld.name === ref.field);
+        if (!schemaField) return null;
+        return {
+          key: `${ref.object}.${ref.field}`,
+          ref,
+          schemaField,
+          objectLabel: schemaObject?.label ?? ref.object,
+          fieldLabel: schemaField.label ?? ref.field,
+          order: orderMap.get(`${ref.object}.${ref.field}`) ?? Number.MAX_SAFE_INTEGER,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => (a!.order ?? 0) - (b!.order ?? 0)) as Array<{
+        key: string;
+        ref: { object: string; field: string };
+        schemaField: SchemaField;
+        objectLabel: string;
+        fieldLabel: string;
+      }>;
+  }, [state.selectedFields, state.fieldOrder]);
+
+  const filtersByField = useMemo(() => {
+    const map = new Map<string, { condition: FilterCondition; index: number }>();
+    state.filters.conditions.forEach((condition, index) => {
+      const key = `${condition.field.object}.${condition.field.field}`;
+      if (!map.has(key)) {
+        map.set(key, { condition, index });
+      }
+    });
+    return map;
+  }, [state.filters.conditions]);
+
+  const distinctValueCache = useMemo(() => {
+    const cache = new Map<string, string[]>();
+    enabledFields.forEach((field) => {
+      const schemaField = field.schemaField;
+      if (schemaField.enum && schemaField.type === 'string') {
+        const dataArray = (warehouse as any)[field.ref.object];
+        if (Array.isArray(dataArray) && dataArray.length > 0) {
+          const distinctSet = new Set<string>();
+          dataArray.forEach((row: any) => {
+            const value = row[field.ref.field];
+            if (typeof value === 'string' && value.trim().length > 0) {
+              distinctSet.add(value);
+            }
+          });
+          if (distinctSet.size > 0) {
+            cache.set(field.key, Array.from(distinctSet).sort());
+          }
+        }
+      }
+    });
+    return cache;
+  }, [enabledFields, warehouse, version]);
+
   // Helper to format value to sentence case
-  const formatValueLabel = (value: string) => {
+  const formatValueLabel = useCallback((value: string) => {
     // Convert snake_case or camelCase to Title Case
     return value
       .replace(/_/g, ' ')
@@ -896,9 +964,118 @@ export function ChartPanel() {
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
+  }, []);
+
+  const formatFilterSummary = useCallback((schemaField?: SchemaField, condition?: FilterCondition) => {
+    if (!schemaField || !condition) return 'Add a filter';
+    const { operator, value } = condition;
+    if (
+      value === '' ||
+      value === null ||
+      value === undefined ||
+      (Array.isArray(value) && value.length === 0)
+    ) {
+      return 'Filter for blank';
+    }
+
+    if (schemaField.type === 'boolean') {
+      return value === true ? 'Filter for true' : 'Filter for false';
+    }
+
+    if (schemaField.type === 'date') {
+      if (operator === 'between' && Array.isArray(value)) {
+        return 'Filter between dates';
+      }
+      if (operator === 'less_than') return `Filter before ${value}`;
+      if (operator === 'greater_than') return `Filter after ${value}`;
+      return `Filter for ${value}`;
+    }
+
+    if (schemaField.type === 'number') {
+      if (operator === 'between' && Array.isArray(value)) {
+        const [min, max] = value as [number, number];
+        return `Filter between ${min} and ${max}`;
+      }
+      if (operator === 'greater_than') return `Filter > ${value}`;
+      if (operator === 'less_than') return `Filter < ${value}`;
+      if (operator === 'not_equals') return `Filter ≠ ${value}`;
+      return `Filter for ${value}`;
+    }
+
+    if (Array.isArray(value)) {
+      if (value.length === 1) {
+        return `Filter for ${value[0]}`;
+      }
+      const [first, second] = value;
+      if (value.length === 2) {
+        return `Filter for ${first} and ${second}`;
+      }
+      return `Filter for ${first}, ${second}, and ${value.length - 2} more`;
+    }
+
+    return `Filter for ${value}`;
+  }, []);
+
+  // Extract just the values from a filter condition for chip labels
+  const formatFilterChipLabel = useCallback((condition?: FilterCondition) => {
+    if (!condition) return 'Filter';
+    const { value } = condition;
+    
+    if (
+      value === '' ||
+      value === null ||
+      value === undefined ||
+      (Array.isArray(value) && value.length === 0)
+    ) {
+      return 'Blank';
+    }
+
+    if (typeof value === 'boolean') {
+      return value ? 'True' : 'False';
+    }
+
+    if (Array.isArray(value)) {
+      const formattedValues = value.map(v => formatValueLabel(String(v)));
+      if (formattedValues.length === 1) {
+        return formattedValues[0];
+      }
+      if (formattedValues.length === 2) {
+        return `${formattedValues[0]} and ${formattedValues[1]}`;
+      }
+      if (formattedValues.length === 3) {
+        return `${formattedValues[0]}, ${formattedValues[1]}, and ${formattedValues[2]}`;
+      }
+      const remaining = formattedValues.length - 3;
+      return `${formattedValues[0]}, ${formattedValues[1]}, and ${remaining} more`;
+    }
+
+    return formatValueLabel(String(value));
+  }, [formatValueLabel]);
+
+  type ControlChip = {
+    key: string;
+    type: 'filter' | 'group';
+    fieldKey?: string;
+    label: string;
+    description: string;
   };
-  
-  // Format group by label showing actual values
+
+  const filterChips = useMemo<ControlChip[]>(() => {
+    return state.filters.conditions.map((condition, index) => {
+      const schemaObject = schema.objects.find((obj) => obj.name === condition.field.object);
+      const schemaField = schemaObject?.fields.find((fld) => fld.name === condition.field.field);
+      const fieldKey = `${condition.field.object}.${condition.field.field}`;
+
+      return {
+        key: `filter:${fieldKey}:${index}`,
+        type: 'filter',
+        fieldKey,
+        label: formatFilterChipLabel(condition),
+        description: formatFilterSummary(schemaField, condition),
+      };
+    });
+  }, [state.filters.conditions, formatFilterSummary, formatFilterChipLabel]);
+
   const groupByLabel = useMemo(() => {
     if (!state.groupBy) return 'Group by';
     
@@ -912,11 +1089,455 @@ export function ChartPanel() {
     } else if (values.length === 3) {
       return `${values[0]}, ${values[1]}, and ${values[2]}`;
     } else {
-      // Show first 3 and count remaining
       const remaining = values.length - 3;
       return `${values[0]}, ${values[1]}, ${values[2]}, and ${remaining} more`;
     }
-  }, [state.groupBy?.selectedValues]);
+  }, [state.groupBy?.selectedValues, formatValueLabel]);
+
+  const groupChips = useMemo<ControlChip[]>(() => {
+    if (!state.groupBy) return [];
+    const schemaObject = schema.objects.find((obj) => obj.name === state.groupBy!.field.object);
+    const schemaField = schemaObject?.fields.find((fld) => fld.name === state.groupBy!.field.field);
+    const fieldKey = `${state.groupBy.field.object}.${state.groupBy.field.field}`;
+
+    return [
+      {
+        key: `group:${fieldKey}`,
+        type: 'group',
+        fieldKey,
+        label: groupByLabel,
+        description: `${schemaField?.label ?? formatValueLabel(state.groupBy.field.field)}: ${groupByLabel}`,
+      },
+    ];
+  }, [state.groupBy, groupByLabel, formatValueLabel]);
+
+  const controlChips = useMemo(() => [...filterChips, ...groupChips], [filterChips, groupChips]);
+
+  const handleFilterChange = useCallback(
+    (fieldRef: { object: string; field: string }, condition: FilterCondition | null) => {
+      const existingIndex = state.filters.conditions.findIndex(
+        (c) => c.field.object === fieldRef.object && c.field.field === fieldRef.field
+      );
+      if (condition) {
+        if (existingIndex >= 0) {
+          dispatch(actions.updateFilter(existingIndex, condition));
+        } else {
+          dispatch(actions.addFilter(condition));
+        }
+      } else if (existingIndex >= 0) {
+        dispatch(actions.removeFilter(existingIndex));
+      }
+    },
+    [dispatch, state.filters.conditions]
+  );
+
+  useEffect(() => {
+    const popoverJustOpened =
+      isGroupByFieldSelectorOpen && !prevGroupPopoverState.current.open;
+    const switchedToFilter =
+      groupPopoverMode === 'filter' && prevGroupPopoverState.current.mode !== 'filter';
+
+    if ((popoverJustOpened || switchedToFilter) && groupPopoverMode === 'filter') {
+      const fieldWithFilter = enabledFields.find((field) => filtersByField.has(field.key));
+      const fallbackField = enabledFields[0];
+      setActiveFilterField(fieldWithFilter?.key ?? fallbackField?.key ?? null);
+      setFilterSearchQuery('');
+    }
+
+    prevGroupPopoverState.current = {
+      open: isGroupByFieldSelectorOpen,
+      mode: groupPopoverMode,
+    };
+  }, [
+    isGroupByFieldSelectorOpen,
+    groupPopoverMode,
+    enabledFields,
+    filtersByField,
+  ]);
+
+  const renderFilterContent = () => {
+  const query = filterSearchQuery.trim().toLowerCase();
+  const filtered = query
+    ? enabledFields.filter((field) =>
+        field.fieldLabel.toLowerCase().includes(query) ||
+        field.objectLabel.toLowerCase().includes(query)
+      )
+    : enabledFields;
+
+  return (
+    <>
+      <div style={{ padding: '0 12px', borderBottom: '1px solid var(--border-default)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 0',
+            backgroundColor: 'transparent',
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <path
+              d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M10.5 10.5L14 14"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search"
+            value={filterSearchQuery}
+            onChange={(e) => setFilterSearchQuery(e.target.value)}
+            style={{
+              flex: 1,
+              border: 'none',
+              backgroundColor: 'transparent',
+              color: 'var(--text-primary)',
+              fontSize: '14px',
+              outline: 'none',
+              padding: 0,
+            }}
+          />
+        </div>
+      </div>
+      <div style={{ maxHeight: '260px', overflowY: 'auto', padding: '8px 12px' }}>
+        {filtered.length === 0 ? (
+          <div className="text-sm" style={{ color: 'var(--text-muted)', padding: '8px 0' }}>
+            No matching fields
+          </div>
+        ) : (
+          filtered.map((field) => {
+            const entry = filtersByField.get(field.key);
+            const summary = formatFilterSummary(field.schemaField, entry?.condition);
+            return (
+              <button
+                key={field.key}
+                type="button"
+                onClick={() => {
+                  setActiveFilterField(field.key);
+                  setGroupPopoverMode('filter');
+                  setIsGroupByFieldSelectorOpen(false);
+                  setIsGroupByValueSelectorOpen(true);
+                }}
+                className="w-full text-left transition-colors"
+                style={{
+                  backgroundColor:
+                    activeFilterField === field.key ? 'var(--bg-surface)' : 'transparent',
+                  borderRadius: '12px',
+                  padding: '10px 8px',
+                  marginBottom: '4px',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {field.fieldLabel}
+                </div>
+                <div
+                  style={{
+                    fontSize: '12px',
+                    color: entry ? 'var(--text-primary)' : 'var(--text-muted)',
+                  }}
+                >
+                  {summary}
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </>
+  );
+};
+
+
+  const renderFilterDetail = () => {
+    const fieldInfo = activeFilterField
+      ? enabledFields.find((field) => field.key === activeFilterField)
+      : enabledFields[0];
+
+    if (!fieldInfo) {
+      return (
+        <div style={{ padding: '16px', minWidth: '320px' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+            Select a field to filter.
+          </p>
+        </div>
+      );
+    }
+
+    const activeEntry = filtersByField.get(fieldInfo.key);
+
+    return (
+      <div
+        style={{
+          minWidth: '320px',
+          maxHeight: '360px',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '4px 16px',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: 'var(--text-primary)', flexShrink: 0 }}>
+            <path d="M1.5 3H10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <path d="M3 6H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <path d="M4.5 9H7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>
+            {activeChipLabel}
+          </span>
+        </div>
+        <div style={{ padding: '12px' }}>
+          <FieldFilter
+            field={fieldInfo.schemaField}
+            objectName={fieldInfo.ref.object}
+            currentFilter={activeEntry?.condition}
+            onFilterChange={(condition) => {
+              handleFilterChange(fieldInfo.ref, condition);
+              setIsGroupByValueSelectorOpen(false);
+            }}
+            onCancel={() => {
+              setIsGroupByValueSelectorOpen(false);
+              setIsGroupByFieldSelectorOpen(true);
+            }}
+            distinctValues={distinctValueCache.get(fieldInfo.key)}
+          />
+        </div>
+      </div>
+    );
+  };
+
+
+  const renderGroupFieldContent = () => (
+    <>
+      {/* Search bar */}
+      <div style={{ padding: '0 12px', borderBottom: '1px solid var(--border-default)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 0',
+            backgroundColor: 'transparent',
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <path
+              d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M10.5 10.5L14 14"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search"
+            value={groupBySearchQuery}
+            onChange={(e) => setGroupBySearchQuery(e.target.value)}
+            style={{
+              flex: 1,
+              border: 'none',
+              backgroundColor: 'transparent',
+              color: 'var(--text-primary)',
+              fontSize: '14px',
+              outline: 'none',
+              padding: 0,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Scrollable field list */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+        {filteredGroupFields.all.length === 0 ? (
+          <div className="px-4 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+            No matching fields
+          </div>
+        ) : (
+          <>
+            {/* Common section */}
+            {filteredGroupFields.common.length > 0 && (
+              <>
+                <div
+                  className="px-4 py-2 text-xs"
+                  style={{
+                    color: 'var(--text-muted)',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  Common
+                </div>
+                {filteredGroupFields.common.map((field) => {
+                  const plainLabel = getFieldDisplayLabel(field.label);
+                  return (
+                    <button
+                      key={`${field.object}.${field.field}`}
+                      onClick={() => {
+                        dispatch(
+                          actions.setGroupBy({
+                            field: { object: field.object, field: field.field },
+                            selectedValues: [],
+                            autoAddedField: false,
+                          })
+                        );
+                        setIsGroupByFieldSelectorOpen(false);
+                        setGroupBySearchQuery('');
+                        setTimeout(() => setIsGroupByValueSelectorOpen(true), 100);
+                      }}
+                      className="w-full text-left transition-colors flex flex-col gap-1"
+                      style={{
+                        paddingLeft: '16px',
+                        paddingRight: '16px',
+                        paddingTop: '8px',
+                        paddingBottom: '8px',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>
+                        {plainLabel}
+                      </span>
+                      <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
+                        {field.object}.{field.field}
+                      </span>
+                    </button>
+                  );
+                })}
+              </>
+            )}
+
+            {/* Other section */}
+            {filteredGroupFields.other.length > 0 && (
+              <>
+                <div
+                  className="px-4 py-2 text-xs"
+                  style={{
+                    color: 'var(--text-muted)',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  {filteredGroupFields.common.length > 0 ? 'Other' : 'All Fields'}
+                </div>
+                {filteredGroupFields.other.map((field) => {
+                  const plainLabel = getFieldDisplayLabel(field.label);
+                  return (
+                    <button
+                      key={`${field.object}.${field.field}`}
+                      onClick={() => {
+                        dispatch(
+                          actions.setGroupBy({
+                            field: { object: field.object, field: field.field },
+                            selectedValues: [],
+                            autoAddedField: false,
+                          })
+                        );
+                        setIsGroupByFieldSelectorOpen(false);
+                        setGroupBySearchQuery('');
+                        setTimeout(() => setIsGroupByValueSelectorOpen(true), 100);
+                      }}
+                      className="w-full text-left transition-colors flex flex-col gap-1"
+                      style={{
+                        paddingLeft: '16px',
+                        paddingRight: '16px',
+                        paddingTop: '8px',
+                        paddingBottom: '8px',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>
+                        {plainLabel}
+                      </span>
+                      <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
+                        {field.object}.{field.field}
+                      </span>
+                    </button>
+                  );
+                })}
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  );
+
+  const getFieldDisplayLabel = (label: string) => {
+    if (!label) return '';
+    const parts = label.split('.');
+    return parts[parts.length - 1];
+  };
+
+  // Position popovers relative to active chip or container
+  useEffect(() => {
+    if ((isGroupByFieldSelectorOpen || isGroupByValueSelectorOpen) && groupByPopoverRef.current) {
+      const popover = groupByPopoverRef.current;
+      const container = groupByButtonRef.current;
+      const activeChip = activeChipRef.current;
+      
+      if (activeChip && isGroupByValueSelectorOpen) {
+        // Position relative to the clicked chip - overlap with chip
+        const chipRect = activeChip.getBoundingClientRect();
+        const containerRect = container?.getBoundingClientRect();
+        
+        if (containerRect) {
+          const leftOffset = chipRect.left - containerRect.left;
+          popover.style.left = `${leftOffset}px`;
+          popover.style.top = '0px'; // Overlap with the chip
+        }
+      } else if (container) {
+        // Position relative to the plus button (for field selector)
+        popover.style.left = '0px';
+        popover.style.top = '40px';
+      }
+    }
+  }, [isGroupByFieldSelectorOpen, isGroupByValueSelectorOpen, activeFilterField, groupPopoverMode]);
 
   // Handle click outside to close group by popovers
   useEffect(() => {
@@ -946,7 +1567,7 @@ export function ChartPanel() {
       <MetricHeader />
 
       {/* Controls */}
-      <div className="flex items-center gap-1 mt-10">
+      <div className="flex items-center mt-10" style={{ gap: '12px' }}>
         {/* Date Range Control */}
         <div className="relative inline-flex items-center">
           <div className="flex items-center gap-1 px-1" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '50px', height: '32px' }}>
@@ -1481,6 +2102,12 @@ export function ChartPanel() {
               whiteSpace: 'nowrap',
               gap: isComparisonSelected ? '4px' : '8px',
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--bg-active)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+            }}
           >
             {!isComparisonSelected && (
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1551,9 +2178,101 @@ export function ChartPanel() {
           )}
         </div>
 
-        {/* Plus button - only show when comparison is selected */}
-        {isComparisonSelected && (
+        {/* Group By Control */}
+        <div
+          ref={groupByButtonRef}
+          className="relative inline-flex items-center flex-wrap gap-2"
+          style={{ minHeight: '32px' }}
+        >
+          {controlChips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              ref={(el) => {
+                if (
+                  (chip.type === 'filter' && chip.fieldKey === activeFilterField && isGroupByValueSelectorOpen && groupPopoverMode === 'filter') ||
+                  (chip.type === 'group' && isGroupByValueSelectorOpen && groupPopoverMode === 'group')
+                ) {
+                  activeChipRef.current = el;
+                }
+              }}
+              onClick={(e) => {
+                activeChipRef.current = e.currentTarget;
+                if (chip.type === 'filter' && chip.fieldKey) {
+                  setGroupPopoverMode('filter');
+                  setFilterSearchQuery('');
+                  setActiveFilterField(chip.fieldKey);
+                  setActiveChipLabel(chip.label);
+                  setIsGroupByFieldSelectorOpen(false);
+                  setIsGroupByValueSelectorOpen(true);
+                } else if (chip.type === 'group') {
+                  setGroupPopoverMode('group');
+                  setFilterSearchQuery('');
+                  setActiveChipLabel(chip.label);
+                  setIsGroupByFieldSelectorOpen(false);
+                  setIsGroupByValueSelectorOpen(true);
+                }
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-active)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+              }}
+              className="text-sm border-none focus:outline-none cursor-pointer flex items-center justify-center transition-colors gap-2"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                color: 'var(--text-primary)',
+                fontWeight: 400,
+                borderRadius: '50px',
+                padding: '6px 12px',
+                height: '32px',
+                whiteSpace: 'nowrap',
+              }}
+              title={chip.description}
+            >
+              {chip.type === 'group' ? (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1.3125 3.1875C1.82812 3.1875 2.25 2.76562 2.25 2.25C2.25 1.73438 1.82812 1.3125 1.3125 1.3125C0.796875 1.3125 0.375 1.73438 0.375 2.25C0.375 2.775 0.796875 3.1875 1.3125 3.1875Z" fill="currentColor"/>
+                  <path d="M1.3125 6.9375C1.82812 6.9375 2.25 6.51562 2.25 6C2.25 5.48438 1.82812 5.0625 1.3125 5.0625C0.796875 5.0625 0.375 5.48438 0.375 6C0.375 6.525 0.796875 6.9375 1.3125 6.9375Z" fill="currentColor"/>
+                  <path d="M1.3125 10.6875C1.82812 10.6875 2.25 10.2656 2.25 9.75C2.25 9.23438 1.82812 8.8125 1.3125 8.8125C0.796875 8.8125 0.375 9.23438 0.375 9.75C0.375 10.275 0.796875 10.6875 1.3125 10.6875Z" fill="currentColor"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M3 2.15625C3 1.79381 3.29381 1.5 3.65625 1.5H10.9688C11.3312 1.5 11.625 1.79381 11.625 2.15625C11.625 2.51869 11.3312 2.8125 10.9688 2.8125H3.65625C3.29381 2.8125 3 2.51869 3 2.15625Z" fill="currentColor"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M3 6.00073C3 5.6383 3.29381 5.34448 3.65625 5.34448H10.9688C11.3312 5.34448 11.625 5.6383 11.625 6.00073C11.625 6.36317 11.3312 6.65698 10.9688 6.65698H3.65625C3.29381 6.65698 3 6.36317 3 6.00073Z" fill="currentColor"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M3 9.84375C3 9.48131 3.29381 9.1875 3.65625 9.1875H10.9688C11.3312 9.1875 11.625 9.48131 11.625 9.84375C11.625 10.2062 11.3312 10.5 10.9688 10.5H3.65625C3.29381 10.5 3 10.2062 3 9.84375Z" fill="currentColor"/>
+                </svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1.5 3H10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <path d="M3 6H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <path d="M4.5 9H7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              )}
+              <span>
+                {chip.label}
+              </span>
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 3L4 5L6 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          ))}
+
           <button
+            onClick={(e) => {
+              activeChipRef.current = e.currentTarget;
+              setGroupPopoverMode('filter');
+              setFilterSearchQuery('');
+              if (!activeFilterField && enabledFields[0]) {
+                setActiveFilterField(enabledFields[0].key);
+              }
+              setIsGroupByFieldSelectorOpen(true);
+              setIsGroupByValueSelectorOpen(false);
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--bg-active)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+            }}
             className="flex items-center justify-center transition-colors"
             style={{
               backgroundColor: 'var(--bg-surface)',
@@ -1561,66 +2280,15 @@ export function ChartPanel() {
               color: 'var(--text-muted)',
               width: '32px',
               height: '32px',
+              cursor: 'pointer',
             }}
-            aria-label="Add comparison"
+            aria-label="Add group or filter"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="currentColor"/>
+              <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="currentColor"/>
             </svg>
           </button>
-        )}
-
-        {/* Group By Control */}
-        <div className="relative inline-flex items-center">
-            <button
-              ref={groupByButtonRef}
-              onClick={() => {
-                if (!state.groupBy) {
-                  // Open field selector
-                  setIsGroupByFieldSelectorOpen(true);
-                } else {
-                  // Open value selector
-                  setIsGroupByValueSelectorOpen(true);
-                }
-              }}
-              className="text-sm border-none focus:outline-none cursor-pointer flex items-center justify-center transition-colors gap-2"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                color: state.groupBy ? 'var(--text-primary)' : 'var(--text-muted)',
-                fontWeight: 400,
-                borderRadius: '50px',
-                padding: state.groupBy ? '6px 12px' : '0',
-                height: '32px',
-                width: state.groupBy ? 'auto' : '32px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {state.groupBy ? (
-                <>
-                  {/* Icon when grouping is applied */}
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1.3125 3.1875C1.82812 3.1875 2.25 2.76562 2.25 2.25C2.25 1.73438 1.82812 1.3125 1.3125 1.3125C0.796875 1.3125 0.375 1.73438 0.375 2.25C0.375 2.775 0.796875 3.1875 1.3125 3.1875Z" fill="currentColor"/>
-                    <path d="M1.3125 6.9375C1.82812 6.9375 2.25 6.51562 2.25 6C2.25 5.48438 1.82812 5.0625 1.3125 5.0625C0.796875 5.0625 0.375 5.48438 0.375 6C0.375 6.525 0.796875 6.9375 1.3125 6.9375Z" fill="currentColor"/>
-                    <path d="M1.3125 10.6875C1.82812 10.6875 2.25 10.2656 2.25 9.75C2.25 9.23438 1.82812 8.8125 1.3125 8.8125C0.796875 8.8125 0.375 9.23438 0.375 9.75C0.375 10.275 0.796875 10.6875 1.3125 10.6875Z" fill="currentColor"/>
-                    <path fillRule="evenodd" clipRule="evenodd" d="M3 2.15625C3 1.79381 3.29381 1.5 3.65625 1.5H10.9688C11.3312 1.5 11.625 1.79381 11.625 2.15625C11.625 2.51869 11.3312 2.8125 10.9688 2.8125H3.65625C3.29381 2.8125 3 2.51869 3 2.15625Z" fill="currentColor"/>
-                    <path fillRule="evenodd" clipRule="evenodd" d="M3 6.00073C3 5.6383 3.29381 5.34448 3.65625 5.34448H10.9688C11.3312 5.34448 11.625 5.6383 11.625 6.00073C11.625 6.36317 11.3312 6.65698 10.9688 6.65698H3.65625C3.29381 6.65698 3 6.36317 3 6.00073Z" fill="currentColor"/>
-                    <path fillRule="evenodd" clipRule="evenodd" d="M3 9.84375C3 9.48131 3.29381 9.1875 3.65625 9.1875H10.9688C11.3312 9.1875 11.625 9.48131 11.625 9.84375C11.625 10.2062 11.3312 10.5 10.9688 10.5H3.65625C3.29381 10.5 3 10.2062 3 9.84375Z" fill="currentColor"/>
-                  </svg>
-                  <span>
-                    {groupByLabel}
-                  </span>
-                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2 3L4 5L6 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </>
-              ) : (
-                // Just plus icon when no grouping
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="var(--text-muted)"/>
-                  <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="var(--text-muted)"/>
-                </svg>
-              )}
-            </button>
 
           {/* Field Selector Popover */}
           {isGroupByFieldSelectorOpen && (
@@ -1630,7 +2298,7 @@ export function ChartPanel() {
               style={{
                 top: 0,
                 left: 0,
-                minWidth: '240px',
+                minWidth: '320px',
                 maxHeight: '360px',
                 backgroundColor: 'var(--bg-elevated)',
                 borderRadius: '16px',
@@ -1639,170 +2307,102 @@ export function ChartPanel() {
                 flexDirection: 'column',
               }}
             >
-              {/* Search bar */}
-              <div style={{ padding: '12px', borderBottom: '1px solid var(--border-default)' }}>
-                <div style={{ position: 'relative' }}>
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    style={{
-                      position: 'absolute',
-                      left: '24px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'var(--text-muted)',
-                      pointerEvents: 'none',
-                      zIndex: 1,
-                    }}
-                  >
+              <div
+                style={{
+                  padding: '12px',
+                  display: 'flex',
+                  gap: '8px',
+                  borderBottom: '1px solid var(--border-default)',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGroupPopoverMode('filter');
+                    setIsGroupByValueSelectorOpen(false);
+                    setFilterSearchQuery('');
+                    if (!activeFilterField && enabledFields[0]) {
+                      setActiveFilterField(enabledFields[0].key);
+                    }
+                  }}
+                  className="flex-1 text-sm font-medium transition-colors"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    color: groupPopoverMode === 'filter' ? 'var(--text-primary)' : 'var(--text-muted)',
+                    backgroundColor:
+                      groupPopoverMode === 'filter' ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+                    boxShadow:
+                      groupPopoverMode === 'filter' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path
-                      d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z"
+                      d="M2 4.5H14M4.5 8H11.5M6.5 11.5H9.5"
                       stroke="currentColor"
                       strokeWidth="1.5"
                       strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M10.5 10.5L14 14"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
                     />
                   </svg>
-                  <input
-                    type="text"
-                    placeholder="Search fields..."
-                    value={groupBySearchQuery}
-                    onChange={(e) => setGroupBySearchQuery(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px 8px 36px',
-                      border: '1px solid var(--border-default)',
-                      borderRadius: '8px',
-                      backgroundColor: 'var(--bg-surface)',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
+                  <span>Filter</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGroupPopoverMode('group');
+                    setFilterSearchQuery('');
+                    setActiveFilterField(null);
+                    setIsGroupByValueSelectorOpen(false);
+                  }}
+                  className="flex-1 text-sm font-medium transition-colors"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    color: groupPopoverMode === 'group' ? 'var(--text-primary)' : 'var(--text-muted)',
+                    backgroundColor:
+                      groupPopoverMode === 'group' ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+                    boxShadow:
+                      groupPopoverMode === 'group' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M1.3125 3.1875C1.82812 3.1875 2.25 2.76562 2.25 2.25C2.25 1.73438 1.82812 1.3125 1.3125 1.3125C0.796875 1.3125 0.375 1.73438 0.375 2.25C0.375 2.775 0.796875 3.1875 1.3125 3.1875Z" fill="currentColor" />
+                    <path d="M1.3125 6.9375C1.82812 6.9375 2.25 6.51562 2.25 6C2.25 5.48438 1.82812 5.0625 1.3125 5.0625C0.796875 5.0625 0.375 5.48438 0.375 6C0.375 6.525 0.796875 6.9375 1.3125 6.9375Z" fill="currentColor" />
+                    <path d="M1.3125 10.6875C1.82812 10.6875 2.25 10.2656 2.25 9.75C2.25 9.23438 1.82812 8.8125 1.3125 8.8125C0.796875 8.8125 0.375 9.23438 0.375 9.75C0.375 10.275 0.796875 10.6875 1.3125 10.6875Z" fill="currentColor" />
+                    <path fillRule="evenodd" clipRule="evenodd" d="M3 2.15625C3 1.79381 3.29381 1.5 3.65625 1.5H10.9688C11.3312 1.5 11.625 1.79381 11.625 2.15625C11.625 2.51869 11.3312 2.8125 10.9688 2.8125H3.65625C3.29381 2.8125 3 2.51869 3 2.15625Z" fill="currentColor" />
+                    <path fillRule="evenodd" clipRule="evenodd" d="M3 6.00073C3 5.6383 3.29381 5.34448 3.65625 5.34448H10.9688C11.3312 5.34448 11.625 5.6383 11.625 6.00073C11.625 6.36317 11.3312 6.65698 10.9688 6.65698H3.65625C3.29381 6.65698 3 6.36317 3 6.00073Z" fill="currentColor" />
+                    <path fillRule="evenodd" clipRule="evenodd" d="M3 9.84375C3 9.48131 3.29381 9.1875 3.65625 9.1875H10.9688C11.3312 9.1875 11.625 9.48131 11.625 9.84375C11.625 10.2062 11.3312 10.5 10.9688 10.5H3.65625C3.29381 10.5 3 10.2062 3 9.84375Z" fill="currentColor" />
+                  </svg>
+                  <span>Group</span>
+                </button>
               </div>
-              
-              {/* Scrollable field list */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
-                {filteredGroupFields.all.length === 0 ? (
-                  <div className="px-4 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-                    No matching fields
-                  </div>
-                ) : (
-                  <>
-                    {/* Common section */}
-                    {filteredGroupFields.common.length > 0 && (
-                      <>
-                        <div className="px-4 py-2 text-xs" style={{ color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Common
-                        </div>
-                        {filteredGroupFields.common.map((field) => (
-                          <button
-                            key={`${field.object}.${field.field}`}
-                            onClick={() => {
-                              // Set the field and get top 10 values, then open value selector
-                              const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
-                              
-                              dispatch(actions.setGroupBy({
-                                field: { object: field.object, field: field.field },
-                                selectedValues: values,
-                                autoAddedField: false,
-                              }));
-                              
-                              // Transition to value selector
-                              setIsGroupByFieldSelectorOpen(false);
-                              setGroupBySearchQuery(''); // Clear search
-                              setTimeout(() => setIsGroupByValueSelectorOpen(true), 100);
-                            }}
-                            className="w-full text-left transition-colors flex flex-col gap-1"
-                            style={{
-                              paddingLeft: '16px',
-                              paddingRight: '16px',
-                              paddingTop: '8px',
-                              paddingBottom: '8px',
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                          >
-                            <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                              {field.label}
-                            </span>
-                            <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
-                              {field.object}.{field.field}
-                            </span>
-                          </button>
-                        ))}
-                      </>
-                    )}
-                    
-                    {/* Other section */}
-                    {filteredGroupFields.other.length > 0 && (
-                      <>
-                        <div className="px-4 py-2 text-xs" style={{ color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          {filteredGroupFields.common.length > 0 ? 'Other' : 'All Fields'}
-                        </div>
-                        {filteredGroupFields.other.map((field) => (
-                          <button
-                            key={`${field.object}.${field.field}`}
-                            onClick={() => {
-                              // Set the field and get top 10 values, then open value selector
-                              const values = getGroupValues(warehouse, { object: field.object, field: field.field }, 10);
-                              
-                              dispatch(actions.setGroupBy({
-                                field: { object: field.object, field: field.field },
-                                selectedValues: values,
-                                autoAddedField: false,
-                              }));
-                              
-                              // Transition to value selector
-                              setIsGroupByFieldSelectorOpen(false);
-                              setGroupBySearchQuery(''); // Clear search
-                              setTimeout(() => setIsGroupByValueSelectorOpen(true), 100);
-                            }}
-                            className="w-full text-left transition-colors flex flex-col gap-1"
-                            style={{
-                              paddingLeft: '16px',
-                              paddingRight: '16px',
-                              paddingTop: '8px',
-                              paddingBottom: '8px',
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                          >
-                            <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                              {field.label}
-                            </span>
-                            <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
-                              {field.object}.{field.field}
-                            </span>
-                          </button>
-                        ))}
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
+              {groupPopoverMode === 'filter'
+                ? renderFilterContent()
+                : renderGroupFieldContent()}
             </div>
           )}
 
           {/* Value Selector Popover */}
-          {isGroupByValueSelectorOpen && state.groupBy && (
+          {isGroupByValueSelectorOpen && (
             <div
               ref={groupByPopoverRef}
               className="absolute py-1 z-50"
               style={{
                 top: 0,
                 left: 0,
-                minWidth: '240px',
+                minWidth: '320px',
                 maxHeight: '360px',
                 backgroundColor: 'var(--bg-elevated)',
                 borderRadius: '16px',
@@ -1811,23 +2411,28 @@ export function ChartPanel() {
                 flexDirection: 'column',
               }}
             >
-              <GroupBySelector
-                availableValues={availableGroupValues}
-                selectedValues={state.groupBy.selectedValues}
-                onApply={(selectedValues) => {
-                  dispatch(actions.updateGroupValues(selectedValues));
-                  setIsGroupByValueSelectorOpen(false);
-                }}
-                onRemove={() => {
-                  dispatch(actions.clearGroupBy());
-                  setIsGroupByValueSelectorOpen(false);
-                }}
-                onCancel={() => {
-                  setIsGroupByValueSelectorOpen(false);
-                }}
-                maxSelections={10}
-                chipLabel={groupByLabel}
-              />
+              {groupPopoverMode === 'filter' ? (
+                renderFilterDetail()
+              ) : (
+                state.groupBy && (
+                  <GroupBySelector
+                    availableValues={availableGroupValues}
+                    selectedValues={state.groupBy.selectedValues}
+                    onApply={(selectedValues) => {
+                      dispatch(actions.updateGroupValues(selectedValues));
+                      setIsGroupByValueSelectorOpen(false);
+                    }}
+                    onRemove={() => {
+                      dispatch(actions.clearGroupBy());
+                      setIsGroupByValueSelectorOpen(false);
+                    }}
+                    onCancel={() => {
+                      setIsGroupByValueSelectorOpen(false);
+                    }}
+                    maxSelections={10}
+                  />
+                )
+              )}
             </div>
           )}
         </div>
