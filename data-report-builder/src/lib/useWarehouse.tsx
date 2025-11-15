@@ -167,14 +167,13 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     loadingRef.current.add(name);
 
     try {
-      const basePath = process.env.NODE_ENV === 'production' ? '/data-builder' : '';
-      let url = `${basePath}/data/${name}.json`;
+      let url = `/data/${name}.json`;
       console.log('[Warehouse] Fetching:', url);
       let res = await fetch(url);
       
       // If singular form fails, try plural form as fallback
       if (!res.ok && !name.endsWith('s')) {
-        const pluralUrl = `${basePath}/data/${name}s.json`;
+        const pluralUrl = `/data/${name}s.json`;
         console.log(`[Warehouse] Trying plural form: ${pluralUrl}`);
         const pluralRes = await fetch(pluralUrl);
         if (pluralRes.ok) {
@@ -267,8 +266,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
         if (typeof requestIdleCallback !== 'undefined') {
           requestIdleCallback(async () => {
             try {
-              const basePath = process.env.NODE_ENV === 'production' ? '/data-builder' : '';
-              const manifest = await fetch(`${basePath}/data/manifest.json`).then(r => r.json());
+              const manifest = await fetch(`/data/manifest.json`).then(r => r.json());
               const allEntities: EntityName[] = manifest?.entities || [];
 
               // Load entities not yet loaded
@@ -284,8 +282,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
         } else {
           setTimeout(async () => {
             try {
-              const basePath = process.env.NODE_ENV === 'production' ? '/data-builder' : '';
-              const manifest = await fetch(`${basePath}/data/manifest.json`).then(r => r.json());
+              const manifest = await fetch(`/data/manifest.json`).then(r => r.json());
               const allEntities: EntityName[] = manifest?.entities || [];
 
               for (const ent of allEntities) {
