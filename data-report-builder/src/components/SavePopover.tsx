@@ -230,7 +230,7 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
           {/* Heading */}
           <div style={{ padding: '16px 16px 0 16px' }}>
             <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-              Duplicate metric
+              {state.report === 'blank' ? 'Save metric' : 'Duplicate metric'}
             </h2>
           </div>
 
@@ -554,7 +554,7 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
                 color: 'var(--button-primary-text)',
               }}
             >
-              Duplicate and publish
+              {state.report === 'blank' ? 'Save and publish' : 'Duplicate and publish'}
             </button>
           </div>
         </>
