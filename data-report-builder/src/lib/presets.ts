@@ -297,7 +297,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
           name: 'Successful Payments',
           source: { object: 'charge', field: 'id' },
           op: 'count',
-          type: 'latest',
+          type: 'sum_over_period',
           filters: [
             {
               field: { object: 'charge', field: 'status' },
@@ -311,7 +311,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
           name: 'Total Payments',
           source: { object: 'charge', field: 'id' },
           op: 'count',
-          type: 'latest',
+          type: 'sum_over_period',
           filters: [],
         },
       ],
