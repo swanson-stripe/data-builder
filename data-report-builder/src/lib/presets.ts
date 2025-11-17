@@ -355,7 +355,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       type: 'sum_over_period',
     },
     range: { 
-      start: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0], 
+      start: `${new Date().getFullYear()}-01-01`, 
       end: todayISO(), 
       granularity: 'week' 
     },
