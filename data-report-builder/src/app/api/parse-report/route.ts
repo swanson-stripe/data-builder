@@ -34,9 +34,12 @@ Available Stripe data objects and their fields:
 ${JSON.stringify(STRIPE_SCHEMA, null, 2)}
 
 RULES:
-1. Return success: true if request is about Stripe data/payments/customers/revenue
-2. Make reasonable assumptions for missing details
+1. Return success: true ONLY if the request can be fulfilled with the available schema fields
+2. Return success: false with an appropriate error message if:
+   - The request is completely unrelated to Stripe data (error: "This doesn't appear to be a Stripe data question. Please ask about payments, customers, subscriptions, or revenue.")
+   - The request references fields/values that don't exist in the schema (error: "We don't have support for this type of query yet. We're working on expanding our data coverage.")
 3. For rate/percentage metrics, use multiBlock format with two blocks and divide operator
+4. Do NOT make up field values or statuses that aren't explicitly listed in the schema
 
 DEFAULTS:
 - Time range: Use current year if year mentioned, otherwise last 1 month (4 weeks)
@@ -50,15 +53,17 @@ For "rate", "percentage", or "ratio" requests, use multiBlock with:
 - Block 2 (denominator): Count/sum of total, type: "latest"
 - Calculation: divide, resultUnitType: "rate"
 
-Example: "failed payment rate" or "blocked payment rate"
-- Block 1: count payment.id where status = "failed", type: "latest"
+Example: "payment success rate"
+- Block 1: count payment.id where status = "succeeded", type: "latest"
 - Block 2: count payment.id (all payments), type: "latest"
 - divide block_1 / block_2
 
-IMPORTANT STATUS VALUES:
-- payment.status: "succeeded", "failed", "pending" (NOT "blocked" - use "failed" for blocked/declined payments)
+AVAILABLE FIELD VALUES (use ONLY these):
+- payment.status: "succeeded", "failed", "pending"
+- charge.status: "succeeded", "failed", "pending"
 - subscription.status: "active", "canceled", "incomplete", "past_due", "trialing"
 - invoice.status: "paid", "open", "void", "uncollectible"
+- refund.status: "succeeded", "failed", "pending"
 
 FILTER FORMAT:
 {
@@ -108,8 +113,8 @@ RATE METRIC (use multiBlock):
     "multiBlock": {
       "blocks": [
         {
-          "id": "failed_payments",
-          "name": "Failed Payments",
+          "id": "successful_payments",
+          "name": "Successful Payments",
           "source": {"object": "payment", "field": "id"},
           "op": "count",
           "type": "latest",
@@ -117,7 +122,7 @@ RATE METRIC (use multiBlock):
             {
               "field": {"object": "payment", "field": "status"},
               "operator": "equals",
-              "value": "failed"
+              "value": "succeeded"
             }
           ]
         },
@@ -132,7 +137,7 @@ RATE METRIC (use multiBlock):
       ],
       "calculation": {
         "operator": "divide",
-        "leftOperand": "failed_payments",
+        "leftOperand": "successful_payments",
         "rightOperand": "total_payments",
         "resultUnitType": "rate"
       },
@@ -145,6 +150,18 @@ RATE METRIC (use multiBlock):
     },
     "chartType": "line"
   }
+}
+
+UNSUPPORTED QUERY (field value doesn't exist):
+{
+  "success": false,
+  "error": "We don't have support for this type of query yet. We're working on expanding our data coverage."
+}
+
+UNRELATED QUERY (not about Stripe data):
+{
+  "success": false,
+  "error": "This doesn't appear to be a Stripe data question. Please ask about payments, customers, subscriptions, or revenue."
 }`;
 
 export async function POST(request: NextRequest) {
