@@ -16,13 +16,13 @@ function getOpenAIClient() {
 
 // Available data objects and their fields for context
 const STRIPE_SCHEMA = {
-  payment: ['id', 'customer_id', 'payment_method_id', 'product_id', 'amount', 'currency', 'created', 'status', 'captured'],
-  charge: ['id', 'customer_id', 'amount', 'currency', 'created', 'status', 'description'],
+  payment: ['id', 'customer_id', 'payment_method_id', 'product_id', 'amount', 'currency', 'created', 'status (succeeded/failed/pending)', 'captured'],
+  charge: ['id', 'customer_id', 'amount', 'currency', 'created', 'status (succeeded/failed/pending)', 'description'],
   customer: ['id', 'email', 'name', 'country', 'created', 'balance', 'delinquent'],
-  subscription: ['id', 'customer_id', 'status', 'current_period_start', 'current_period_end', 'cancel_at_period_end', 'created', 'currency'],
+  subscription: ['id', 'customer_id', 'status (active/canceled/incomplete)', 'current_period_start', 'current_period_end', 'cancel_at_period_end', 'created', 'currency'],
   subscription_item: ['id', 'subscription_id', 'price_id', 'quantity', 'created'],
-  invoice: ['id', 'customer_id', 'subscription_id', 'amount_paid', 'amount_due', 'status', 'created', 'currency'],
-  refund: ['id', 'payment_id', 'amount', 'status', 'reason', 'created', 'currency'],
+  invoice: ['id', 'customer_id', 'subscription_id', 'amount_paid', 'amount_due', 'status (paid/open/void)', 'created', 'currency'],
+  refund: ['id', 'payment_id', 'amount', 'status (succeeded/failed/pending)', 'reason', 'created', 'currency'],
   price: ['id', 'product_id', 'unit_amount', 'currency', 'recurring_interval', 'active'],
   product: ['id', 'name', 'description', 'active', 'created'],
   payment_method: ['id', 'customer_id', 'type', 'card_brand', 'card_last4'],
@@ -50,10 +50,15 @@ For "rate", "percentage", or "ratio" requests, use multiBlock with:
 - Block 2 (denominator): Count/sum of total, type: "latest"
 - Calculation: divide, resultUnitType: "rate"
 
-Example: "blocked payment rate"
-- Block 1: count payment.id where status in ["failed", "blocked"], type: "latest"
+Example: "failed payment rate" or "blocked payment rate"
+- Block 1: count payment.id where status = "failed", type: "latest"
 - Block 2: count payment.id (all payments), type: "latest"
 - divide block_1 / block_2
+
+IMPORTANT STATUS VALUES:
+- payment.status: "succeeded", "failed", "pending" (NOT "blocked" - use "failed" for blocked/declined payments)
+- subscription.status: "active", "canceled", "incomplete", "past_due", "trialing"
+- invoice.status: "paid", "open", "void", "uncollectible"
 
 FILTER FORMAT:
 {
@@ -103,21 +108,21 @@ RATE METRIC (use multiBlock):
     "multiBlock": {
       "blocks": [
         {
-          "id": "block_1",
-          "name": "Blocked Payments",
+          "id": "failed_payments",
+          "name": "Failed Payments",
           "source": {"object": "payment", "field": "id"},
           "op": "count",
           "type": "latest",
           "filters": [
             {
               "field": {"object": "payment", "field": "status"},
-              "operator": "in",
-              "value": ["failed", "blocked"]
+              "operator": "equals",
+              "value": "failed"
             }
           ]
         },
         {
-          "id": "block_2",
+          "id": "total_payments",
           "name": "Total Payments",
           "source": {"object": "payment", "field": "id"},
           "op": "count",
@@ -127,8 +132,8 @@ RATE METRIC (use multiBlock):
       ],
       "calculation": {
         "operator": "divide",
-        "leftOperand": "block_1",
-        "rightOperand": "block_2",
+        "leftOperand": "failed_payments",
+        "rightOperand": "total_payments",
         "resultUnitType": "rate"
       },
       "outputUnit": "rate"
