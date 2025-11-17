@@ -324,9 +324,9 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       outputUnit: 'rate',
     },
     range: { 
-      start: new Date(new Date().setMonth(new Date().getMonth() - 3)).toISOString().split('T')[0], 
+      start: `${new Date().getFullYear()}-01-01`, 
       end: todayISO(), 
-      granularity: 'day' 
+      granularity: 'week' 
     },
     filters: [], // No global filters, using block-level filters instead
     defaultSort: {
