@@ -293,7 +293,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     multiBlock: {
       blocks: [
         {
-          id: 'block_1',
+          id: 'successful_payments',
           name: 'Successful Payments',
           source: { object: 'charge', field: 'id' },
           op: 'count',
@@ -307,7 +307,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
           ],
         },
         {
-          id: 'block_2',
+          id: 'total_payments',
           name: 'Total Payments',
           source: { object: 'charge', field: 'id' },
           op: 'count',
@@ -317,8 +317,8 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       ],
       calculation: {
         operator: 'divide',
-        leftOperand: 'block_1',
-        rightOperand: 'block_2',
+        leftOperand: 'successful_payments',
+        rightOperand: 'total_payments',
         resultUnitType: 'rate',
       },
       outputUnit: 'rate',
