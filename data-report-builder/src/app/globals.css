@@ -244,7 +244,7 @@ input[type="number"],
 input[type="email"],
 input[type="password"],
 input[type="search"],
-textarea {
+textarea:not(.sql-editor-textarea) {
   background-color: var(--bg-elevated) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-subtle) !important;
