@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useApp } from '@/state/app';
 import { useTheme } from '@/state/theme';
 import { generateSQL } from '@/lib/generateSQL';
@@ -7,13 +7,10 @@ import { highlightSQL } from '@/lib/sqlHighlight';
 import schema from '@/data/schema';
 
 export function SQLTab() {
-  console.log('[SQLTab] Component rendering');
   const { state } = useApp();
   const { theme } = useTheme();
-  console.log('[SQLTab] Theme:', theme);
-  const [editableSQL, setEditableSQL] = useState('');
   const lineNumbersRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Generate SQL from app state
   const generatedSQL = useMemo(() => {
@@ -28,32 +25,24 @@ export function SQLTab() {
     state.granularity,
   ]);
 
-  // Sync generated SQL to editable state whenever it changes
-  useEffect(() => {
-    setEditableSQL(generatedSQL);
-  }, [generatedSQL]);
-
   // Highlight SQL for display
   const highlightedHTML = useMemo(() => {
-    const result = highlightSQL(editableSQL, theme);
-    console.log('[SQLTab] Highlighted HTML length:', result.length);
-    console.log('[SQLTab] First 200 chars:', result.substring(0, 200));
-    return result;
-  }, [editableSQL, theme]);
+    return highlightSQL(generatedSQL, theme);
+  }, [generatedSQL, theme]);
 
   // Calculate line numbers
   const lineCount = useMemo(() => {
-    return editableSQL.split('\n').length;
-  }, [editableSQL]);
+    return generatedSQL.split('\n').length;
+  }, [generatedSQL]);
 
   const lineNumbers = useMemo(() => {
-    return Array.from({ length: lineCount }, (_, i) => i + 1);
+    return Array.from({ length: lineCount }, (_, i) => i + 1).join('\n');
   }, [lineCount]);
 
-  // Sync scroll position between textarea and line numbers
-  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
-    if (lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = e.currentTarget.scrollTop;
+  // Sync scroll between content and line numbers
+  const handleScroll = () => {
+    if (contentRef.current && lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = contentRef.current.scrollTop;
     }
   };
 
@@ -62,44 +51,39 @@ export function SQLTab() {
       {/* Line numbers */}
       <div 
         ref={lineNumbersRef}
-        className="flex-shrink-0 w-12 overflow-y-scroll" 
+        className="flex-shrink-0 w-12 overflow-y-auto pr-2 pt-4 pb-4"
         style={{ 
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
-          WebkitOverflowScrolling: 'touch'
         }}
       >
-        <div className="pt-4 pb-4 pr-2 font-mono text-sm text-right select-none" style={{ color: 'var(--text-muted)', lineHeight: '1.5' }}>
-          {lineNumbers.map((num) => (
-            <div key={num}>{num}</div>
-          ))}
-        </div>
+        <pre 
+          className="font-mono text-sm text-right select-none" 
+          style={{ 
+            color: 'var(--text-muted)', 
+            lineHeight: '1.5',
+            margin: 0,
+          }}
+        >
+          {lineNumbers}
+        </pre>
       </div>
 
-      {/* SQL content area */}
-      <div className="relative flex-1">
-        {/* Editable textarea (invisible but captures input) */}
-        <textarea
-          ref={textareaRef}
-          value={editableSQL}
-          onChange={(e) => setEditableSQL(e.target.value)}
-          onScroll={handleScroll}
-          className="sql-editor-textarea absolute inset-0 w-full h-full pt-4 pb-4 pl-3 font-mono text-sm
-                     bg-transparent caret-gray-900 dark:caret-white
-                     resize-none overflow-auto z-10 outline-none custom-scrollbar"
-          style={{ color: 'transparent', lineHeight: '1.5', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
-          spellCheck={false}
-          aria-label="Editable SQL query"
-          wrap="soft"
-        />
-        
-        {/* Syntax-highlighted display (visible, non-interactive) */}
-        <pre
-          className="sql-highlighted absolute inset-0 w-full h-full pt-4 pb-4 pl-3 font-mono text-sm overflow-hidden
-                     pointer-events-none"
-          style={{ backgroundColor: 'var(--bg-elevated)', lineHeight: '1.5', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+      {/* SQL content with syntax highlighting */}
+      <div 
+        ref={contentRef}
+        className="flex-1 overflow-y-auto pt-4 pb-4 pl-3 custom-scrollbar"
+        onScroll={handleScroll}
+      >
+        <pre 
+          className="font-mono text-sm"
+          style={{ 
+            lineHeight: '1.5',
+            margin: 0,
+            whiteSpace: 'pre-wrap',
+            wordWrap: 'break-word',
+          }}
           dangerouslySetInnerHTML={{ __html: highlightedHTML }}
-          aria-hidden="true"
         />
       </div>
     </div>
