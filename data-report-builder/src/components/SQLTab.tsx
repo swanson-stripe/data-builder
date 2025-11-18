@@ -48,25 +48,27 @@ export function SQLTab() {
 
   return (
     <div className="absolute inset-0 flex" style={{ backgroundColor: 'var(--bg-elevated)' }}>
-      {/* Line numbers */}
+      {/* Line numbers - scrollable but scrollbar hidden */}
       <div 
         ref={lineNumbersRef}
-        className="flex-shrink-0 w-12 overflow-y-auto pr-2 pt-4 pb-4"
+        className="flex-shrink-0 w-12 pr-2 overflow-y-scroll"
         style={{ 
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
         }}
       >
-        <pre 
-          className="font-mono text-sm text-right select-none" 
-          style={{ 
-            color: 'var(--text-muted)', 
-            lineHeight: '1.5',
-            margin: 0,
-          }}
-        >
-          {lineNumbers}
-        </pre>
+        <div className="pt-4 pb-4">
+          <pre 
+            className="font-mono text-sm text-right select-none" 
+            style={{ 
+              color: 'var(--text-muted)', 
+              lineHeight: '1.5',
+              margin: 0,
+            }}
+          >
+            {lineNumbers}
+          </pre>
+        </div>
       </div>
 
       {/* SQL content with syntax highlighting */}
@@ -82,6 +84,7 @@ export function SQLTab() {
             margin: 0,
             whiteSpace: 'pre-wrap',
             wordWrap: 'break-word',
+            color: 'var(--text-primary)',
           }}
           dangerouslySetInnerHTML={{ __html: highlightedHTML }}
         />

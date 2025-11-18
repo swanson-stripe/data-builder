@@ -71,12 +71,7 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
     `<span style="color: ${colors.string}">$1</span>`
   );
 
-  // Highlight table.column identifiers (standard SQL pattern)
-  // Must come before number highlighting to avoid matching dots as decimals
-  result = result.replace(
-    /\b([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)\b/gi,
-    `<span style="color: ${colors.identifier}">$1</span>`
-  );
+  // Note: table.column identifiers intentionally NOT highlighted - use default text color
 
   // Highlight numbers
   result = result.replace(

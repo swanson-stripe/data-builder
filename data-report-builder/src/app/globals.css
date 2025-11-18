@@ -384,3 +384,8 @@ input[type="checkbox"]:focus {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* Hide scrollbar on line numbers in SQL tab (webkit browsers) */
+div[style*="scrollbarWidth: none"]::-webkit-scrollbar {
+  display: none;
+}
