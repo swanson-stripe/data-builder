@@ -1,21 +1,21 @@
 /**
  * Lightweight SQL syntax highlighter using regex
- * Returns HTML string with Tailwind classes for theming
+ * Returns HTML string with inline styles using CSS custom properties
  */
 export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
   if (!sql || sql.trim() === '') {
     return '';
   }
 
-  // Define color classes based on theme
+  // Define colors using CSS custom properties from globals.css
   const colors = {
-    keyword: theme === 'light' ? 'text-purple-600' : 'text-purple-300',
-    function: theme === 'light' ? 'text-blue-600' : 'text-blue-300',
-    string: theme === 'light' ? 'text-green-600' : 'text-green-300',
-    number: theme === 'light' ? 'text-orange-600' : 'text-orange-300',
-    comment: theme === 'light' ? 'text-gray-500' : 'text-gray-400',
-    operator: theme === 'light' ? 'text-gray-700' : 'text-gray-200',
-    base: theme === 'light' ? 'text-gray-900' : 'text-gray-200',
+    keyword: 'var(--syntax-keyword)',    // Purple: #675DFF (light) / #c792ea (dark)
+    function: 'var(--syntax-function)',   // Blue: #3b82f6 (light) / #82aaff (dark)
+    string: 'var(--syntax-string)',       // Green: #22c55e (light) / #89ddaa (dark)
+    number: 'var(--syntax-number)',       // Orange: #f59e0b (light) / #f78c6c (dark)
+    comment: 'var(--syntax-comment)',     // Gray: #9ca3af (light) / #6b7280 (dark)
+    identifier: 'var(--text-link)',       // Link color for table.column names
+    base: 'var(--text-primary)',
   };
 
   // SQL Keywords (case-insensitive)
@@ -24,14 +24,15 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
     'ON', 'AND', 'OR', 'NOT', 'IN', 'LIKE', 'BETWEEN', 'IS', 'NULL',
     'GROUP', 'BY', 'ORDER', 'ASC', 'DESC', 'LIMIT', 'OFFSET',
     'AS', 'DISTINCT', 'HAVING', 'UNION', 'ALL', 'CASE', 'WHEN', 'THEN',
-    'ELSE', 'END', 'TRUE', 'FALSE'
+    'ELSE', 'END', 'TRUE', 'FALSE', 'WITH', 'EXISTS', 'OVER', 'PARTITION'
   ];
 
   // SQL Functions
   const functions = [
     'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'ROUND', 'FLOOR', 'CEIL',
     'UPPER', 'LOWER', 'SUBSTRING', 'CONCAT', 'LENGTH', 'TRIM',
-    'DATE', 'NOW', 'YEAR', 'MONTH', 'DAY', 'COALESCE', 'CAST'
+    'DATE', 'NOW', 'YEAR', 'MONTH', 'DAY', 'COALESCE', 'CAST',
+    'DATE_TRUNC', 'EXTRACT', 'TO_CHAR', 'ARRAY_AGG'
   ];
 
   let result = sql;
@@ -45,25 +46,32 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
   // Highlight single-line comments (-- comment)
   result = result.replace(
     /(--[^\n]*)/g,
-    `<span class="${colors.comment}">$1</span>`
+    `<span style="color: ${colors.comment}">$1</span>`
   );
 
   // Highlight multi-line comments (/* comment */)
   result = result.replace(
     /(\/\*[\s\S]*?\*\/)/g,
-    `<span class="${colors.comment}">$1</span>`
+    `<span style="color: ${colors.comment}">$1</span>`
   );
 
   // Highlight strings (single quotes)
   result = result.replace(
     /('(?:[^']|'')*')/g,
-    `<span class="${colors.string}">$1</span>`
+    `<span style="color: ${colors.string}">$1</span>`
+  );
+
+  // Highlight table.column identifiers (standard SQL pattern)
+  // Must come before number highlighting to avoid matching dots as decimals
+  result = result.replace(
+    /\b([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)\b/gi,
+    `<span style="color: ${colors.identifier}">$1</span>`
   );
 
   // Highlight numbers
   result = result.replace(
     /\b(\d+\.?\d*)\b/g,
-    `<span class="${colors.number}">$1</span>`
+    `<span style="color: ${colors.number}">$1</span>`
   );
 
   // Highlight SQL functions
@@ -73,7 +81,7 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
   );
   result = result.replace(
     funcPattern,
-    (match) => `<span class="${colors.function}">${match.toUpperCase()}</span>`
+    (match) => `<span style="color: ${colors.function}">${match.toUpperCase()}</span>`
   );
 
   // Highlight SQL keywords
@@ -83,10 +91,10 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
   );
   result = result.replace(
     keywordPattern,
-    (match) => `<span class="${colors.keyword}">${match.toUpperCase()}</span>`
+    (match) => `<span style="color: ${colors.keyword}">${match.toUpperCase()}</span>`
   );
 
   // Wrap entire result in base color span for unhighlighted text
-  return `<span class="${colors.base}">${result}</span>`;
+  return `<span style="color: ${colors.base}">${result}</span>`;
 }
 
