@@ -7,6 +7,8 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
     return '';
   }
 
+  console.log('[SQL Highlight] Theme:', theme);
+
   // Define colors using CSS custom properties from globals.css
   const colors = {
     keyword: 'var(--syntax-keyword)',    // Purple: #675DFF (light) / #c792ea (dark)
@@ -17,6 +19,8 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
     identifier: 'var(--text-link)',       // Link color for table.column names
     base: 'var(--text-primary)',
   };
+  
+  console.log('[SQL Highlight] Colors:', colors);
 
   // SQL Keywords (case-insensitive)
   const keywords = [
