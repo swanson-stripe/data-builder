@@ -171,7 +171,7 @@ function PageContent() {
         >
           <SidebarTabs />
 
-          <div className="flex-1 overflow-auto custom-scrollbar" style={{ padding: '0 20px 0 20px' }}>
+          <div className="flex-1 overflow-auto custom-scrollbar" style={{ padding: state.activeTab === 'sql' ? '0' : '0 20px 0 20px' }}>
             {state.activeTab === 'data' && <DataTab />}
             {state.activeTab === 'chart' && <ChartTab />}
             {state.activeTab === 'metric' && <MetricTab />}

@@ -59,7 +59,6 @@ export function SQLTab() {
         ref={lineNumbersRef}
         className="flex-shrink-0 w-12 overflow-y-scroll" 
         style={{ 
-          borderRight: '1px solid var(--border-default)',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           WebkitOverflowScrolling: 'touch'
