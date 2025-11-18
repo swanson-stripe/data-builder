@@ -95,7 +95,7 @@ export function SQLTab() {
         {/* Syntax-highlighted display (visible, non-interactive) */}
         <pre
           className="absolute inset-0 w-full h-full pt-4 pb-4 pl-3 font-mono text-sm overflow-auto
-                     pointer-events-none whitespace-pre-wrap break-words custom-scrollbar"
+                     pointer-events-none whitespace-pre-wrap break-words custom-scrollbar [&_span]:![color:inherit]"
           style={{ backgroundColor: 'var(--bg-elevated)' }}
           dangerouslySetInnerHTML={{ __html: highlightedHTML }}
           aria-hidden="true"
