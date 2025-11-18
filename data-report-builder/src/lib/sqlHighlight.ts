@@ -7,8 +7,6 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
     return '';
   }
 
-  console.log('[SQL Highlight] Theme:', theme);
-
   // Define colors with actual hex values that match the design system
   // Light mode: from lines 88-94 of globals.css
   // Dark mode: from lines 191-196 of globals.css
@@ -29,8 +27,6 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
     identifier: '#C4BBFF', // --text-link (dark)
     base: '#e5e7eb',       // --text-primary (dark)
   };
-  
-  console.log('[SQL Highlight] Colors:', colors);
 
   // SQL Keywords (case-insensitive)
   const keywords = [
@@ -60,32 +56,32 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
   // Highlight single-line comments (-- comment)
   result = result.replace(
     /(--[^\n]*)/g,
-    `<span style="color: ${colors.comment} !important">$1</span>`
+    `<span style="color: ${colors.comment}">$1</span>`
   );
 
   // Highlight multi-line comments (/* comment */)
   result = result.replace(
     /(\/\*[\s\S]*?\*\/)/g,
-    `<span style="color: ${colors.comment} !important">$1</span>`
+    `<span style="color: ${colors.comment}">$1</span>`
   );
 
   // Highlight strings (single quotes)
   result = result.replace(
     /('(?:[^']|'')*')/g,
-    `<span style="color: ${colors.string} !important">$1</span>`
+    `<span style="color: ${colors.string}">$1</span>`
   );
 
   // Highlight table.column identifiers (standard SQL pattern)
   // Must come before number highlighting to avoid matching dots as decimals
   result = result.replace(
     /\b([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)\b/gi,
-    `<span style="color: ${colors.identifier} !important">$1</span>`
+    `<span style="color: ${colors.identifier}">$1</span>`
   );
 
   // Highlight numbers
   result = result.replace(
     /\b(\d+\.?\d*)\b/g,
-    `<span style="color: ${colors.number} !important">$1</span>`
+    `<span style="color: ${colors.number}">$1</span>`
   );
 
   // Highlight SQL functions
@@ -95,7 +91,7 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
   );
   result = result.replace(
     funcPattern,
-    (match) => `<span style="color: ${colors.function} !important">${match.toUpperCase()}</span>`
+    (match) => `<span style="color: ${colors.function}">${match.toUpperCase()}</span>`
   );
 
   // Highlight SQL keywords
@@ -105,7 +101,7 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
   );
   result = result.replace(
     keywordPattern,
-    (match) => `<span style="color: ${colors.keyword} !important">${match.toUpperCase()}</span>`
+    (match) => `<span style="color: ${colors.keyword}">${match.toUpperCase()}</span>`
   );
 
   // Return result without wrapping - let unhighlighted text inherit from parent
