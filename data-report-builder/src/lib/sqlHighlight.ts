@@ -9,15 +9,25 @@ export function highlightSQL(sql: string, theme: 'light' | 'dark'): string {
 
   console.log('[SQL Highlight] Theme:', theme);
 
-  // Define colors using CSS custom properties from globals.css
-  const colors = {
-    keyword: 'var(--syntax-keyword)',    // Purple: #675DFF (light) / #c792ea (dark)
-    function: 'var(--syntax-function)',   // Blue: #3b82f6 (light) / #82aaff (dark)
-    string: 'var(--syntax-string)',       // Green: #22c55e (light) / #89ddaa (dark)
-    number: 'var(--syntax-number)',       // Orange: #f59e0b (light) / #f78c6c (dark)
-    comment: 'var(--syntax-comment)',     // Gray: #9ca3af (light) / #6b7280 (dark)
-    identifier: 'var(--text-link)',       // Link color for table.column names
-    base: 'var(--text-primary)',
+  // Define colors with actual hex values that match the design system
+  // Light mode: from lines 88-94 of globals.css
+  // Dark mode: from lines 191-196 of globals.css
+  const colors = theme === 'light' ? {
+    keyword: '#675DFF',    // --syntax-keyword (light)
+    function: '#3b82f6',   // --syntax-function (light)
+    string: '#22c55e',     // --syntax-string (light)
+    number: '#f59e0b',     // --syntax-number (light)
+    comment: '#9ca3af',    // --syntax-comment (light)
+    identifier: '#675DFF', // --text-link (light)
+    base: '#374151',       // --text-primary (light)
+  } : {
+    keyword: '#c792ea',    // --syntax-keyword (dark)
+    function: '#82aaff',   // --syntax-function (dark)
+    string: '#89ddaa',     // --syntax-string (dark)
+    number: '#f78c6c',     // --syntax-number (dark)
+    comment: '#6b7280',    // --syntax-comment (dark)
+    identifier: '#C4BBFF', // --text-link (dark)
+    base: '#e5e7eb',       // --text-primary (dark)
   };
   
   console.log('[SQL Highlight] Colors:', colors);
