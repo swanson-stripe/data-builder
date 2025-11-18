@@ -7,8 +7,10 @@ import { highlightSQL } from '@/lib/sqlHighlight';
 import schema from '@/data/schema';
 
 export function SQLTab() {
+  console.log('[SQLTab] Component rendering');
   const { state } = useApp();
   const { theme } = useTheme();
+  console.log('[SQLTab] Theme:', theme);
   const [editableSQL, setEditableSQL] = useState('');
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -33,7 +35,10 @@ export function SQLTab() {
 
   // Highlight SQL for display
   const highlightedHTML = useMemo(() => {
-    return highlightSQL(editableSQL, theme);
+    const result = highlightSQL(editableSQL, theme);
+    console.log('[SQLTab] Highlighted HTML length:', result.length);
+    console.log('[SQLTab] First 200 chars:', result.substring(0, 200));
+    return result;
   }, [editableSQL, theme]);
 
   // Calculate line numbers
