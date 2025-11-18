@@ -53,63 +53,50 @@ export function SQLTab() {
   };
 
   return (
-    <div className="flex flex-col" style={{ paddingTop: '20px' }}>
-      {/* Header */}
-      <div className="mb-3 text-sm text-gray-600 dark:text-gray-400">
-        SQL representation of your current query
-      </div>
-
-      {/* SQL Editor with line numbers and syntax highlighting */}
-      <div className="relative rounded flex" style={{ minHeight: '400px', maxHeight: '80vh', border: '1px solid var(--border-default)' }}>
-        {/* Line numbers */}
-        <div 
-          ref={lineNumbersRef}
-          className="flex-shrink-0 w-12 overflow-y-scroll" 
-          style={{ 
-            backgroundColor: 'var(--bg-surface)', 
-            borderRight: '1px solid var(--border-default)',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            WebkitOverflowScrolling: 'touch'
-          }}
-        >
-          <div className="p-4 pr-2 font-mono text-sm text-right select-none whitespace-pre-wrap" style={{ color: 'var(--text-muted)' }}>
-            {lineNumbers.map((num) => (
-              <div key={num}>{num}</div>
-            ))}
-          </div>
-        </div>
-
-        {/* SQL content area */}
-        <div className="relative flex-1">
-          {/* Editable textarea (invisible but captures input) */}
-          <textarea
-            ref={textareaRef}
-            value={editableSQL}
-            onChange={(e) => setEditableSQL(e.target.value)}
-            onScroll={handleScroll}
-            className="absolute inset-0 w-full h-full p-4 pl-3 font-mono text-sm
-                       bg-transparent text-transparent caret-gray-900 dark:caret-white
-                       resize-none overflow-auto z-10 outline-none whitespace-pre-wrap break-words custom-scrollbar"
-            spellCheck={false}
-            aria-label="Editable SQL query"
-            wrap="soft"
-          />
-          
-          {/* Syntax-highlighted display (visible, non-interactive) */}
-          <pre
-            className="absolute inset-0 w-full h-full p-4 pl-3 font-mono text-sm overflow-auto
-                       pointer-events-none whitespace-pre-wrap break-words custom-scrollbar"
-            style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
-            dangerouslySetInnerHTML={{ __html: highlightedHTML }}
-            aria-hidden="true"
-          />
+    <div className="relative flex" style={{ height: '100%' }}>
+      {/* Line numbers */}
+      <div 
+        ref={lineNumbersRef}
+        className="flex-shrink-0 w-12 overflow-y-scroll" 
+        style={{ 
+          backgroundColor: 'var(--bg-surface)', 
+          borderRight: '1px solid var(--border-default)',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
+        <div className="p-4 pr-2 font-mono text-sm text-right select-none whitespace-pre-wrap" style={{ color: 'var(--text-muted)' }}>
+          {lineNumbers.map((num) => (
+            <div key={num}>{num}</div>
+          ))}
         </div>
       </div>
 
-      {/* Footer note */}
-      <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 italic">
-        Note: This SQL is for reference only. Edits do not affect the Data tab.
+      {/* SQL content area */}
+      <div className="relative flex-1">
+        {/* Editable textarea (invisible but captures input) */}
+        <textarea
+          ref={textareaRef}
+          value={editableSQL}
+          onChange={(e) => setEditableSQL(e.target.value)}
+          onScroll={handleScroll}
+          className="absolute inset-0 w-full h-full p-4 pl-3 font-mono text-sm
+                     bg-transparent text-transparent caret-gray-900 dark:caret-white
+                     resize-none overflow-auto z-10 outline-none whitespace-pre-wrap break-words custom-scrollbar"
+          spellCheck={false}
+          aria-label="Editable SQL query"
+          wrap="soft"
+        />
+        
+        {/* Syntax-highlighted display (visible, non-interactive) */}
+        <pre
+          className="absolute inset-0 w-full h-full p-4 pl-3 font-mono text-sm overflow-auto
+                     pointer-events-none whitespace-pre-wrap break-words custom-scrollbar"
+          style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
+          dangerouslySetInnerHTML={{ __html: highlightedHTML }}
+          aria-hidden="true"
+        />
       </div>
     </div>
   );
