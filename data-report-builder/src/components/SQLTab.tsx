@@ -59,16 +59,15 @@ export function SQLTab() {
         ref={lineNumbersRef}
         className="flex-shrink-0 w-12 overflow-y-scroll" 
         style={{ 
-          backgroundColor: 'var(--bg-surface)', 
           borderRight: '1px solid var(--border-default)',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        <div className="p-4 pr-2 font-mono text-sm text-right select-none whitespace-pre-wrap" style={{ color: 'var(--text-muted)' }}>
+        <div className="pt-4 pb-4 pr-2 font-mono text-sm text-right select-none whitespace-pre-wrap" style={{ color: 'var(--text-muted)' }}>
           {lineNumbers.map((num) => (
-            <div key={num}>{num}</div>
+            <div key={num} style={{ lineHeight: '1.5' }}>{num}</div>
           ))}
         </div>
       </div>
@@ -81,7 +80,7 @@ export function SQLTab() {
           value={editableSQL}
           onChange={(e) => setEditableSQL(e.target.value)}
           onScroll={handleScroll}
-          className="absolute inset-0 w-full h-full p-4 pl-3 font-mono text-sm
+          className="absolute inset-0 w-full h-full pt-4 pb-4 pl-3 font-mono text-sm
                      bg-transparent text-transparent caret-gray-900 dark:caret-white
                      resize-none overflow-auto z-10 outline-none whitespace-pre-wrap break-words custom-scrollbar"
           spellCheck={false}
@@ -91,7 +90,7 @@ export function SQLTab() {
         
         {/* Syntax-highlighted display (visible, non-interactive) */}
         <pre
-          className="absolute inset-0 w-full h-full p-4 pl-3 font-mono text-sm overflow-auto
+          className="absolute inset-0 w-full h-full pt-4 pb-4 pl-3 font-mono text-sm overflow-auto
                      pointer-events-none whitespace-pre-wrap break-words custom-scrollbar"
           style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
           dangerouslySetInnerHTML={{ __html: highlightedHTML }}
