@@ -85,8 +85,9 @@ export function SQLTab() {
           onChange={(e) => setEditableSQL(e.target.value)}
           onScroll={handleScroll}
           className="absolute inset-0 w-full h-full pt-4 pb-4 pl-3 font-mono text-sm
-                     bg-transparent text-transparent caret-gray-900 dark:caret-white
+                     bg-transparent caret-gray-900 dark:caret-white
                      resize-none overflow-auto z-10 outline-none whitespace-pre-wrap break-words custom-scrollbar"
+          style={{ color: 'transparent' }}
           spellCheck={false}
           aria-label="Editable SQL query"
           wrap="soft"
