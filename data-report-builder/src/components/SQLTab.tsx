@@ -58,7 +58,7 @@ export function SQLTab() {
   };
 
   return (
-    <div className="relative flex" style={{ height: '100%' }}>
+    <div className="absolute inset-0 flex" style={{ backgroundColor: 'var(--bg-elevated)' }}>
       {/* Line numbers */}
       <div 
         ref={lineNumbersRef}
