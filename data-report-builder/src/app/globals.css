@@ -384,8 +384,3 @@ input[type="checkbox"]:focus {
   white-space: nowrap;
   border-width: 0;
 }
-
-/* SQL syntax highlighting - ensure inline color styles work */
-.sql-highlighted span[style*="color"] {
-  all: revert;
-}
