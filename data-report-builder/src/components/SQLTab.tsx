@@ -69,9 +69,9 @@ export function SQLTab() {
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        <div className="pt-4 pb-4 pr-2 font-mono text-sm text-right select-none whitespace-pre-wrap" style={{ color: 'var(--text-muted)' }}>
+        <div className="pt-4 pb-4 pr-2 font-mono text-sm text-right select-none" style={{ color: 'var(--text-muted)', lineHeight: '1.5' }}>
           {lineNumbers.map((num) => (
-            <div key={num} style={{ lineHeight: '1.5' }}>{num}</div>
+            <div key={num}>{num}</div>
           ))}
         </div>
       </div>
@@ -86,8 +86,8 @@ export function SQLTab() {
           onScroll={handleScroll}
           className="sql-editor-textarea absolute inset-0 w-full h-full pt-4 pb-4 pl-3 font-mono text-sm
                      bg-transparent caret-gray-900 dark:caret-white
-                     resize-none overflow-auto z-10 outline-none whitespace-pre-wrap break-words custom-scrollbar"
-          style={{ color: 'transparent' }}
+                     resize-none overflow-auto z-10 outline-none custom-scrollbar"
+          style={{ color: 'transparent', lineHeight: '1.5', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
           spellCheck={false}
           aria-label="Editable SQL query"
           wrap="soft"
@@ -95,9 +95,9 @@ export function SQLTab() {
         
         {/* Syntax-highlighted display (visible, non-interactive) */}
         <pre
-          className="sql-highlighted absolute inset-0 w-full h-full pt-4 pb-4 pl-3 font-mono text-sm overflow-auto
-                     pointer-events-none whitespace-pre-wrap break-words custom-scrollbar"
-          style={{ backgroundColor: 'var(--bg-elevated)' }}
+          className="sql-highlighted absolute inset-0 w-full h-full pt-4 pb-4 pl-3 font-mono text-sm overflow-hidden
+                     pointer-events-none"
+          style={{ backgroundColor: 'var(--bg-elevated)', lineHeight: '1.5', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
           dangerouslySetInnerHTML={{ __html: highlightedHTML }}
           aria-hidden="true"
         />
