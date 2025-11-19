@@ -44,8 +44,7 @@ function mapMetricOp(expression: string): MetricOp {
   if (upperExpr.includes('COUNT')) return 'count';
   if (upperExpr.includes('SUM')) return 'sum';
   if (upperExpr.includes('AVG')) return 'avg';
-  if (upperExpr.includes('MAX')) return 'max';
-  if (upperExpr.includes('MIN')) return 'min';
+  // Note: MAX and MIN are not supported MetricOps, default to sum
   return 'sum'; // default
 }
 

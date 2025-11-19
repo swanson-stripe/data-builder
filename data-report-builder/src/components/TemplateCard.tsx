@@ -87,6 +87,23 @@ const getTemplateDescription = (key: PresetKey): string => {
     customer_acquisition: 'New customers acquired over time',
     payment_success_rate: 'Success rate of payment attempts (succeeded ÷ total)',
     revenue_by_product: 'Revenue breakdown by product',
+    payment_acceptance_by_method: 'Compare acceptance performance across payment method types',
+    payment_funnel: 'Track payment intents through key lifecycle stages',
+    payment_volume_by_attribute: 'Break down payment volume by currency, country, or method',
+    payments_net_revenue: 'Net revenue after refunds and Stripe fees',
+    first_purchase_behavior: 'Analyze value and timing of first purchases',
+    active_customers: 'Count of customers who purchased in recent window',
+    purchase_frequency: 'Average number of orders per customer',
+    customer_ltv: 'Total charges minus refunds per customer',
+    subscription_churn: 'Canceled subscriptions and lost MRR',
+    invoice_status: 'Issued, paid, and overdue invoices',
+    current_balances: 'Available and pending balances by currency',
+    balance_flows: 'Inflows and outflows over time',
+    payouts_over_time: 'Payout amounts and counts by day and currency',
+    dispute_rates: 'Disputed volume and rates over time',
+    disputes_by_reason: 'Disputes broken down by reason code',
+    discounted_revenue: 'Revenue that used discounts vs full price',
+    tax_by_jurisdiction: 'Tax collected by jurisdiction',
   };
   return descriptions[key] || '';
 };

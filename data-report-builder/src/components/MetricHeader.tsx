@@ -22,6 +22,23 @@ const REPORT_LABELS: Record<ReportKey, string> = {
   customer_acquisition: 'Customer Acquisition',
   payment_success_rate: 'Payment Success Rate',
   revenue_by_product: 'Revenue by Product',
+  payment_acceptance_by_method: 'Acceptance by Payment Method',
+  payment_funnel: 'Payment Funnel',
+  payment_volume_by_attribute: 'Payment Volume by Attribute',
+  payments_net_revenue: 'Net Revenue from Payments',
+  first_purchase_behavior: 'First Purchase Behavior',
+  active_customers: 'Active vs Inactive Customers',
+  purchase_frequency: 'Purchase Frequency',
+  customer_ltv: 'Customer Lifetime Value',
+  subscription_churn: 'Subscription Churn',
+  invoice_status: 'Invoice Status',
+  current_balances: 'Current Balances',
+  balance_flows: 'Balance Flows',
+  payouts_over_time: 'Payouts Over Time',
+  dispute_rates: 'Dispute Rates',
+  disputes_by_reason: 'Disputes by Reason',
+  discounted_revenue: 'Discounted Revenue',
+  tax_by_jurisdiction: 'Tax by Jurisdiction',
 };
 
 export function MetricHeader() {
