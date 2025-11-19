@@ -1,5 +1,5 @@
 // Template taxonomy for waterfall category filtering
-// Defines the hierarchical structure: Category → Topic → Report
+// Defines the hierarchical structure: Category → Topic → SubTopic → Report
 
 // Base table definition for SQL generation
 export interface BaseTable {
@@ -46,7 +46,7 @@ export interface ReportOrderBy {
   direction: 'asc' | 'desc';
 }
 
-// Complete report template
+// Individual report (leaf node)
 export interface TemplateReport {
   id: string;
   label: string;
@@ -61,15 +61,23 @@ export interface TemplateReport {
   default_order_by?: ReportOrderBy[];
 }
 
-// Topic groups related reports
-export interface TemplateTopic {
+// SubTopic groups related reports (e.g., "Acceptance overview" with multiple reports)
+export interface TemplateSubTopic {
   id: string;
   label: string;
   description: string;
   reports: TemplateReport[];
 }
 
-// Top-level category
+// Topic groups related sub-topics (e.g., "Performance & Conversion")
+export interface TemplateTopic {
+  id: string;
+  label: string;
+  description: string;
+  subTopics: TemplateSubTopic[];
+}
+
+// Top-level category (e.g., "Payments")
 export interface TemplateCategory {
   id: string;
   label: string;
