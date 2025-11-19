@@ -82,7 +82,7 @@ export default function TemplateCarousel({ onExploreOwn, filterPath }: Props) {
   }, [filterPath]);
 
   const isAtStart = currentIndex === 0;
-  const isAtEnd = currentIndex + 3 >= filteredTemplateKeys.length;
+  const isAtEnd = currentIndex + 3 >= filteredTemplateKeys.length || filteredTemplateKeys.length <= 3;
 
   const handlePrevious = () => {
     if (isAtStart || isTransitioning) return;
@@ -113,33 +113,45 @@ export default function TemplateCarousel({ onExploreOwn, filterPath }: Props) {
     dispatch({ type: 'HIDE_TEMPLATE_SELECTOR' });
   };
 
-  // Get three templates to display (use displayIndex to prevent content flashing)
-  const visibleTemplates = [
-    filteredTemplateKeys[displayIndex],
-    filteredTemplateKeys[(displayIndex + 1) % filteredTemplateKeys.length],
-    filteredTemplateKeys[(displayIndex + 2) % filteredTemplateKeys.length],
-  ].filter(Boolean); // Filter out undefined if fewer than 3 templates
+  // Get up to three templates to display (use displayIndex to prevent content flashing)
+  const visibleTemplates = filteredTemplateKeys.length === 0 
+    ? [] 
+    : filteredTemplateKeys.slice(displayIndex, displayIndex + 3);
 
   return (
     <div className="w-full flex flex-col" style={{ gap: '16px' }}>
       {/* Templates row */}
-      <div 
-        className="flex" 
-        style={{ 
-          gap: '16px',
-          opacity: isTransitioning ? 0 : 1,
-          transition: 'opacity 0.3s ease-in-out',
-        }}
-      >
-        {visibleTemplates.map((key) => (
-          <div key={key} style={{ flex: 1 }}>
-            <TemplateCard
-              template={PRESET_CONFIGS[key]}
-              onSelect={() => handleSelectTemplate(key)}
-            />
-          </div>
-        ))}
-      </div>
+      {visibleTemplates.length === 0 ? (
+        <div 
+          className="flex items-center justify-center p-8 rounded-lg"
+          style={{ 
+            backgroundColor: 'var(--bg-surface)',
+            border: '1px solid var(--border-default)',
+          }}
+        >
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+            No templates available yet for this category
+          </p>
+        </div>
+      ) : (
+        <div 
+          className="flex" 
+          style={{ 
+            gap: '16px',
+            opacity: isTransitioning ? 0 : 1,
+            transition: 'opacity 0.3s ease-in-out',
+          }}
+        >
+          {visibleTemplates.map((key) => (
+            <div key={key} style={{ flex: 1 }}>
+              <TemplateCard
+                template={PRESET_CONFIGS[key]}
+                onSelect={() => handleSelectTemplate(key)}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Navigation controls */}
       <div className="flex items-center justify-between">
@@ -158,11 +170,12 @@ export default function TemplateCarousel({ onExploreOwn, filterPath }: Props) {
           Explore on my own
         </button>
 
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handlePrevious}
-            disabled={isAtStart}
-            className="p-2 transition-all"
+        {filteredTemplateKeys.length > 3 && (
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handlePrevious}
+              disabled={isAtStart}
+              className="p-2 transition-all"
             style={{ 
               color: 'var(--text-secondary)',
               cursor: isAtStart ? 'not-allowed' : 'pointer',
@@ -228,7 +241,8 @@ export default function TemplateCarousel({ onExploreOwn, filterPath }: Props) {
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
