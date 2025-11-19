@@ -1,11 +1,13 @@
 // src/components/TemplateCarousel.tsx
 'use client';
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/state/app';
 import { PresetKey, PRESET_CONFIGS } from '@/lib/presets';
 import { applyPreset } from '@/lib/presets';
 import TemplateCard from './TemplateCard';
 import { useWarehouseStore } from '@/lib/useWarehouse';
+import { TEMPLATE_TAXONOMY } from '@/data/templateTaxonomy';
+import { FilterPath } from './CategoryFilter';
 
 // Template presets to display in carousel (excluding 'blank' and 'mrr')
 const TEMPLATE_KEYS: PresetKey[] = [
@@ -19,17 +21,68 @@ const TEMPLATE_KEYS: PresetKey[] = [
 
 type Props = {
   onExploreOwn: () => void;
+  filterPath?: FilterPath;
 };
 
-export default function TemplateCarousel({ onExploreOwn }: Props) {
+export default function TemplateCarousel({ onExploreOwn, filterPath }: Props) {
   const { state, dispatch } = useApp();
   const { store: warehouse } = useWarehouseStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [displayIndex, setDisplayIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+  // Filter templates based on the current filter path
+  const filteredTemplateKeys = useMemo(() => {
+    // No filter: show all templates
+    if (!filterPath || !filterPath.categoryId) {
+      return TEMPLATE_KEYS;
+    }
+
+    // Find the category in taxonomy
+    const category = TEMPLATE_TAXONOMY.find(cat => cat.id === filterPath.categoryId);
+    if (!category) return TEMPLATE_KEYS;
+
+    // Collect all report IDs that match the filter
+    let reportIds: string[] = [];
+
+    if (filterPath.reportId) {
+      // Specific report selected
+      reportIds = [filterPath.reportId];
+    } else if (filterPath.topicId) {
+      // Topic selected: get all reports in that topic
+      const topic = category.topics.find(t => t.id === filterPath.topicId);
+      if (topic) {
+        reportIds = topic.reports.map(r => r.id);
+      }
+    } else {
+      // Category selected: get all reports in all topics
+      reportIds = category.topics.flatMap(topic => topic.reports.map(r => r.id));
+    }
+
+    // Filter TEMPLATE_KEYS to only include presets that match these reportIds
+    const matched = TEMPLATE_KEYS.filter(key => {
+      const config = PRESET_CONFIGS[key];
+      return config.reportId && reportIds.includes(config.reportId);
+    });
+
+    // If no matches found, return a random subset of the category's reports
+    // (placeholder behavior until all reports have presets)
+    if (matched.length === 0 && reportIds.length > 0) {
+      console.log('[TemplateCarousel] No presets match filter, showing all templates');
+      return TEMPLATE_KEYS;
+    }
+
+    return matched.length > 0 ? matched : TEMPLATE_KEYS;
+  }, [filterPath]);
+
+  // Reset carousel to start when filter changes
+  useEffect(() => {
+    setCurrentIndex(0);
+    setDisplayIndex(0);
+  }, [filterPath]);
+
   const isAtStart = currentIndex === 0;
-  const isAtEnd = currentIndex + 3 >= TEMPLATE_KEYS.length;
+  const isAtEnd = currentIndex + 3 >= filteredTemplateKeys.length;
 
   const handlePrevious = () => {
     if (isAtStart || isTransitioning) return;
@@ -48,7 +101,7 @@ export default function TemplateCarousel({ onExploreOwn }: Props) {
     setIsTransitioning(true);
     // Fade out, then update content, then fade in
     setTimeout(() => {
-      const newIndex = Math.min(TEMPLATE_KEYS.length - 3, currentIndex + 3);
+      const newIndex = Math.min(filteredTemplateKeys.length - 3, currentIndex + 3);
       setCurrentIndex(newIndex);
       setDisplayIndex(newIndex);
       setTimeout(() => setIsTransitioning(false), 50);
@@ -62,10 +115,10 @@ export default function TemplateCarousel({ onExploreOwn }: Props) {
 
   // Get three templates to display (use displayIndex to prevent content flashing)
   const visibleTemplates = [
-    TEMPLATE_KEYS[displayIndex],
-    TEMPLATE_KEYS[(displayIndex + 1) % TEMPLATE_KEYS.length],
-    TEMPLATE_KEYS[(displayIndex + 2) % TEMPLATE_KEYS.length],
-  ];
+    filteredTemplateKeys[displayIndex],
+    filteredTemplateKeys[(displayIndex + 1) % filteredTemplateKeys.length],
+    filteredTemplateKeys[(displayIndex + 2) % filteredTemplateKeys.length],
+  ].filter(Boolean); // Filter out undefined if fewer than 3 templates
 
   return (
     <div className="w-full flex flex-col" style={{ gap: '16px' }}>

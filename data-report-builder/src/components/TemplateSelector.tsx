@@ -39,7 +39,7 @@ export default function TemplateSelector() {
 
           {/* Template Carousel */}
           <div className="w-full">
-            <TemplateCarousel onExploreOwn={handleExploreOwn} />
+            <TemplateCarousel onExploreOwn={handleExploreOwn} filterPath={filterPath} />
           </div>
         </div>
       </div>
