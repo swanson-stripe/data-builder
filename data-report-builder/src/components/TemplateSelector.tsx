@@ -4,15 +4,22 @@ import { useState } from 'react';
 import { useApp } from '@/state/app';
 import TemplatePromptInput from './TemplatePromptInput';
 import TemplateCarousel from './TemplateCarousel';
+import CategoryFilter, { FilterPath } from './CategoryFilter';
 
 export default function TemplateSelector() {
   const { dispatch } = useApp();
+  const [filterPath, setFilterPath] = useState<FilterPath>({});
 
   const handleExploreOwn = () => {
     // Reset to blank state and hide template selector
     dispatch({ type: 'RESET_ALL' });
     dispatch({ type: 'HIDE_TEMPLATE_SELECTOR' });
     dispatch({ type: 'SET_USER_MADE_CHANGES', payload: false });
+  };
+
+  const handleFilterChange = (path: FilterPath) => {
+    console.log('[TemplateSelector] Filter path changed:', path);
+    setFilterPath(path);
   };
 
   return (
@@ -23,6 +30,11 @@ export default function TemplateSelector() {
           {/* AI Prompt Section */}
           <div className="w-full">
             <TemplatePromptInput onSuccess={() => {}} />
+          </div>
+
+          {/* Category Filter */}
+          <div className="w-full">
+            <CategoryFilter onFilterChange={handleFilterChange} />
           </div>
 
           {/* Template Carousel */}
