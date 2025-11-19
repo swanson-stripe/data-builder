@@ -9,14 +9,18 @@ import { useWarehouseStore } from '@/lib/useWarehouse';
 import { TEMPLATE_TAXONOMY } from '@/data/templateTaxonomy';
 import { FilterPath } from './CategoryFilter';
 
-// Template presets to display in carousel (excluding 'blank' and 'mrr')
+// Template presets to display in carousel (excluding 'blank')
 const TEMPLATE_KEYS: PresetKey[] = [
+  'mrr',
   'gross_volume',
   'active_subscribers',
   'refund_count',
   'customer_acquisition',
   'payment_success_rate',
   'revenue_by_product',
+  'payment_acceptance_by_method',
+  'payment_funnel',
+  'payment_volume_by_attribute',
 ];
 
 type Props = {

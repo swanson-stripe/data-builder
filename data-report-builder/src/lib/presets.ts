@@ -13,7 +13,10 @@ export type PresetKey =
   | 'subscriber_ltv'
   | 'customer_acquisition'
   | 'payment_success_rate'
-  | 'revenue_by_product';
+  | 'revenue_by_product'
+  | 'payment_acceptance_by_method'
+  | 'payment_funnel'
+  | 'payment_volume_by_attribute';
 
 type QualifiedField = { object: string; field: string };
 
@@ -377,6 +380,80 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     groupBy: {
       field: { object: 'product', field: 'name' },
       selectedValues: [], // Empty array means show top 10 values from dataset
+    },
+  },
+
+  payment_acceptance_by_method: {
+    key: 'payment_acceptance_by_method',
+    label: 'Acceptance by Payment Method',
+    reportId: 'payments_acceptance_by_method',
+    objects: ['payment', 'payment_method'],
+    fields: [
+      { object: 'payment', field: 'id' },
+      { object: 'payment', field: 'amount' },
+      { object: 'payment', field: 'status' },
+      { object: 'payment', field: 'created' },
+      { object: 'payment_method', field: 'type' },
+      { object: 'payment_method', field: 'card_brand' },
+    ],
+    metric: {
+      name: 'Payment Attempts',
+      source: { object: 'payment', field: 'id' },
+      op: 'count',
+      type: 'sum_over_period',
+    },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
+    chartType: 'bar',
+    groupBy: {
+      field: { object: 'payment_method', field: 'type' },
+      selectedValues: [],
+    },
+  },
+
+  payment_funnel: {
+    key: 'payment_funnel',
+    label: 'Payment Funnel',
+    reportId: 'payments_funnel',
+    objects: ['payment'],
+    fields: [
+      { object: 'payment', field: 'id' },
+      { object: 'payment', field: 'status' },
+      { object: 'payment', field: 'amount' },
+      { object: 'payment', field: 'created' },
+    ],
+    metric: {
+      name: 'Payment Intent Lifecycle',
+      source: { object: 'payment', field: 'id' },
+      op: 'count',
+      type: 'sum_over_period',
+    },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
+    chartType: 'bar',
+  },
+
+  payment_volume_by_attribute: {
+    key: 'payment_volume_by_attribute',
+    label: 'Volume by Attribute',
+    reportId: 'payments_volume_by_attribute',
+    objects: ['charge', 'payment_method'],
+    fields: [
+      { object: 'charge', field: 'id' },
+      { object: 'charge', field: 'amount' },
+      { object: 'charge', field: 'currency' },
+      { object: 'charge', field: 'created' },
+      { object: 'payment_method', field: 'type' },
+    ],
+    metric: {
+      name: 'Payment Volume',
+      source: { object: 'charge', field: 'amount' },
+      op: 'sum',
+      type: 'sum_over_period',
+    },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
+    chartType: 'bar',
+    groupBy: {
+      field: { object: 'charge', field: 'currency' },
+      selectedValues: [],
     },
   },
 };

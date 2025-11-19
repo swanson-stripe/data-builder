@@ -43,7 +43,10 @@ export type ReportKey =
   | 'subscriber_ltv'
   | 'customer_acquisition'
   | 'payment_success_rate'
-  | 'revenue_by_product';
+  | 'revenue_by_product'
+  | 'payment_acceptance_by_method'
+  | 'payment_funnel'
+  | 'payment_volume_by_attribute';
 
 export type ReportSeries = {
   key: ReportKey;
