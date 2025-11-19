@@ -49,7 +49,7 @@ export default function TemplateCarousel({ onExploreOwn, filterPath }: Props) {
   const [displayIndex, setDisplayIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Filter templates based on the current filter path
+  // Filter templates based on the current filter path (4-level hierarchy)
   const filteredTemplateKeys = useMemo(() => {
     // No filter: show all templates
     if (!filterPath || !filterPath.categoryId) {
@@ -64,17 +64,26 @@ export default function TemplateCarousel({ onExploreOwn, filterPath }: Props) {
     let reportIds: string[] = [];
 
     if (filterPath.reportId) {
-      // Specific report selected
+      // Level 4: Specific report selected
       reportIds = [filterPath.reportId];
-    } else if (filterPath.topicId) {
-      // Topic selected: get all reports in that topic
+    } else if (filterPath.subTopicId) {
+      // Level 3: SubTopic selected - get all reports in that subTopic
       const topic = category.topics.find(t => t.id === filterPath.topicId);
-      if (topic) {
-        reportIds = topic.reports.map(r => r.id);
+      const subTopic = topic?.subTopics?.find(st => st.id === filterPath.subTopicId);
+      if (subTopic) {
+        reportIds = subTopic.reports.map(r => r.id);
+      }
+    } else if (filterPath.topicId) {
+      // Level 2: Topic selected - get all reports in all subTopics under that topic
+      const topic = category.topics.find(t => t.id === filterPath.topicId);
+      if (topic && topic.subTopics) {
+        reportIds = topic.subTopics.flatMap(st => st.reports.map(r => r.id));
       }
     } else {
-      // Category selected: get all reports in all topics
-      reportIds = category.topics.flatMap(topic => topic.reports.map(r => r.id));
+      // Level 1: Category selected - get all reports in all topics/subTopics
+      reportIds = category.topics.flatMap(topic => 
+        topic.subTopics?.flatMap(st => st.reports.map(r => r.id)) || []
+      );
     }
 
     // Filter TEMPLATE_KEYS to only include presets that match these reportIds
@@ -83,8 +92,8 @@ export default function TemplateCarousel({ onExploreOwn, filterPath }: Props) {
       return config.reportId && reportIds.includes(config.reportId);
     });
 
-    // If no matches found, return a random subset of the category's reports
-    // (placeholder behavior until all reports have presets)
+    // If no matches found, return all templates as placeholder
+    // (until all reports have presets mapped)
     if (matched.length === 0 && reportIds.length > 0) {
       console.log('[TemplateCarousel] No presets match filter, showing all templates');
       return TEMPLATE_KEYS;

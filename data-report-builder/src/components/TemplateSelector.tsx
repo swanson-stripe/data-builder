@@ -17,11 +17,6 @@ export default function TemplateSelector() {
     dispatch({ type: 'SET_USER_MADE_CHANGES', payload: false });
   };
 
-  const handleFilterChange = (path: FilterPath) => {
-    console.log('[TemplateSelector] Filter path changed:', path);
-    setFilterPath(path);
-  };
-
   return (
     <div className="absolute flex flex-col" style={{ backgroundColor: 'var(--bg-primary)', top: '56px', left: 0, right: 0, bottom: 0 }}>
       {/* Main content area */}
@@ -34,7 +29,7 @@ export default function TemplateSelector() {
 
           {/* Category Filter */}
           <div className="w-full">
-            <CategoryFilter onFilterChange={handleFilterChange} />
+            <CategoryFilter filterPath={filterPath} setFilterPath={setFilterPath} />
           </div>
 
           {/* Template Carousel */}
