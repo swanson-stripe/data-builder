@@ -29,6 +29,8 @@ type PresetBlock = {
 type PresetConfig = {
   key: PresetKey;
   label: string;
+  // Report ID from template taxonomy for category filtering
+  reportId?: string;
   // Objects to auto-select in the Data tab
   objects: string[];
   // Qualified fields to auto-select in the Data List
@@ -84,6 +86,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   mrr: {
     key: 'mrr',
     label: 'MRR',
+    reportId: 'mrr_by_plan',
     objects: ['subscription', 'customer', 'subscription_item', 'price'],
     fields: [
       { object: 'subscription', field: 'id' },
@@ -122,6 +125,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   gross_volume: {
     key: 'gross_volume',
     label: 'Gross Volume',
+    reportId: 'payments_volume_over_time',
     objects: ['charge', 'customer'],
     fields: [
       { object: 'charge', field: 'id' },
@@ -149,6 +153,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   active_subscribers: {
     key: 'active_subscribers',
     label: 'Active Subscribers',
+    reportId: 'mrr_by_plan',
     objects: ['subscription', 'customer', 'invoice'],
     fields: [
       { object: 'subscription', field: 'id' },
@@ -186,6 +191,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   refund_count: {
     key: 'refund_count',
     label: 'Refund Count',
+    reportId: 'refund_rate_over_time',
     objects: ['refund', 'payment', 'charge', 'customer'],
     fields: [
       { object: 'refund', field: 'id' },
@@ -218,6 +224,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   subscriber_ltv: {
     key: 'subscriber_ltv',
     label: 'ARPU',
+    reportId: 'customer_lifetime_value_to_date',
     objects: ['subscription', 'customer', 'invoice'], // Start with subscription to only include customers who subscribe
     fields: [
       { object: 'customer', field: 'id' },
@@ -247,6 +254,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   customer_acquisition: {
     key: 'customer_acquisition',
     label: 'Customer Acquisition',
+    reportId: 'new_customers_over_time',
     objects: ['customer', 'charge'],
     fields: [
       { object: 'customer', field: 'id' },
@@ -275,6 +283,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   payment_success_rate: {
     key: 'payment_success_rate',
     label: 'Payment Success Rate',
+    reportId: 'payments_acceptance_overview',
     objects: ['charge'],
     fields: [
       { object: 'charge', field: 'id' },
@@ -338,6 +347,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
   revenue_by_product: {
     key: 'revenue_by_product',
     label: 'Revenue by Product',
+    reportId: 'revenue_by_product',
     objects: ['charge', 'product'],
     fields: [
       { object: 'product', field: 'name' },
