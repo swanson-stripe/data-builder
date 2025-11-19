@@ -46,7 +46,21 @@ export type ReportKey =
   | 'revenue_by_product'
   | 'payment_acceptance_by_method'
   | 'payment_funnel'
-  | 'payment_volume_by_attribute';
+  | 'payment_volume_by_attribute'
+  | 'payments_net_revenue'
+  | 'first_purchase_behavior'
+  | 'active_customers'
+  | 'purchase_frequency'
+  | 'customer_ltv'
+  | 'subscription_churn'
+  | 'invoice_status'
+  | 'current_balances'
+  | 'balance_flows'
+  | 'payouts_over_time'
+  | 'dispute_rates'
+  | 'disputes_by_reason'
+  | 'discounted_revenue'
+  | 'tax_by_jurisdiction';
 
 export type ReportSeries = {
   key: ReportKey;
