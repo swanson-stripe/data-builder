@@ -233,6 +233,8 @@ const warehouse = {
   invoices: [],
   charges: [],
   payouts: [],
+  balance_transactions: [],
+  coupons: [],
 };
 
 // 1️⃣ Generate Customers
@@ -241,11 +243,13 @@ console.log(`1️⃣  Generating ${CUSTOMERS} customers...`);
 const COUNTRIES = ['US', 'US', 'US', 'US', 'US', 'CA', 'CA', 'MX', 'GB', 'DE', 'FR', 'AU', 'JP', 'BR']; // Bias toward North America
 for (let i = 0; i < CUSTOMERS; i++) {
   const created = randomDate(START_DATE, END_DATE);
+  const country = pick(COUNTRIES);
   warehouse.customers.push({
     id: stripeId('cus'),
     email: faker.internet.email().toLowerCase(),
     name: faker.person.fullName(),
-    country: pick(COUNTRIES), // Use valid ISO country codes with North America bias
+    country, // Use valid ISO country codes with North America bias
+    address_country: country, // Same value for schema compatibility
     created: iso(created),
     balance: faker.number.int({ min: -10000, max: 10000 }),
     delinquent: faker.datatype.boolean({ probability: 0.1 }),
@@ -343,17 +347,22 @@ for (let i = 0; i < SUBSCRIPTIONS && i < activeCustomers.length; i++) {
   periodEnd.setMonth(periodEnd.getMonth() + periodLength); // End in the future
 
   const canceledAt = isCanceled ? randomDate(created, END_DATE) : undefined;
+  const status = isCanceled ? 'canceled' : pick(['active', 'active', 'active', 'trialing', 'past_due']); // Bias toward active
+  const isTrialing = status === 'trialing';
 
   const subId = stripeId('sub');
   warehouse.subscriptions.push({
     id: subId,
     customer_id: c.id,
     price_id: pr.id,
-    status: isCanceled ? 'canceled' : pick(['active', 'active', 'active', 'trialing', 'past_due']), // Bias toward active
+    status,
     created: iso(created),
     current_period_start: iso(periodStart),
     current_period_end: iso(periodEnd),
     canceled_at: canceledAt ? iso(canceledAt) : undefined,
+    cancellation_details_reason: canceledAt ? pick(['payment_failed', 'customer_request', 'other']) : undefined,
+    trial_start: isTrialing ? iso(periodStart) : undefined,
+    trial_end: isTrialing ? iso(new Date(periodStart.getTime() + 14 * 24 * 60 * 60 * 1000)) : undefined, // 14 day trial
   });
 
   // Generate 1-3 subscription items per subscription
@@ -441,6 +450,11 @@ for (let i = 0; i < chargeCount; i++) {
   if (productPrices.length === 0) continue; // Skip if no prices for this product
   const pr = pick(productPrices);
 
+  // Determine payment method type and card brand
+  const methodType = pick(['card', 'card', 'card', 'bank_account', 'us_bank_account']); // bias toward card
+  const cardBrand = methodType === 'card' ? pick(['visa', 'mastercard', 'amex', 'discover', 'diners', 'jcb', 'unionpay']) : undefined;
+  
+  const status = pick(['succeeded', 'succeeded', 'succeeded', 'pending', 'failed']); // bias toward succeeded
   const charge = {
     id: stripeId('ch'),
     customer_id: c.id,
@@ -448,8 +462,12 @@ for (let i = 0; i < chargeCount; i++) {
     price_id: pr.id,  // Link to price for consistency
     amount: pr.unit_amount,  // Use price's amount for consistency
     currency: pr.currency,  // Use price's currency
-    status: pick(['succeeded', 'succeeded', 'succeeded', 'pending', 'failed']), // bias toward succeeded
+    status,
+    paid: status === 'succeeded', // Set paid to true if status is succeeded
     created: iso(created),
+    payment_method_details_type: methodType,
+    payment_method_details_card_brand: cardBrand,
+    billing_details_address_country: c.country, // Use customer's country
   };
   warehouse.charges.push(charge);
 
@@ -497,6 +515,126 @@ for (const [month, data] of byMonth.entries()) {
   });
 }
 
+// 1️⃣1️⃣ Generate Balance Transactions
+console.log('1️⃣1️⃣ Generating balance transactions...');
+// Generate balance transactions for charges (with fees)
+// Stripe fee structure: 2.9% + $0.30 for cards, 0.8% for ACH (capped at $5)
+warehouse.charges.forEach((charge, i) => {
+  if (charge.status === 'succeeded') {
+    const paymentMethod = warehouse.payment_methods.find(pm => pm.id === charge.payment_method_id);
+    const isCard = paymentMethod?.type === 'card';
+    const feePercent = isCard ? 0.029 : 0.008;
+    const feeFixed = isCard ? 30 : 0; // $0.30 in cents
+    const fee = Math.min(
+      Math.round(charge.amount * feePercent) + feeFixed,
+      isCard ? charge.amount : 500 // Cap ACH at $5
+    );
+
+    // Charge transaction
+    warehouse.balance_transactions.push({
+      id: stripeId('txn'),
+      amount: charge.amount,
+      net: charge.amount, // Gross amount before fees
+      fee: 0,
+      currency: 'usd',
+      type: 'charge',
+      reporting_category: 'charge',
+      source_id: charge.id,
+      created: charge.created,
+    });
+
+    // Fee transaction (amount is positive for reporting purposes)
+    warehouse.balance_transactions.push({
+      id: stripeId('txn'),
+      amount: fee,
+      net: -fee,
+      fee: fee,
+      currency: 'usd',
+      type: 'charge',
+      reporting_category: 'charge_fee',
+      source_id: charge.id,
+      created: charge.created,
+    });
+  }
+});
+
+// Generate balance transactions for refunds
+warehouse.refunds.forEach((refund, i) => {
+  if (refund.status === 'succeeded') {
+    // Find the original payment to calculate refunded fee
+    const payment = warehouse.payments.find(p => p.id === refund.payment_id);
+    if (payment) {
+      const paymentMethod = warehouse.payment_methods.find(pm => pm.id === payment.payment_method_id);
+      const isCard = paymentMethod?.type === 'card';
+      const feePercent = isCard ? 0.029 : 0.008;
+      const feeFixed = isCard ? 30 : 0;
+      const refundedFee = Math.min(
+        Math.round(refund.amount * feePercent) + feeFixed,
+        isCard ? refund.amount : 500
+      );
+
+      warehouse.balance_transactions.push({
+        id: stripeId('txn'),
+        amount: -refund.amount,
+        net: -(refund.amount - refundedFee), // Stripe keeps the fee on refunds
+        fee: refundedFee,
+        currency: 'usd',
+        type: 'refund',
+        reporting_category: 'refund',
+        source_id: refund.id,
+        created: refund.created,
+      });
+    }
+  }
+});
+
+// Generate balance transactions for payouts
+warehouse.payouts.forEach((payout, i) => {
+  warehouse.balance_transactions.push({
+    id: stripeId('txn'),
+    amount: -payout.amount,
+    net: -payout.amount,
+    fee: 0,
+    currency: 'usd',
+    type: 'payout',
+    reporting_category: 'payout',
+    source_id: payout.id,
+    created: payout.created,
+  });
+});
+
+console.log(`   Generated ${warehouse.balance_transactions.length} balance transactions`);
+
+// 1️⃣2️⃣ Generate Coupons
+console.log('1️⃣2️⃣ Generating coupons...');
+const COUPON_NAMES = [
+  'SUMMER2025', 'WELCOME10', 'ANNUAL20', 'FLASH50', 'LOYALTY15',
+  'FIRSTTIME', 'UPGRADE25', 'FRIENDS30', 'EARLYBIRD', 'BLACKFRIDAY',
+  'NEWYEAR', 'SPRING15', 'FALL20', 'WINTER25', 'REFER30',
+  'SAVE10', 'DISCOUNT20', 'PROMO50', 'SPECIAL', 'VIP'
+];
+
+for (let i = 0; i < 20; i++) {
+  const isPercentOff = i % 2 === 0;
+  const duration = pick(['forever', 'once', 'repeating']);
+
+  warehouse.coupons.push({
+    id: stripeId('coup'),
+    name: COUPON_NAMES[i],
+    amount_off: isPercentOff ? undefined : pick([500, 1000, 2000, 5000, 10000]),
+    percent_off: isPercentOff ? pick([10, 15, 20, 25, 30, 50]) : undefined,
+    currency: isPercentOff ? undefined : 'usd',
+    duration,
+    duration_in_months: duration === 'repeating' ? pick([3, 6, 12]) : undefined,
+    max_redemptions: i % 3 === 0 ? pick([50, 100, 200, 500]) : undefined,
+    times_redeemed: Math.floor(Math.random() * 100),
+    valid: i < 16, // First 16 are valid
+    created: '2025-01-01',
+  });
+}
+
+console.log(`   Generated ${warehouse.coupons.length} coupons`);
+
 // ============================================================================
 // Validate Before Saving
 // ============================================================================
@@ -528,6 +666,8 @@ import type {
   Invoice,
   Charge,
   Payout,
+  BalanceTransaction,
+  Coupon,
   Warehouse,
 } from './warehouse';
 
@@ -570,20 +710,22 @@ fs.writeFileSync(path.join(publicDataDir, 'manifest.json'), JSON.stringify(manif
 
 console.log('\n✅ Warehouse generated successfully!');
 console.log('\n📊 Dataset Summary:');
-console.log(`   Customers:         ${warehouse.customers.length.toLocaleString()}`);
-console.log(`   Payment Methods:   ${warehouse.payment_methods.length.toLocaleString()}`);
-console.log(`   Products:          ${warehouse.products.length.toLocaleString()}`);
-console.log(`   Prices:            ${warehouse.prices.length.toLocaleString()}`);
-console.log(`   Payments:          ${warehouse.payments.length.toLocaleString()}`);
-console.log(`   Refunds:           ${warehouse.refunds.length.toLocaleString()}`);
-console.log(`   Subscriptions:     ${warehouse.subscriptions.length.toLocaleString()}`);
-console.log(`   Subscription Items: ${warehouse.subscription_items.length.toLocaleString()}`);
-console.log(`   Invoices:          ${warehouse.invoices.length.toLocaleString()}`);
-console.log(`   Charges:           ${warehouse.charges.length.toLocaleString()}`);
-console.log(`   Payouts:           ${warehouse.payouts.length.toLocaleString()}`);
+console.log(`   Customers:            ${warehouse.customers.length.toLocaleString()}`);
+console.log(`   Payment Methods:      ${warehouse.payment_methods.length.toLocaleString()}`);
+console.log(`   Products:             ${warehouse.products.length.toLocaleString()}`);
+console.log(`   Prices:               ${warehouse.prices.length.toLocaleString()}`);
+console.log(`   Payments:             ${warehouse.payments.length.toLocaleString()}`);
+console.log(`   Refunds:              ${warehouse.refunds.length.toLocaleString()}`);
+console.log(`   Subscriptions:        ${warehouse.subscriptions.length.toLocaleString()}`);
+console.log(`   Subscription Items:   ${warehouse.subscription_items.length.toLocaleString()}`);
+console.log(`   Invoices:             ${warehouse.invoices.length.toLocaleString()}`);
+console.log(`   Charges:              ${warehouse.charges.length.toLocaleString()}`);
+console.log(`   Payouts:              ${warehouse.payouts.length.toLocaleString()}`);
+console.log(`   Balance Transactions: ${warehouse.balance_transactions.length.toLocaleString()}`);
+console.log(`   Coupons:              ${warehouse.coupons.length.toLocaleString()}`);
 console.log(`\n📅 Date Range: ${iso(START_DATE)} to ${iso(END_DATE)} (${YEARS} years)`);
 console.log(`\n💾 Output: ${outputPath}`);
 console.log('\n🔍 Next steps:');
 console.log('   1. Restart dev server: npm run dev');
 console.log('   2. Refresh browser');
-console.log('   3. Test 1M, 3M, YTD buttons\n');
+console.log('   3. Test all reports with new data\n');

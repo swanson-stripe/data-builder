@@ -34,7 +34,11 @@ export type SeriesPoint = {
   value: number;
 };
 
-export type ReportKey =
+// Allow dynamic report IDs from taxonomy in addition to predefined preset keys
+export type ReportKey = string;
+
+// Legacy preset keys (for reference and backwards compatibility)
+export type PresetReportKey =
   | 'blank'
   | 'mrr'
   | 'gross_volume'

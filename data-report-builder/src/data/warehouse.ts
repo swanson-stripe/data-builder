@@ -12,6 +12,7 @@ export interface Customer {
   email: string;
   name: string;
   country: string;
+  address_country: string; // Alias for country to match schema
   created: string;
   balance: number;
   delinquent: boolean;
@@ -80,6 +81,9 @@ export interface Subscription {
   current_period_end: string;
   canceled_at?: string;
   cancel_at_period_end?: boolean;
+  cancellation_details_reason?: 'payment_failed' | 'customer_request' | 'other';
+  trial_start?: string;
+  trial_end?: string;
 }
 
 export interface SubscriptionItem {
@@ -113,7 +117,11 @@ export interface Charge {
   amount: number;
   currency: string;
   status: 'succeeded' | 'pending' | 'failed';
+  paid?: boolean;
   created: string;
+  payment_method_details_type?: 'card' | 'bank_account' | 'us_bank_account';
+  payment_method_details_card_brand?: 'visa' | 'mastercard' | 'amex' | 'discover' | 'diners' | 'jcb' | 'unionpay';
+  billing_details_address_country?: string;
 }
 
 export interface Payout {
@@ -123,6 +131,32 @@ export interface Payout {
   destination: string;
   status: 'paid' | 'pending' | 'canceled';
   arrival_date?: string;
+  created: string;
+}
+
+export interface BalanceTransaction {
+  id: string;
+  amount: number; // Gross amount in cents
+  net: number; // Net amount after fees
+  fee: number; // Fee amount in cents
+  currency: string;
+  type: 'charge' | 'refund' | 'adjustment' | 'payout' | 'payout_cancel' | 'transfer';
+  reporting_category: string; // e.g., 'charge', 'charge_fee', 'refund', etc.
+  source_id?: string; // ID of the charge, refund, etc.
+  created: string;
+}
+
+export interface Coupon {
+  id: string;
+  name: string;
+  amount_off?: number; // Amount off in cents
+  percent_off?: number; // Percent off (0-100)
+  currency?: string;
+  duration: 'forever' | 'once' | 'repeating';
+  duration_in_months?: number;
+  max_redemptions?: number;
+  times_redeemed: number;
+  valid: boolean;
   created: string;
 }
 
@@ -142,6 +176,8 @@ export interface Warehouse {
   invoices: Invoice[];
   charges: Charge[];
   payouts: Payout[];
+  balance_transactions: BalanceTransaction[];
+  coupons: Coupon[];
 }
 
 // ============================================================================
@@ -163,6 +199,8 @@ function generateWarehouseData(): Warehouse {
   const invoices: Invoice[] = [];
   const charges: Charge[] = [];
   const payouts: Payout[] = [];
+  const balance_transactions: BalanceTransaction[] = [];
+  const coupons: Coupon[] = [];
 
   // Helper to generate dates in 2025
   const randomDate2025 = (seed: number): string => {
@@ -194,11 +232,13 @@ function generateWarehouseData(): Warehouse {
     const name = customerNames[i];
     const email = `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`;
 
+    const country = countries[i % countries.length];
     customers.push({
       id,
       email,
       name,
-      country: countries[i % countries.length],
+      country,
+      address_country: country, // Same value for schema compatibility
       created: randomDate2025(i * 13),
       balance: [0, -50, -100, 200, 500][i % 5],
       delinquent: i % 10 === 0,
@@ -378,6 +418,116 @@ function generateWarehouseData(): Warehouse {
     });
   }
 
+  // Generate balance transactions for charges (with fees)
+  // Stripe fee structure: 2.9% + $0.30 for cards, 0.8% for ACH (capped at $5)
+  charges.forEach((charge, i) => {
+    if (charge.status === 'succeeded') {
+      const isCard = payment_methods.find(pm => pm.id === charge.payment_method_id)?.type === 'card';
+      const feePercent = isCard ? 0.029 : 0.008;
+      const feeFixed = isCard ? 30 : 0; // $0.30 in cents
+      const fee = Math.min(
+        Math.round(charge.amount * feePercent) + feeFixed,
+        isCard ? charge.amount : 500 // Cap ACH at $5
+      );
+      const net = charge.amount - fee;
+
+      // Charge transaction
+      balance_transactions.push({
+        id: `txn_charge_${String(i + 1).padStart(3, '0')}`,
+        amount: charge.amount,
+        net: charge.amount, // Gross amount before fees
+        fee: 0,
+        currency: 'usd',
+        type: 'charge',
+        reporting_category: 'charge',
+        source_id: charge.id,
+        created: charge.created,
+      });
+
+      // Fee transaction
+      balance_transactions.push({
+        id: `txn_fee_${String(i + 1).padStart(3, '0')}`,
+        amount: -fee,
+        net: -fee,
+        fee: fee,
+        currency: 'usd',
+        type: 'charge',
+        reporting_category: 'charge_fee',
+        source_id: charge.id,
+        created: charge.created,
+      });
+    }
+  });
+
+  // Generate balance transactions for refunds
+  refunds.forEach((refund, i) => {
+    if (refund.status === 'succeeded') {
+      // Find the original charge to calculate refunded fee
+      const payment = payments.find(p => p.id === refund.payment_id);
+      if (payment) {
+        const isCard = payment_methods.find(pm => pm.id === payment.payment_method_id)?.type === 'card';
+        const feePercent = isCard ? 0.029 : 0.008;
+        const feeFixed = isCard ? 30 : 0;
+        const refundedFee = Math.min(
+          Math.round(refund.amount * feePercent) + feeFixed,
+          isCard ? refund.amount : 500
+        );
+
+        balance_transactions.push({
+          id: `txn_refund_${String(i + 1).padStart(3, '0')}`,
+          amount: -refund.amount,
+          net: -(refund.amount - refundedFee), // Stripe keeps the fee on refunds
+          fee: refundedFee,
+          currency: 'usd',
+          type: 'refund',
+          reporting_category: 'refund',
+          source_id: refund.id,
+          created: refund.created,
+        });
+      }
+    }
+  });
+
+  // Generate balance transactions for payouts
+  payouts.forEach((payout, i) => {
+    balance_transactions.push({
+      id: `txn_payout_${String(i + 1).padStart(3, '0')}`,
+      amount: -payout.amount,
+      net: -payout.amount,
+      fee: 0,
+      currency: 'usd',
+      type: 'payout',
+      reporting_category: 'payout',
+      source_id: payout.id,
+      created: payout.created,
+    });
+  });
+
+  // Generate 10 coupons
+  const couponNames = [
+    'SUMMER2025', 'WELCOME10', 'ANNUAL20', 'FLASH50', 'LOYALTY15',
+    'FIRSTTIME', 'UPGRADE25', 'FRIENDS30', 'EARLYBIRD', 'BLACKFRIDAY'
+  ];
+
+  for (let i = 0; i < 10; i++) {
+    const isPercentOff = i % 2 === 0;
+    const duration = ['forever', 'once', 'repeating'][i % 3] as 'forever' | 'once' | 'repeating';
+
+    coupons.push({
+      id: `coup_${String(i + 1).padStart(3, '0')}`,
+      name: couponNames[i],
+      amount_off: isPercentOff ? undefined : [500, 1000, 2000, 5000][i % 4],
+      percent_off: isPercentOff ? [10, 15, 20, 25, 30, 50][i % 6] : undefined,
+      currency: isPercentOff ? undefined : 'usd',
+      duration,
+      duration_in_months: duration === 'repeating' ? [3, 6, 12][i % 3] : undefined,
+      max_redemptions: i % 3 === 0 ? [50, 100, 200][i % 3] : undefined,
+      times_redeemed: Math.floor(Math.random() * 50),
+      valid: i < 8, // First 8 are valid
+      created: '2025-01-01',
+    });
+  }
+
   return {
     customers,
     payment_methods,
@@ -390,6 +540,8 @@ function generateWarehouseData(): Warehouse {
     invoices,
     charges,
     payouts,
+    balance_transactions,
+    coupons,
   };
 }
 
@@ -427,6 +579,8 @@ export function getWarehouseStats() {
     invoices: warehouse.invoices.length,
     charges: warehouse.charges.length,
     payouts: warehouse.payouts.length,
+    balance_transactions: warehouse.balance_transactions.length,
+    coupons: warehouse.coupons.length,
   };
 }
 

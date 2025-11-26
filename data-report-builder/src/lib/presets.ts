@@ -12,25 +12,7 @@ export type PresetKey =
   | 'refund_count'
   | 'subscriber_ltv'
   | 'customer_acquisition'
-  | 'payment_success_rate'
-  | 'revenue_by_product'
-  | 'payment_acceptance_by_method'
-  | 'payment_funnel'
-  | 'payment_volume_by_attribute'
-  | 'payments_net_revenue'
-  | 'first_purchase_behavior'
-  | 'active_customers'
-  | 'purchase_frequency'
-  | 'customer_ltv'
-  | 'subscription_churn'
-  | 'invoice_status'
-  | 'current_balances'
-  | 'balance_flows'
-  | 'payouts_over_time'
-  | 'dispute_rates'
-  | 'disputes_by_reason'
-  | 'discounted_revenue'
-  | 'tax_by_jurisdiction';
+  | 'payment_success_rate';
 
 type QualifiedField = { object: string; field: string };
 
@@ -360,423 +342,6 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
       direction: 'desc',
     },
   },
-
-  revenue_by_product: {
-    key: 'revenue_by_product',
-    label: 'Revenue by Product',
-    reportId: 'revenue_by_product',
-    objects: ['charge', 'product'],
-    fields: [
-      { object: 'product', field: 'name' },
-      { object: 'product', field: 'id' },
-      { object: 'charge', field: 'id' },
-      { object: 'charge', field: 'amount' },
-      { object: 'charge', field: 'created' },
-      { object: 'charge', field: 'status' },
-    ],
-    // Sum payment amounts
-    metric: {
-      name: 'Revenue by Product',
-      source: { object: 'charge', field: 'amount' },
-      op: 'sum',
-      type: 'sum_over_period',
-    },
-    range: { 
-      start: `${new Date().getFullYear()}-01-01`, 
-      end: todayISO(), 
-      granularity: 'week' 
-    },
-    chartType: 'bar',
-    defaultSort: {
-      column: 'charge.amount',
-      direction: 'desc',
-    },
-    groupBy: {
-      field: { object: 'product', field: 'name' },
-      selectedValues: [], // Empty array means show top 10 values from dataset
-    },
-  },
-
-  payment_acceptance_by_method: {
-    key: 'payment_acceptance_by_method',
-    label: 'Acceptance by Payment Method',
-    reportId: 'payments_acceptance_by_method',
-    objects: ['payment', 'payment_method'],
-    fields: [
-      { object: 'payment', field: 'id' },
-      { object: 'payment', field: 'amount' },
-      { object: 'payment', field: 'status' },
-      { object: 'payment', field: 'created' },
-      { object: 'payment_method', field: 'type' },
-      { object: 'payment_method', field: 'card_brand' },
-    ],
-    metric: {
-      name: 'Payment Attempts',
-      source: { object: 'payment', field: 'id' },
-      op: 'count',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'bar',
-    groupBy: {
-      field: { object: 'payment_method', field: 'type' },
-      selectedValues: [],
-    },
-  },
-
-  payment_funnel: {
-    key: 'payment_funnel',
-    label: 'Payment Funnel',
-    reportId: 'payments_funnel',
-    objects: ['payment'],
-    fields: [
-      { object: 'payment', field: 'id' },
-      { object: 'payment', field: 'status' },
-      { object: 'payment', field: 'amount' },
-      { object: 'payment', field: 'created' },
-    ],
-    metric: {
-      name: 'Payment Intent Lifecycle',
-      source: { object: 'payment', field: 'id' },
-      op: 'count',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'bar',
-  },
-
-  payment_volume_by_attribute: {
-    key: 'payment_volume_by_attribute',
-    label: 'Volume by Attribute',
-    reportId: 'payments_volume_by_attribute',
-    objects: ['charge', 'payment_method'],
-    fields: [
-      { object: 'charge', field: 'id' },
-      { object: 'charge', field: 'amount' },
-      { object: 'charge', field: 'currency' },
-      { object: 'charge', field: 'created' },
-      { object: 'payment_method', field: 'type' },
-    ],
-    metric: {
-      name: 'Payment Volume',
-      source: { object: 'charge', field: 'amount' },
-      op: 'sum',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'bar',
-    groupBy: {
-      field: { object: 'charge', field: 'currency' },
-      selectedValues: [],
-    },
-  },
-
-  payments_net_revenue: {
-    key: 'payments_net_revenue',
-    label: 'Net Revenue',
-    reportId: 'payments_net_revenue',
-    objects: ['balance_transaction'],
-    fields: [
-      { object: 'balance_transaction', field: 'id' },
-      { object: 'balance_transaction', field: 'amount' },
-      { object: 'balance_transaction', field: 'net' },
-      { object: 'balance_transaction', field: 'type' },
-      { object: 'balance_transaction', field: 'created' },
-    ],
-    metric: {
-      name: 'Net Amount',
-      source: { object: 'balance_transaction', field: 'net' },
-      op: 'sum',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'line',
-  },
-
-  first_purchase_behavior: {
-    key: 'first_purchase_behavior',
-    label: 'First Purchase Behavior',
-    reportId: 'first_purchase_behavior',
-    objects: ['customer', 'charge'],
-    fields: [
-      { object: 'customer', field: 'id' },
-      { object: 'customer', field: 'email' },
-      { object: 'customer', field: 'created' },
-      { object: 'charge', field: 'id' },
-      { object: 'charge', field: 'amount' },
-    ],
-    metric: {
-      name: 'Customers with Purchase',
-      source: { object: 'customer', field: 'id' },
-      op: 'count',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'bar',
-  },
-
-  active_customers: {
-    key: 'active_customers',
-    label: 'Active Customers',
-    reportId: 'active_customers',
-    objects: ['customer', 'charge'],
-    fields: [
-      { object: 'customer', field: 'id' },
-      { object: 'customer', field: 'email' },
-      { object: 'customer', field: 'created' },
-      { object: 'charge', field: 'id' },
-    ],
-    metric: {
-      name: 'Active Customers',
-      source: { object: 'customer', field: 'id' },
-      op: 'count',
-      type: 'latest',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'line',
-  },
-
-  purchase_frequency: {
-    key: 'purchase_frequency',
-    label: 'Purchase Frequency',
-    reportId: 'purchase_frequency',
-    objects: ['charge'],
-    fields: [
-      { object: 'charge', field: 'id' },
-      { object: 'charge', field: 'customer_id' },
-      { object: 'charge', field: 'amount' },
-      { object: 'charge', field: 'created' },
-    ],
-    metric: {
-      name: 'Average Orders per Customer',
-      source: { object: 'charge', field: 'id' },
-      op: 'count',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'line',
-  },
-
-  customer_ltv: {
-    key: 'customer_ltv',
-    label: 'Customer LTV',
-    reportId: 'customer_lifetime_value_to_date',
-    objects: ['charge', 'refund'],
-    fields: [
-      { object: 'charge', field: 'id' },
-      { object: 'charge', field: 'customer_id' },
-      { object: 'charge', field: 'amount' },
-      { object: 'refund', field: 'amount' },
-    ],
-    metric: {
-      name: 'LTV (to date)',
-      source: { object: 'charge', field: 'amount' },
-      op: 'sum',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'bar',
-  },
-
-  subscription_churn: {
-    key: 'subscription_churn',
-    label: 'Subscription Churn',
-    reportId: 'subscription_churn_over_time',
-    objects: ['subscription', 'subscription_item', 'price'],
-    fields: [
-      { object: 'subscription', field: 'id' },
-      { object: 'subscription', field: 'status' },
-      { object: 'subscription', field: 'canceled_at' },
-      { object: 'subscription_item', field: 'quantity' },
-      { object: 'price', field: 'unit_amount' },
-    ],
-    metric: {
-      name: 'Canceled Subscriptions',
-      source: { object: 'subscription', field: 'id' },
-      op: 'count',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'line',
-  },
-
-  invoice_status: {
-    key: 'invoice_status',
-    label: 'Invoice Status',
-    reportId: 'invoice_status_over_time',
-    objects: ['invoice'],
-    fields: [
-      { object: 'invoice', field: 'id' },
-      { object: 'invoice', field: 'status' },
-      { object: 'invoice', field: 'amount_due' },
-      { object: 'invoice', field: 'created' },
-    ],
-    metric: {
-      name: 'Issued Invoices',
-      source: { object: 'invoice', field: 'id' },
-      op: 'count',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'bar',
-  },
-
-  current_balances: {
-    key: 'current_balances',
-    label: 'Current Balances',
-    reportId: 'current_balances',
-    objects: ['balance'],
-    fields: [
-      { object: 'balance', field: 'available_amount' },
-      { object: 'balance', field: 'pending_amount' },
-      { object: 'balance', field: 'currency' },
-    ],
-    metric: {
-      name: 'Available Balance',
-      source: { object: 'balance', field: 'available_amount' },
-      op: 'sum',
-      type: 'latest',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'bar',
-  },
-
-  balance_flows: {
-    key: 'balance_flows',
-    label: 'Balance Flows',
-    reportId: 'balance_flows_over_time',
-    objects: ['balance_transaction'],
-    fields: [
-      { object: 'balance_transaction', field: 'id' },
-      { object: 'balance_transaction', field: 'amount' },
-      { object: 'balance_transaction', field: 'net' },
-      { object: 'balance_transaction', field: 'type' },
-      { object: 'balance_transaction', field: 'created' },
-    ],
-    metric: {
-      name: 'Net Change',
-      source: { object: 'balance_transaction', field: 'net' },
-      op: 'sum',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'line',
-  },
-
-  payouts_over_time: {
-    key: 'payouts_over_time',
-    label: 'Payouts Over Time',
-    reportId: 'payouts_over_time',
-    objects: ['payout'],
-    fields: [
-      { object: 'payout', field: 'id' },
-      { object: 'payout', field: 'amount' },
-      { object: 'payout', field: 'currency' },
-      { object: 'payout', field: 'status' },
-      { object: 'payout', field: 'created' },
-    ],
-    metric: {
-      name: 'Payout Amount',
-      source: { object: 'payout', field: 'amount' },
-      op: 'sum',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'bar',
-  },
-
-  dispute_rates: {
-    key: 'dispute_rates',
-    label: 'Dispute Rates',
-    reportId: 'dispute_rates_over_time',
-    objects: ['charge', 'dispute'],
-    fields: [
-      { object: 'charge', field: 'id' },
-      { object: 'charge', field: 'amount' },
-      { object: 'dispute', field: 'id' },
-      { object: 'dispute', field: 'amount' },
-    ],
-    metric: {
-      name: 'Charge Volume',
-      source: { object: 'charge', field: 'amount' },
-      op: 'sum',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'line',
-  },
-
-  disputes_by_reason: {
-    key: 'disputes_by_reason',
-    label: 'Disputes by Reason',
-    reportId: 'disputes_by_reason_and_country',
-    objects: ['dispute', 'charge'],
-    fields: [
-      { object: 'dispute', field: 'id' },
-      { object: 'dispute', field: 'amount' },
-      { object: 'dispute', field: 'reason' },
-      { object: 'charge', field: 'id' },
-    ],
-    metric: {
-      name: 'Disputes',
-      source: { object: 'dispute', field: 'id' },
-      op: 'count',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'bar',
-    groupBy: {
-      field: { object: 'dispute', field: 'reason' },
-      selectedValues: [],
-    },
-  },
-
-  discounted_revenue: {
-    key: 'discounted_revenue',
-    label: 'Discounted Revenue',
-    reportId: 'discounted_vs_full_price',
-    objects: ['invoice'],
-    fields: [
-      { object: 'invoice', field: 'id' },
-      { object: 'invoice', field: 'amount_paid' },
-      { object: 'invoice', field: 'total_discount_amounts_amount' },
-      { object: 'invoice', field: 'created' },
-    ],
-    metric: {
-      name: 'Total Revenue',
-      source: { object: 'invoice', field: 'amount_paid' },
-      op: 'sum',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'bar',
-  },
-
-  tax_by_jurisdiction: {
-    key: 'tax_by_jurisdiction',
-    label: 'Tax by Jurisdiction',
-    reportId: 'tax_by_jurisdiction',
-    objects: ['invoice'],
-    fields: [
-      { object: 'invoice', field: 'id' },
-      { object: 'invoice', field: 'tax' },
-      { object: 'invoice', field: 'subtotal' },
-      { object: 'invoice', field: 'customer_address_country' },
-      { object: 'invoice', field: 'created' },
-    ],
-    metric: {
-      name: 'Tax Amount',
-      source: { object: 'invoice', field: 'tax' },
-      op: 'sum',
-      type: 'sum_over_period',
-    },
-    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
-    chartType: 'bar',
-    groupBy: {
-      field: { object: 'invoice', field: 'customer_address_country' },
-      selectedValues: [],
-    },
-  },
 };
 
 export const PRESET_OPTIONS = Object.values(PRESET_CONFIGS).map(p => ({
@@ -785,16 +350,20 @@ export const PRESET_OPTIONS = Object.values(PRESET_CONFIGS).map(p => ({
 }));
 
 export function applyPreset(
-  key: PresetKey,
+  keyOrConfig: PresetKey | PresetConfig,
   dispatch: (a: AppAction) => void,
   currentState?: any, // Optional: pass current state to check existing blocks
   warehouse?: any // Optional: warehouse store for resolving groupBy values
 ) {
-  const p = PRESET_CONFIGS[key];
+  // Accept either a PresetKey string or a PresetConfig object
+  const p = typeof keyOrConfig === 'string' ? PRESET_CONFIGS[keyOrConfig] : keyOrConfig;
   if (!p) return;
 
+  // For string keys, use the key; for objects, use the key property (report ID)
+  const reportKey = typeof keyOrConfig === 'string' ? keyOrConfig : (p.key as PresetKey);
+
   // Set the report key first so the dropdown stays in sync
-  dispatch({ type: 'SET_REPORT', payload: key });
+  dispatch({ type: 'SET_REPORT', payload: reportKey });
 
   // Reset selections and clear any active bucket filter
   dispatch({ type: 'RESET_SELECTIONS' });
@@ -939,10 +508,19 @@ export function applyPreset(
   }
 
   // Apply groupBy if specified
-  if (p.groupBy && warehouse) {
-    const selectedValues = p.groupBy.selectedValues.length > 0
+  if (p.groupBy) {
+    // Check if warehouse has data loaded
+    const warehouseHasData = warehouse && Object.keys(warehouse).length > 0;
+    
+    // Get the primary object (first selected object or metric source object)
+    const primaryObject = p.objects?.[0] || p.metric?.source?.object;
+    
+    // Always get values from warehouse data if available, up to 10
+    // If preset has specific values selected, use those; otherwise get top 10 from data
+    // Pass primaryObject so cross-object grouping (e.g. subscription -> product.name) works correctly
+    const selectedValues = (p.groupBy.selectedValues && p.groupBy.selectedValues.length > 0)
       ? p.groupBy.selectedValues
-      : getGroupValues(warehouse, p.groupBy.field, 10);
+      : (warehouseHasData ? getGroupValues(warehouse, p.groupBy.field, 10, primaryObject) : []);
 
     dispatch({
       type: 'SET_GROUP_BY',

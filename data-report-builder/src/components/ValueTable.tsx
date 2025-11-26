@@ -14,6 +14,7 @@ import { useWarehouseStore } from '@/lib/useWarehouse';
 import schema from '@/data/schema';
 import { buildDataListView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
+import { resolveFieldValue, createFilteredWarehouse, batchResolveFieldValues } from '@/lib/grouping';
 
 export function ValueTable() {
   const { state, dispatch } = useApp();
@@ -163,21 +164,23 @@ export function ValueTable() {
     const allRows = warehouse[primaryObject as keyof typeof warehouse];
     if (!Array.isArray(allRows)) return null;
 
-    // Compute metric for each group
+    // Batch resolve all field values at once (much faster than per-row lookups)
+    const resolvedValues = batchResolveFieldValues(
+      allRows as any[],
+      primaryObject,
+      state.groupBy.field,
+      warehouse
+    );
+
+    // Compute metric for each selected group
     const results = new Map<string, typeof metricResult>();
     
     for (const groupValue of state.groupBy.selectedValues) {
-      // Filter rows for this group
-      const groupRows = allRows.filter(row => {
-        const value = row[state.groupBy!.field.field];
-        return String(value) === groupValue;
-      });
+      // Filter rows for this group using pre-computed values
+      const groupRows = (allRows as any[]).filter(row => resolvedValues.get(row) === groupValue);
 
-      // Create a temporary warehouse with only this group's rows
-      const groupWarehouse = {
-        ...warehouse,
-        [primaryObject]: groupRows,
-      };
+      // Create a filtered warehouse with all related tables filtered accordingly
+      const groupWarehouse = createFilteredWarehouse(warehouse, primaryObject, groupRows);
 
       // Compute metric for this group
       if (useFormula) {
@@ -204,6 +207,52 @@ export function ValueTable() {
           objects: state.selectedObjects,
         });
         results.set(groupValue, result);
+      }
+    }
+
+    // Compute "other" group for all unselected values (using pre-computed values)
+    const otherRows = (allRows as any[]).filter(row => {
+      const value = resolvedValues.get(row);
+      if (value === null) return false;
+      return !state.groupBy!.selectedValues.includes(value);
+    });
+
+    if (otherRows.length > 0) {
+      // Count how many unique "other" values there are (using pre-computed values)
+      const otherValuesSet = new Set(
+        otherRows.map(row => resolvedValues.get(row)).filter(v => v !== null)
+      );
+      const otherCount = otherValuesSet.size;
+
+      // Create a filtered warehouse with all related tables filtered accordingly
+      const otherWarehouse = createFilteredWarehouse(warehouse, primaryObject, otherRows);
+
+      // Compute metric for "other" group
+      if (useFormula) {
+        const { result } = computeFormula({
+          formula: state.metricFormula,
+          start: state.start,
+          end: state.end,
+          granularity: state.granularity,
+          store: otherWarehouse,
+          schema,
+          selectedObjects: state.selectedObjects,
+          selectedFields: state.selectedFields,
+        });
+        // Store with special key that includes count
+        results.set(`__other__${otherCount}`, result);
+      } else {
+        const result = computeMetric({
+          def: state.metric,
+          start: state.start,
+          end: state.end,
+          granularity: state.granularity,
+          store: otherWarehouse,
+          include: undefined,
+          schema,
+          objects: state.selectedObjects,
+        });
+        results.set(`__other__${otherCount}`, result);
       }
     }
 
@@ -472,7 +521,16 @@ export function ValueTable() {
             {groupedMetrics ? (
               <>
                 {/* Render a row for each group */}
-                {Array.from(groupedMetrics.entries()).map(([groupValue, groupResult], groupIdx) => {
+                {Array.from(groupedMetrics.entries()).map(([groupKey, groupResult], groupIdx) => {
+                  // Check if this is the "other" group
+                  const isOtherGroup = groupKey.startsWith('__other__');
+                  const otherCount = isOtherGroup ? parseInt(groupKey.replace('__other__', '')) : 0;
+                  
+                  // Get display name
+                  const displayName = isOtherGroup
+                    ? `All ${otherCount} other ${state.groupBy!.field.field}${otherCount === 1 ? '' : 's'}`
+                    : groupKey;
+                  
                   const colors = [
                     '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
                     '#3b82f6', '#ef4444', '#14b8a6', '#f97316', '#84cc16'
@@ -481,7 +539,7 @@ export function ValueTable() {
                   const groupPoints = groupResult.series || [];
                   
                   return (
-                    <tr key={groupValue} className="transition-colors">
+                    <tr key={groupKey} className="transition-colors">
                       <td 
                         className="py-2 pl-2 pr-6 whitespace-nowrap"
                         style={{ 
@@ -500,14 +558,14 @@ export function ValueTable() {
                           )}
                           <div className="flex flex-col">
                             <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                              {groupValue}
+                              {displayName}
                             </span>
                           </div>
                         </div>
                       </td>
                       {groupPoints.map((point, idx) => {
                         const isSelected = state.selectedBucket?.label === point.date;
-                        const isHovered = state.hoveredBucket === point.date && state.hoveredGroup === groupValue;
+                        const isHovered = state.hoveredBucket === point.date && state.hoveredGroup === groupKey;
                         return (
                           <td
                             key={idx}
@@ -523,18 +581,18 @@ export function ValueTable() {
                               // Apply both bucket and group filters
                               handleBucketClick(point.date);
                               
-                              // Add filter for the group value
-                              if (state.groupBy) {
+                              // Add filter for the group value (skip for "other" group)
+                              if (state.groupBy && !isOtherGroup) {
                                 dispatch(actions.addFilter({
                                   field: state.groupBy.field,
                                   operator: 'equals',
-                                  value: groupValue,
+                                  value: groupKey,
                                 }));
                               }
                             }}
                             onMouseEnter={() => {
                               dispatch(actions.setHoveredBucket(point.date));
-                              dispatch(actions.setHoveredGroup(groupValue));
+                              dispatch(actions.setHoveredGroup(groupKey));
                             }}
                             onMouseLeave={() => {
                               dispatch(actions.clearHoveredBucket());
@@ -545,18 +603,18 @@ export function ValueTable() {
                                 e.preventDefault();
                                 handleBucketClick(point.date);
                                 
-                                // Add filter for the group value
-                                if (state.groupBy) {
+                                // Add filter for the group value (skip for "other" group)
+                                if (state.groupBy && !isOtherGroup) {
                                   dispatch(actions.addFilter({
                                     field: state.groupBy.field,
                                     operator: 'equals',
-                                    value: groupValue,
+                                    value: groupKey,
                                   }));
                                 }
                               }
                             }}
                             role="button"
-                            aria-label={`Select period ${shortDate(point.date)} for ${groupValue}`}
+                            aria-label={`Select period ${shortDate(point.date)} for ${displayName}`}
                           >
                             <span className="text-sm underline" style={{ color: 'var(--text-primary)' }}>
                               {formatValue(point.value)}

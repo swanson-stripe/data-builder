@@ -17,6 +17,8 @@ type PresetConfig = {
 type Props = {
   template: PresetConfig;
   onSelect: () => void;
+  /** Optional description override - used for taxonomy reports */
+  description?: string;
 };
 
 // Map chart types to icons
@@ -108,7 +110,10 @@ const getTemplateDescription = (key: PresetKey): string => {
   return descriptions[key] || '';
 };
 
-export default function TemplateCard({ template, onSelect }: Props) {
+export default function TemplateCard({ template, onSelect, description }: Props) {
+  // Use provided description, or fall back to preset lookup
+  const displayDescription = description || getTemplateDescription(template.key);
+  
   return (
     <button
       onClick={onSelect}
@@ -133,7 +138,7 @@ export default function TemplateCard({ template, onSelect }: Props) {
           {template.label}
         </h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 400 }}>
-          {getTemplateDescription(template.key)}
+          {displayDescription}
         </p>
       </div>
     </button>

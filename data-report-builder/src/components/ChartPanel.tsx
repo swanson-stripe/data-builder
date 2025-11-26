@@ -14,7 +14,7 @@ import { useWarehouseStore } from '@/lib/useWarehouse';
 import schema from '@/data/schema';
 import { buildDataListView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
-import { getAvailableGroupFields, getGroupValues } from '@/lib/grouping';
+import { getAvailableGroupFields, getGroupValues, resolveFieldValue, createFilteredWarehouse, batchResolveFieldValues } from '@/lib/grouping';
 import GroupBySelector from './GroupBySelector';
 import { FieldFilter } from './FieldFilter';
 import type { MetricResult, FilterCondition, SchemaField } from '@/types';
@@ -250,22 +250,25 @@ export function ChartPanel() {
       return null;
     }
 
-    // Compute metric for each group
-    const results = new Map<string, MetricResult>();
     const groupBy = state.groupBy; // TypeScript narrowing
-    
-    for (const groupValue of groupBy.selectedValues) {
-      // Filter rows for this group
-      const groupRows = allRows.filter(row => {
-        const value = row[groupBy.field.field];
-        return String(value) === groupValue;
-      });
 
-      // Create a temporary warehouse with only this group's rows
-      const groupWarehouse = {
-        ...warehouse,
-        [primaryObject]: groupRows,
-      };
+    // Batch resolve all field values at once (much faster than per-row lookups)
+    const resolvedValues = batchResolveFieldValues(
+      allRows,
+      primaryObject,
+      groupBy.field,
+      warehouse
+    );
+
+    // Compute metric for each selected group
+    const results = new Map<string, MetricResult>();
+    
+    for (const groupKey of groupBy.selectedValues) {
+      // Filter rows for this group using pre-computed values
+      const groupRows = allRows.filter(row => resolvedValues.get(row) === groupKey);
+
+      // Create a filtered warehouse with all related tables filtered accordingly
+      const groupWarehouse = createFilteredWarehouse(warehouse, primaryObject, groupRows);
 
       // Compute metric for this group
       if (useFormula) {
@@ -279,7 +282,7 @@ export function ChartPanel() {
           selectedObjects: state.selectedObjects,
           selectedFields: state.selectedFields,
         });
-        results.set(groupValue, result);
+        results.set(groupKey, result);
       } else {
         const result = computeMetric({
           def: state.metric,
@@ -291,7 +294,53 @@ export function ChartPanel() {
           schema,
           objects: state.selectedObjects,
         });
-        results.set(groupValue, result);
+        results.set(groupKey, result);
+      }
+    }
+
+    // Compute "other" group for all unselected values (using pre-computed values)
+    const otherRows = allRows.filter(row => {
+      const value = resolvedValues.get(row);
+      if (value === null || value === undefined) return false;
+      return !groupBy.selectedValues.includes(value);
+    });
+
+    if (otherRows.length > 0) {
+      // Count how many unique "other" values there are (using pre-computed values)
+      const otherValuesSet = new Set(
+        otherRows.map(row => resolvedValues.get(row)).filter(v => v !== null)
+      );
+      const otherCount = otherValuesSet.size;
+
+      // Create a filtered warehouse with all related tables filtered accordingly
+      const otherWarehouse = createFilteredWarehouse(warehouse, primaryObject, otherRows);
+
+      // Compute metric for "other" group
+      if (useFormula) {
+        const { result } = computeFormula({
+          formula: state.metricFormula,
+          start: state.start,
+          end: state.end,
+          granularity: state.granularity,
+          store: otherWarehouse,
+          schema,
+          selectedObjects: state.selectedObjects,
+          selectedFields: state.selectedFields,
+        });
+        // Store with special key that includes count
+        results.set(`__other__${otherCount}`, result);
+      } else {
+        const result = computeMetric({
+          def: state.metric,
+          start: state.start,
+          end: state.end,
+          granularity: state.granularity,
+          store: otherWarehouse,
+          include: undefined,
+          schema,
+          objects: state.selectedObjects,
+        });
+        results.set(`__other__${otherCount}`, result);
       }
     }
 
@@ -492,12 +541,12 @@ export function ChartPanel() {
         }
         
         // Add each group's value
-        for (const [groupValue, groupResult] of groupedMetrics.entries()) {
+        for (const [groupKey, groupResult] of groupedMetrics.entries()) {
           if (groupResult.series && groupResult.series[index]) {
             const value = groupResult.series[index].value;
-            dataPoint[groupValue] = valueKind === 'currency' ? value / 100 : value;
+            dataPoint[groupKey] = valueKind === 'currency' ? value / 100 : value;
           } else {
-            dataPoint[groupValue] = 0;
+            dataPoint[groupKey] = 0;
           }
         }
         
@@ -890,8 +939,10 @@ export function ChartPanel() {
   // Group By: Get available values for selected field
   const availableGroupValues = useMemo(() => {
     if (!state.groupBy) return [];
-    return getGroupValues(warehouse, state.groupBy.field, 100);
-  }, [state.groupBy?.field, version]);
+    // Get the primary object for cross-object grouping
+    const primaryObject = state.selectedObjects[0] || state.metricFormula.blocks[0]?.source?.object;
+    return getGroupValues(warehouse, state.groupBy.field, 100, primaryObject);
+  }, [state.groupBy?.field, state.selectedObjects, state.metricFormula.blocks, version]);
   
   const enabledFields = useMemo(() => {
     const orderMap = new Map<string, number>();
@@ -1036,17 +1087,40 @@ export function ChartPanel() {
 
     if (Array.isArray(value)) {
       const formattedValues = value.map(v => formatValueLabel(String(v)));
+      const MAX_CHARS = 20;
+      
       if (formattedValues.length === 1) {
         return formattedValues[0];
       }
-      if (formattedValues.length === 2) {
-        return `${formattedValues[0]} and ${formattedValues[1]}`;
+      
+      // Check if first value alone exceeds limit
+      if (formattedValues[0].length > MAX_CHARS) {
+        return `${formattedValues[0]} and ${formattedValues.length - 1} more`;
       }
-      if (formattedValues.length === 3) {
-        return `${formattedValues[0]}, ${formattedValues[1]}, and ${formattedValues[2]}`;
+      
+      // Try to include multiple values within the limit
+      let result = formattedValues[0];
+      let includedCount = 1;
+      
+      for (let i = 1; i < formattedValues.length; i++) {
+        const nextValue = formattedValues[i];
+        const separator = i === formattedValues.length - 1 ? ' and ' : ', ';
+        const potentialResult = result + separator + nextValue;
+        
+        if (potentialResult.length > MAX_CHARS) {
+          break;
+        }
+        
+        result = potentialResult;
+        includedCount++;
       }
-      const remaining = formattedValues.length - 3;
-      return `${formattedValues[0]}, ${formattedValues[1]}, and ${remaining} more`;
+      
+      const remainingCount = formattedValues.length - includedCount;
+      if (remainingCount > 0) {
+        return `${result} and ${remainingCount} more`;
+      }
+      
+      return result;
     }
 
     return formatValueLabel(String(value));
@@ -1082,16 +1156,42 @@ export function ChartPanel() {
     const values = state.groupBy.selectedValues.map(formatValueLabel);
     if (values.length === 0) return 'Group by';
     
+    const MAX_CHARS = 20;
+    
+    // Try to fit as many values as possible within the character limit
     if (values.length === 1) {
       return values[0];
-    } else if (values.length === 2) {
-      return `${values[0]} and ${values[1]}`;
-    } else if (values.length === 3) {
-      return `${values[0]}, ${values[1]}, and ${values[2]}`;
-    } else {
-      const remaining = values.length - 3;
-      return `${values[0]}, ${values[1]}, ${values[2]}, and ${remaining} more`;
     }
+    
+    // Check if first value alone exceeds limit - if so, just show "X and Y more"
+    if (values[0].length > MAX_CHARS) {
+      return `${values[0]} and ${values.length - 1} more`;
+    }
+    
+    // Try to include multiple values within the limit
+    let result = values[0];
+    let includedCount = 1;
+    
+    for (let i = 1; i < values.length; i++) {
+      const nextValue = values[i];
+      const separator = i === values.length - 1 ? ' and ' : ', ';
+      const potentialResult = result + separator + nextValue;
+      
+      // If adding this value exceeds limit, stop and show "and X more"
+      if (potentialResult.length > MAX_CHARS) {
+        break;
+      }
+      
+      result = potentialResult;
+      includedCount++;
+    }
+    
+    const remainingCount = values.length - includedCount;
+    if (remainingCount > 0) {
+      return `${result} and ${remainingCount} more`;
+    }
+    
+    return result;
   }, [state.groupBy?.selectedValues, formatValueLabel]);
 
   const groupChips = useMemo<ControlChip[]>(() => {
@@ -1156,75 +1256,74 @@ export function ChartPanel() {
   ]);
 
   const renderFilterContent = () => {
-  const query = filterSearchQuery.trim().toLowerCase();
-  const filtered = query
-    ? enabledFields.filter((field) =>
-        field.fieldLabel.toLowerCase().includes(query) ||
-        field.objectLabel.toLowerCase().includes(query)
-      )
-    : enabledFields;
+    const query = filterSearchQuery.trim().toLowerCase();
+    // Filter out fields that already have a filter applied
+    const fieldsWithoutActiveFilter = enabledFields.filter((field) => !filtersByField.has(field.key));
+    const filtered = query
+      ? fieldsWithoutActiveFilter.filter((field) =>
+          field.fieldLabel.toLowerCase().includes(query) ||
+          field.objectLabel.toLowerCase().includes(query)
+        )
+      : fieldsWithoutActiveFilter;
 
-  return (
-    <>
-      <div style={{ padding: '0 12px', borderBottom: '1px solid var(--border-default)' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 0',
-            backgroundColor: 'transparent',
-          }}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            <path
-              d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M10.5 10.5L14 14"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search"
-            value={filterSearchQuery}
-            onChange={(e) => setFilterSearchQuery(e.target.value)}
+    return (
+      <>
+        <div style={{ padding: '0 12px', borderBottom: '1px solid var(--border-default)' }}>
+          <div
             style={{
-              flex: 1,
-              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 0',
               backgroundColor: 'transparent',
-              color: 'var(--text-primary)',
-              fontSize: '14px',
-              outline: 'none',
-              padding: 0,
             }}
-          />
-        </div>
-      </div>
-      <div style={{ maxHeight: '260px', overflowY: 'auto', padding: '8px 12px' }}>
-        {filtered.length === 0 ? (
-          <div className="text-sm" style={{ color: 'var(--text-muted)', padding: '8px 0' }}>
-            No matching fields
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <path
+                d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M10.5 10.5L14 14"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search"
+              value={filterSearchQuery}
+              onChange={(e) => setFilterSearchQuery(e.target.value)}
+              style={{
+                flex: 1,
+                border: 'none',
+                backgroundColor: 'transparent',
+                color: 'var(--text-primary)',
+                fontSize: '14px',
+                outline: 'none',
+                padding: 0,
+              }}
+            />
           </div>
-        ) : (
-          filtered.map((field) => {
-            const entry = filtersByField.get(field.key);
-            const summary = formatFilterSummary(field.schemaField, entry?.condition);
-            return (
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+          {filtered.length === 0 ? (
+            <div className="px-4 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+              No matching fields
+            </div>
+          ) : (
+            filtered.map((field) => (
               <button
                 key={field.key}
                 type="button"
@@ -1234,42 +1333,29 @@ export function ChartPanel() {
                   setIsGroupByFieldSelectorOpen(false);
                   setIsGroupByValueSelectorOpen(true);
                 }}
-                className="w-full text-left transition-colors"
+                className="w-full text-left transition-colors flex flex-col gap-1"
                 style={{
-                  backgroundColor:
-                    activeFilterField === field.key ? 'var(--bg-surface)' : 'transparent',
-                  borderRadius: '12px',
-                  padding: '10px 8px',
-                  marginBottom: '4px',
-                  border: 'none',
-                  cursor: 'pointer',
+                  paddingLeft: '16px',
+                  paddingRight: '16px',
+                  paddingTop: '8px',
+                  paddingBottom: '8px',
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
-                <div
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    color: 'var(--text-primary)',
-                  }}
-                >
+                <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>
                   {field.fieldLabel}
-                </div>
-                <div
-                  style={{
-                    fontSize: '12px',
-                    color: entry ? 'var(--text-primary)' : 'var(--text-muted)',
-                  }}
-                >
-                  {summary}
-                </div>
+                </span>
+                <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
+                  {field.ref.object}.{field.ref.field}
+                </span>
               </button>
-            );
-          })
-        )}
-      </div>
-    </>
-  );
-};
+            ))
+          )}
+        </div>
+      </>
+    );
+  };
 
 
   const renderFilterDetail = () => {
@@ -1279,7 +1365,7 @@ export function ChartPanel() {
 
     if (!fieldInfo) {
       return (
-        <div style={{ padding: '16px', minWidth: '320px' }}>
+        <div style={{ padding: '16px', width: '320px' }}>
           <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
             Select a field to filter.
           </p>
@@ -1292,7 +1378,7 @@ export function ChartPanel() {
     return (
       <div
         style={{
-          minWidth: '320px',
+          width: '320px',
           maxHeight: '360px',
           display: 'flex',
           flexDirection: 'column',
@@ -1567,7 +1653,7 @@ export function ChartPanel() {
       <MetricHeader />
 
       {/* Controls */}
-      <div className="flex items-center mt-10" style={{ gap: '12px' }}>
+      <div className="flex flex-wrap items-center mt-10" style={{ gap: '8px' }}>
         {/* Date Range Control */}
         <div className="relative inline-flex items-center">
           <div className="flex items-center gap-1 px-1" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '50px', height: '32px' }}>
@@ -2185,7 +2271,7 @@ export function ChartPanel() {
           style={{ minHeight: '32px' }}
         >
           {controlChips.map((chip) => (
-            <button
+          <button
               key={chip.key}
               type="button"
               ref={(el) => {
@@ -2298,7 +2384,7 @@ export function ChartPanel() {
               style={{
                 top: 0,
                 left: 0,
-                minWidth: '320px',
+                width: '320px',
                 maxHeight: '360px',
                 backgroundColor: 'var(--bg-elevated)',
                 borderRadius: '16px',
@@ -2402,7 +2488,7 @@ export function ChartPanel() {
               style={{
                 top: 0,
                 left: 0,
-                minWidth: '320px',
+                width: '320px',
                 maxHeight: '360px',
                 backgroundColor: 'var(--bg-elevated)',
                 borderRadius: '16px',
@@ -2514,7 +2600,16 @@ export function ChartPanel() {
               {/* Render grouped lines or single line */}
               {groupedMetrics ? (
                 // Render a line for each group
-                Array.from(groupedMetrics.keys()).map((groupValue, idx) => {
+                Array.from(groupedMetrics.keys()).map((groupKey, idx) => {
+                  // Check if this is the "other" group
+                  const isOtherGroup = groupKey.startsWith('__other__');
+                  const otherCount = isOtherGroup ? parseInt(groupKey.replace('__other__', '')) : 0;
+                  
+                  // Get display name
+                  const displayName = isOtherGroup
+                    ? `All ${otherCount} other ${state.groupBy!.field.field}${otherCount === 1 ? '' : 's'}`
+                    : groupKey;
+                  
                   const colors = [
                     '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
                     '#3b82f6', '#ef4444', '#14b8a6', '#f97316', '#84cc16'
@@ -2523,33 +2618,33 @@ export function ChartPanel() {
                   
                   return (
                     <Line
-                      key={groupValue}
+                      key={groupKey}
                       type="linear"
-                      dataKey={groupValue}
-                      name={groupValue}
+                      dataKey={groupKey}
+                      name={displayName}
                       stroke={color}
                       strokeWidth={2}
                       isAnimationActive={false}
                       dot={(props: any) => {
                         // Respect aggregation basis for grouped metrics (same logic as ungrouped)
                         const isSelected = state.selectedBucket?.label === props.payload.date;
-                        const isHovered = state.hoveredBucket === props.payload.date && state.hoveredGroup === groupValue;
+                        const isHovered = state.hoveredBucket === props.payload.date && state.hoveredGroup === groupKey;
                         const index = props.index;
                         
                         // For "latest" metrics, only show dot on last bucket
                         if (state.metric.type === 'latest' && index !== chartData.length - 1) {
-                          return <></>;
+                          return <g key={`${groupKey}-empty-${index}`} />;
                         }
                         
                         // For "first" metrics, only show dot on first bucket
                         if (state.metric.type === 'first' && index !== 0) {
-                          return <></>;
+                          return <g key={`${groupKey}-empty-${index}`} />;
                         }
                         
                         // Show dot with click handler
                         return (
                           <circle
-                            key={`${groupValue}-${index}`}
+                            key={`${groupKey}-${index}`}
                             cx={props.cx}
                             cy={props.cy}
                             r={isSelected ? 5 : isHovered ? 4.5 : 4}
@@ -2559,7 +2654,7 @@ export function ChartPanel() {
                             style={{ cursor: 'pointer' }}
                             onMouseEnter={() => {
                               dispatch(actions.setHoveredBucket(props.payload.date));
-                              dispatch(actions.setHoveredGroup(groupValue));
+                              dispatch(actions.setHoveredGroup(groupKey));
                             }}
                             onMouseLeave={() => {
                               dispatch(actions.clearHoveredBucket());
@@ -2582,7 +2677,7 @@ export function ChartPanel() {
                                 dispatch(actions.addFilter({
                                   field: state.groupBy.field,
                                   operator: 'equals',
-                                  value: groupValue,
+                                  value: groupKey,
                                 }));
                               }
                             }}
@@ -2723,7 +2818,7 @@ export function ChartPanel() {
               {/* Render grouped areas or single area */}
               {groupedMetrics ? (
                 // Render an area for each group (stacked)
-                Array.from(groupedMetrics.keys()).map((groupValue, idx) => {
+                Array.from(groupedMetrics.keys()).map((groupKey, idx) => {
                   const colors = [
                     '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
                     '#3b82f6', '#ef4444', '#14b8a6', '#f97316', '#84cc16'
@@ -2732,10 +2827,10 @@ export function ChartPanel() {
                   
                   return (
                     <Area
-                      key={groupValue}
+                      key={groupKey}
                       type="monotone"
-                      dataKey={groupValue}
-                      name={groupValue}
+                      dataKey={groupKey}
+                      name={groupKey}
                       fill={color}
                       fillOpacity={0.3}
                       stroke={color}
@@ -2745,7 +2840,7 @@ export function ChartPanel() {
                       dot={(props: any) => {
                         // Respect aggregation basis for grouped metrics
                         const isSelected = state.selectedBucket?.label === props.payload.date;
-                        const isHovered = state.hoveredBucket === props.payload.date && state.hoveredGroup === groupValue;
+                        const isHovered = state.hoveredBucket === props.payload.date && state.hoveredGroup === groupKey;
                         const index = props.index;
                         const { key, ...dotProps } = props;
                         
@@ -2771,7 +2866,7 @@ export function ChartPanel() {
                             style={{ cursor: 'pointer' }}
                             onMouseEnter={() => {
                               dispatch(actions.setHoveredBucket(props.payload.date));
-                              dispatch(actions.setHoveredGroup(groupValue));
+                              dispatch(actions.setHoveredGroup(groupKey));
                             }}
                             onMouseLeave={() => {
                               dispatch(actions.clearHoveredBucket());
@@ -2794,7 +2889,7 @@ export function ChartPanel() {
                                 dispatch(actions.addFilter({
                                   field: state.groupBy.field,
                                   operator: 'equals',
-                                  value: groupValue,
+                                  value: groupKey,
                                 }));
                               }
                             }}
@@ -2911,7 +3006,7 @@ export function ChartPanel() {
               {/* Render grouped bars (stacked) or single bar */}
               {groupedMetrics ? (
                 // Render a bar for each group (stacked)
-                Array.from(groupedMetrics.keys()).map((groupValue, idx) => {
+                Array.from(groupedMetrics.keys()).map((groupKey, idx) => {
                   const colors = [
                     '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
                     '#3b82f6', '#ef4444', '#14b8a6', '#f97316', '#84cc16'
@@ -2920,16 +3015,16 @@ export function ChartPanel() {
                   
                   return (
                     <Bar
-                      key={groupValue}
-                      dataKey={groupValue}
-                      name={groupValue}
+                      key={groupKey}
+                      dataKey={groupKey}
+                      name={groupKey}
                       fill={color}
                       isAnimationActive={false}
                       stackId="stack"
                       shape={(props: any) => {
                         const { x, y, width, height, payload } = props;
                         const isSelected = state.selectedBucket?.label === payload.date;
-                        const isHovered = state.hoveredBucket === payload.date && state.hoveredGroup === groupValue;
+                        const isHovered = state.hoveredBucket === payload.date && state.hoveredGroup === groupKey;
                         return (
                           <rect
                             x={x}
@@ -2943,7 +3038,7 @@ export function ChartPanel() {
                             style={{ cursor: 'pointer' }}
                             onMouseEnter={() => {
                               dispatch(actions.setHoveredBucket(payload.date));
-                              dispatch(actions.setHoveredGroup(groupValue));
+                              dispatch(actions.setHoveredGroup(groupKey));
                             }}
                             onMouseLeave={() => {
                               dispatch(actions.clearHoveredBucket());
@@ -2966,7 +3061,7 @@ export function ChartPanel() {
                                 dispatch(actions.addFilter({
                                   field: state.groupBy.field,
                                   operator: 'equals',
-                                  value: groupValue,
+                                  value: groupKey,
                                 }));
                               }
                             }}

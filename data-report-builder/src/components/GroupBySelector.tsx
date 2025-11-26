@@ -82,11 +82,42 @@ export default function GroupBySelector({
   const headerLabel = useMemo(() => {
     if (selected.size === 0) return chipLabel;
     const values = Array.from(selected).map(formatValueLabel);
-    if (values.length === 1) return values[0];
-    if (values.length === 2) return `${values[0]} and ${values[1]}`;
-    if (values.length === 3) return `${values[0]}, ${values[1]}, and ${values[2]}`;
-    const remaining = values.length - 3;
-    return `${values[0]}, ${values[1]}, ${values[2]}, and ${remaining} more`;
+    
+    const MAX_CHARS = 20;
+    
+    if (values.length === 1) {
+      return values[0];
+    }
+    
+    // Check if first value alone exceeds limit - if so, just show "X and Y more"
+    if (values[0].length > MAX_CHARS) {
+      return `${values[0]} and ${values.length - 1} more`;
+    }
+    
+    // Try to include multiple values within the limit
+    let result = values[0];
+    let includedCount = 1;
+    
+    for (let i = 1; i < values.length; i++) {
+      const nextValue = values[i];
+      const separator = i === values.length - 1 ? ' and ' : ', ';
+      const potentialResult = result + separator + nextValue;
+      
+      // If adding this value exceeds limit, stop and show "and X more"
+      if (potentialResult.length > MAX_CHARS) {
+        break;
+      }
+      
+      result = potentialResult;
+      includedCount++;
+    }
+    
+    const remainingCount = values.length - includedCount;
+    if (remainingCount > 0) {
+      return `${result} and ${remainingCount} more`;
+    }
+    
+    return result;
   }, [selected, chipLabel]);
 
   const isAllSelected = filteredValues.length > 0 && filteredValues.every(v => selected.has(v));

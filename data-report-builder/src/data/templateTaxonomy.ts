@@ -1,72 +1,85 @@
 // Template taxonomy for waterfall category filtering
-// Defines the hierarchical structure: Category → Topic → SubTopic → Report
+// Defines the hierarchical structure: Category → Topic → Report
 
-export interface BaseTable {
-  alias: string;
-  table: string;
-  join_on?: string;
-  join_type?: 'left' | 'right' | 'inner';
-}
-
-export interface ReportMetric {
-  id: string;
-  label: string;
-  expression: string;
-  type: 'integer' | 'currency' | 'ratio' | 'float';
-  note?: string;
-}
-
-export interface ReportDimension {
-  id: string;
-  label: string;
-  column: string | null;
-  table: string | null;
-  expression?: string;
-}
-
-export interface ReportFilter {
-  id: string;
-  label: string;
-  type: 'daterange' | 'enum' | 'string' | 'country' | 'number' | 'date' | 'boolean';
-  column: string;
-  operator: 'between' | 'in' | '=' | '>=' | '<=' | '>' | '<';
-  param?: string;
-  param_from?: string;
-  param_to?: string;
-  default_value?: string;
-}
-
-export interface ReportOrderBy {
-  expression: string;
-  direction: 'asc' | 'desc';
-}
-
+// These interfaces match the PresetConfig structure for seamless integration
 export interface TemplateReport {
   id: string;
   label: string;
   description: string;
-  base_tables: BaseTable[];
-  time_column: string;
-  metrics: ReportMetric[];
-  dimensions: ReportDimension[];
-  default_dimension: string | null;
-  required_filters: ReportFilter[];
-  optional_filters: ReportFilter[];
-  default_order_by?: ReportOrderBy[];
-}
-
-export interface TemplateSubTopic {
-  id: string;
-  label: string;
-  description: string;
-  reports: TemplateReport[];
+  objects: string[];
+  fields: Array<{
+    object: string;
+    field: string;
+    required: boolean;
+  }>;
+  metric: {
+    name: string;
+    source?: {
+      object: string;
+      field: string;
+    };
+    op: 'count' | 'sum' | 'avg';
+    type: 'sum_over_period' | 'latest' | 'average_over_period';
+  };
+  multiBlock?: {
+    blocks: Array<{
+      id: string;
+      name: string;
+      source: {
+        object: string;
+        field: string;
+      };
+      op: 'count' | 'sum' | 'avg';
+      type: 'sum_over_period' | 'latest' | 'average_over_period';
+      filters: Array<{
+        field: {
+          object: string;
+          field: string;
+        };
+        operator: string;
+        value: any;
+      }>;
+    }>;
+    calculation: {
+      operator: 'divide' | 'multiply' | 'add' | 'subtract';
+      leftOperand: string;
+      rightOperand: string;
+      resultUnitType: 'percentage' | 'currency' | 'number';
+    };
+    outputUnit: 'rate' | 'currency' | 'number';
+  };
+  range?: {
+    start: string;
+    end: string;
+    granularity: 'day' | 'week' | 'month' | 'quarter' | 'year';
+  };
+  filters?: Array<{
+    field: {
+      object: string;
+      field: string;
+    };
+    operator: string;
+    value: any;
+  }>;
+  chartType?: 'line' | 'bar';
+  defaultSort?: {
+    column: string;
+    direction: 'asc' | 'desc';
+  };
+  groupBy?: {
+    field: {
+      object: string;
+      field: string;
+    };
+    selectedValues: any[];
+  };
 }
 
 export interface TemplateTopic {
   id: string;
   label: string;
   description: string;
-  subTopics: TemplateSubTopic[];
+  reports: TemplateReport[];
 }
 
 export interface TemplateCategory {
@@ -80,1468 +93,904 @@ export const TEMPLATE_TAXONOMY: TemplateCategory[] = [
   {
     "id": "payments",
     "label": "Payments",
-    "description": "Understand payment performance, volume, refunds, and economics.",
+    "description": "What's happening with my payments, and why?",
     "topics": [
       {
         "id": "payments_performance_conversion",
         "label": "Performance & conversion",
-        "description": "Are my customers able to pay successfully? Where do payments fail?",
-        "subTopics": [
+        "description": "How often payments succeed or fail.",
+        "reports": [
           {
             "id": "payments_acceptance_overview",
-            "label": "Acceptance overview",
-            "description": "Overall payment acceptance and failure reasons over time.",
-            "reports": [
+            "label": "Payment acceptance rate",
+            "description": "Rate of successful payments to total attempts",
+            "objects": [
+              "charge"
+            ],
+            "fields": [
               {
-                "id": "payments_acceptance_overview_by_day",
-                "label": "Acceptance overview by day",
-                "description": "Overall payment acceptance and failure reasons over time. Grouped by day.",
-                "base_tables": [
-                  {
-                    "alias": "pi",
-                    "table": "payment_intents"
-                  },
-                  {
-                    "alias": "pm",
-                    "table": "payment_methods",
-                    "join_on": "pi.payment_method_id = pm.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "pi.created",
-                "metrics": [
-                  {
-                    "id": "attempts",
-                    "label": "Payment attempts",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "succeeded_payments",
-                    "label": "Succeeded payments",
-                    "expression": "SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "acceptance_rate",
-                    "label": "Acceptance rate",
-                    "expression": "SAFE_DIVIDE(SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END), COUNT(*))",
-                    "type": "ratio"
-                  },
-                  {
-                    "id": "failed_payments",
-                    "label": "Failed payments",
-                    "expression": "SUM(CASE WHEN pi.status = 'requires_payment_method' OR pi.status = 'canceled' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_day",
-                    "label": "By day",
-                    "expression": "DATE(pi.created)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_day",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Payment created date",
-                    "type": "daterange",
-                    "column": "pi.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [
-                  {
-                    "id": "currency",
-                    "label": "Currency",
-                    "type": "enum",
-                    "column": "pi.currency",
-                    "operator": "in",
-                    "param": "currency_list"
-                  },
-                  {
-                    "id": "country",
-                    "label": "Billing country",
-                    "type": "country",
-                    "column": "pm.billing_details_address_country",
-                    "operator": "in",
-                    "param": "country_list"
-                  }
-                ],
-                "default_order_by": [
-                  {
-                    "expression": "DATE(pi.created)",
-                    "direction": "asc"
-                  }
-                ]
+                "object": "charge",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "payments_acceptance_overview_by_currency",
-                "label": "Acceptance overview by currency",
-                "description": "Overall payment acceptance and failure reasons over time. Grouped by currency.",
-                "base_tables": [
-                  {
-                    "alias": "pi",
-                    "table": "payment_intents"
-                  },
-                  {
-                    "alias": "pm",
-                    "table": "payment_methods",
-                    "join_on": "pi.payment_method_id = pm.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "pi.created",
-                "metrics": [
-                  {
-                    "id": "attempts",
-                    "label": "Payment attempts",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "succeeded_payments",
-                    "label": "Succeeded payments",
-                    "expression": "SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "acceptance_rate",
-                    "label": "Acceptance rate",
-                    "expression": "SAFE_DIVIDE(SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END), COUNT(*))",
-                    "type": "ratio"
-                  },
-                  {
-                    "id": "failed_payments",
-                    "label": "Failed payments",
-                    "expression": "SUM(CASE WHEN pi.status = 'requires_payment_method' OR pi.status = 'canceled' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_currency",
-                    "label": "By currency",
-                    "column": "currency",
-                    "table": "pi"
-                  }
-                ],
-                "default_dimension": "by_currency",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Payment created date",
-                    "type": "daterange",
-                    "column": "pi.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [
-                  {
-                    "id": "currency",
-                    "label": "Currency",
-                    "type": "enum",
-                    "column": "pi.currency",
-                    "operator": "in",
-                    "param": "currency_list"
-                  },
-                  {
-                    "id": "country",
-                    "label": "Billing country",
-                    "type": "country",
-                    "column": "pm.billing_details_address_country",
-                    "operator": "in",
-                    "param": "country_list"
-                  }
-                ],
-                "default_order_by": [
-                  {
-                    "expression": "DATE(pi.created)",
-                    "direction": "asc"
-                  }
-                ]
+                "object": "charge",
+                "field": "amount",
+                "required": false
               },
               {
-                "id": "payments_acceptance_overview_by_payment_method_type",
-                "label": "Acceptance overview by payment method type",
-                "description": "Overall payment acceptance and failure reasons over time. Grouped by payment method type.",
-                "base_tables": [
-                  {
-                    "alias": "pi",
-                    "table": "payment_intents"
-                  },
-                  {
-                    "alias": "pm",
-                    "table": "payment_methods",
-                    "join_on": "pi.payment_method_id = pm.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "pi.created",
-                "metrics": [
-                  {
-                    "id": "attempts",
-                    "label": "Payment attempts",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "succeeded_payments",
-                    "label": "Succeeded payments",
-                    "expression": "SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "acceptance_rate",
-                    "label": "Acceptance rate",
-                    "expression": "SAFE_DIVIDE(SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END), COUNT(*))",
-                    "type": "ratio"
-                  },
-                  {
-                    "id": "failed_payments",
-                    "label": "Failed payments",
-                    "expression": "SUM(CASE WHEN pi.status = 'requires_payment_method' OR pi.status = 'canceled' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_payment_method_type",
-                    "label": "By payment method type",
-                    "column": "type",
-                    "table": "pm"
-                  }
-                ],
-                "default_dimension": "by_payment_method_type",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Payment created date",
-                    "type": "daterange",
-                    "column": "pi.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [
-                  {
-                    "id": "currency",
-                    "label": "Currency",
-                    "type": "enum",
-                    "column": "pi.currency",
-                    "operator": "in",
-                    "param": "currency_list"
-                  },
-                  {
-                    "id": "country",
-                    "label": "Billing country",
-                    "type": "country",
-                    "column": "pm.billing_details_address_country",
-                    "operator": "in",
-                    "param": "country_list"
-                  }
-                ],
-                "default_order_by": [
-                  {
-                    "expression": "DATE(pi.created)",
-                    "direction": "asc"
-                  }
-                ]
+                "object": "charge",
+                "field": "currency",
+                "required": false
               },
               {
-                "id": "payments_acceptance_overview_by_country",
-                "label": "Acceptance overview by billing country",
-                "description": "Overall payment acceptance and failure reasons over time. Grouped by billing country.",
-                "base_tables": [
-                  {
-                    "alias": "pi",
-                    "table": "payment_intents"
-                  },
-                  {
-                    "alias": "pm",
-                    "table": "payment_methods",
-                    "join_on": "pi.payment_method_id = pm.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "pi.created",
-                "metrics": [
-                  {
-                    "id": "attempts",
-                    "label": "Payment attempts",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "succeeded_payments",
-                    "label": "Succeeded payments",
-                    "expression": "SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "acceptance_rate",
-                    "label": "Acceptance rate",
-                    "expression": "SAFE_DIVIDE(SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END), COUNT(*))",
-                    "type": "ratio"
-                  },
-                  {
-                    "id": "failed_payments",
-                    "label": "Failed payments",
-                    "expression": "SUM(CASE WHEN pi.status = 'requires_payment_method' OR pi.status = 'canceled' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_country",
-                    "label": "By billing country",
-                    "column": "billing_details_address_country",
-                    "table": "pm"
-                  }
-                ],
-                "default_dimension": "by_country",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Payment created date",
-                    "type": "daterange",
-                    "column": "pi.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [
-                  {
-                    "id": "currency",
-                    "label": "Currency",
-                    "type": "enum",
-                    "column": "pi.currency",
-                    "operator": "in",
-                    "param": "currency_list"
-                  },
-                  {
-                    "id": "country",
-                    "label": "Billing country",
-                    "type": "country",
-                    "column": "pm.billing_details_address_country",
-                    "operator": "in",
-                    "param": "country_list"
-                  }
-                ],
-                "default_order_by": [
-                  {
-                    "expression": "DATE(pi.created)",
-                    "direction": "asc"
-                  }
-                ]
+                "object": "charge",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "created",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Payment acceptance rate",
+              "source": {
+                "object": "charge",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "sum_over_period"
+            },
+            "multiBlock": {
+              "blocks": [
+                {
+                  "id": "successful_payments",
+                  "name": "Payment acceptance rate",
+                  "source": {
+                    "object": "charge",
+                    "field": "id"
+                  },
+                  "op": "count",
+                  "type": "sum_over_period",
+                  "filters": [
+                    {
+                      "field": {
+                        "object": "charge",
+                        "field": "status"
+                      },
+                      "operator": "equals",
+                      "value": "succeeded"
+                    }
+                  ]
+                },
+                {
+                  "id": "total_payments",
+                  "name": "Total payments",
+                  "source": {
+                    "object": "charge",
+                    "field": "id"
+                  },
+                  "op": "count",
+                  "type": "sum_over_period",
+                  "filters": []
+                }
+              ],
+              "calculation": {
+                "operator": "divide",
+                "leftOperand": "successful_payments",
+                "rightOperand": "total_payments",
+                "resultUnitType": "percentage"
+              },
+              "outputUnit": "rate"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "week"
+            },
+            "filters": [],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "charge.created",
+              "direction": "desc"
+            }
           },
           {
             "id": "payments_acceptance_by_method",
-            "label": "Acceptance by payment method",
-            "description": "Compare acceptance performance across payment method types and brands.",
-            "reports": [
+            "label": "Payment acceptance rate by payment method",
+            "description": "Acceptance rates across payment methods and card brands",
+            "objects": [
+              "charge"
+            ],
+            "fields": [
               {
-                "id": "payments_acceptance_by_method_payment_method_type",
-                "label": "Payment method type",
-                "description": "Compare acceptance performance across payment method types and brands. Grouped payment method type.",
-                "base_tables": [
-                  {
-                    "alias": "pi",
-                    "table": "payment_intents"
-                  },
-                  {
-                    "alias": "pm",
-                    "table": "payment_methods",
-                    "join_on": "pi.payment_method_id = pm.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "pi.created",
-                "metrics": [
-                  {
-                    "id": "attempts",
-                    "label": "Payment attempts",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "succeeded",
-                    "label": "Succeeded",
-                    "expression": "SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "acceptance_rate",
-                    "label": "Acceptance rate",
-                    "expression": "SAFE_DIVIDE(SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END), COUNT(*))",
-                    "type": "ratio"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "payment_method_type",
-                    "label": "Payment method type",
-                    "column": "type",
-                    "table": "pm"
-                  }
-                ],
-                "default_dimension": "payment_method_type",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Payment created date",
-                    "type": "daterange",
-                    "column": "pi.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [
-                  {
-                    "id": "currency",
-                    "label": "Currency",
-                    "type": "enum",
-                    "column": "pi.currency",
-                    "operator": "in",
-                    "param": "currency_list"
-                  }
-                ],
-                "default_order_by": []
+                "object": "charge",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "payments_acceptance_by_method_card_brand",
-                "label": "Card brand",
-                "description": "Compare acceptance performance across payment method types and brands. Grouped card brand.",
-                "base_tables": [
-                  {
-                    "alias": "pi",
-                    "table": "payment_intents"
-                  },
-                  {
-                    "alias": "pm",
-                    "table": "payment_methods",
-                    "join_on": "pi.payment_method_id = pm.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "pi.created",
-                "metrics": [
-                  {
-                    "id": "attempts",
-                    "label": "Payment attempts",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "succeeded",
-                    "label": "Succeeded",
-                    "expression": "SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "acceptance_rate",
-                    "label": "Acceptance rate",
-                    "expression": "SAFE_DIVIDE(SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END), COUNT(*))",
-                    "type": "ratio"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "card_brand",
-                    "label": "Card brand",
-                    "column": "card_brand",
-                    "table": "pm"
-                  }
-                ],
-                "default_dimension": "card_brand",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Payment created date",
-                    "type": "daterange",
-                    "column": "pi.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [
-                  {
-                    "id": "currency",
-                    "label": "Currency",
-                    "type": "enum",
-                    "column": "pi.currency",
-                    "operator": "in",
-                    "param": "currency_list"
-                  }
-                ],
-                "default_order_by": []
+                "object": "charge",
+                "field": "amount",
+                "required": false
               },
               {
-                "id": "payments_acceptance_by_method_country",
-                "label": "Billing country",
-                "description": "Compare acceptance performance across payment method types and brands. Grouped billing country.",
-                "base_tables": [
-                  {
-                    "alias": "pi",
-                    "table": "payment_intents"
-                  },
-                  {
-                    "alias": "pm",
-                    "table": "payment_methods",
-                    "join_on": "pi.payment_method_id = pm.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "pi.created",
-                "metrics": [
-                  {
-                    "id": "attempts",
-                    "label": "Payment attempts",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "succeeded",
-                    "label": "Succeeded",
-                    "expression": "SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "acceptance_rate",
-                    "label": "Acceptance rate",
-                    "expression": "SAFE_DIVIDE(SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END), COUNT(*))",
-                    "type": "ratio"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "country",
-                    "label": "Billing country",
-                    "column": "billing_details_address_country",
-                    "table": "pm"
-                  }
-                ],
-                "default_dimension": "country",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Payment created date",
-                    "type": "daterange",
-                    "column": "pi.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [
-                  {
-                    "id": "currency",
-                    "label": "Currency",
-                    "type": "enum",
-                    "column": "pi.currency",
-                    "operator": "in",
-                    "param": "currency_list"
-                  }
-                ],
-                "default_order_by": []
+                "object": "charge",
+                "field": "currency",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "payment_method_details_type",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "payment_method_details_card_brand",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "created",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Payment acceptance rate by payment method",
+              "source": {
+                "object": "charge",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "sum_over_period"
+            },
+            "multiBlock": {
+              "blocks": [
+                {
+                  "id": "successful_method_payments",
+                  "name": "Payment acceptance rate by payment method",
+                  "source": {
+                    "object": "charge",
+                    "field": "id"
+                  },
+                  "op": "count",
+                  "type": "sum_over_period",
+                  "filters": [
+                    {
+                      "field": {
+                        "object": "charge",
+                        "field": "status"
+                      },
+                      "operator": "equals",
+                      "value": "succeeded"
+                    }
+                  ]
+                },
+                {
+                  "id": "total_method_payments",
+                  "name": "Total payments",
+                  "source": {
+                    "object": "charge",
+                    "field": "id"
+                  },
+                  "op": "count",
+                  "type": "sum_over_period",
+                  "filters": []
+                }
+              ],
+              "calculation": {
+                "operator": "divide",
+                "leftOperand": "successful_method_payments",
+                "rightOperand": "total_method_payments",
+                "resultUnitType": "percentage"
+              },
+              "outputUnit": "rate"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [],
+            "chartType": "bar",
+            "defaultSort": {
+              "column": "charge.payment_method_details_type",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "charge",
+                "field": "payment_method_details_type"
+              },
+              "selectedValues": []
+            }
           },
           {
-            "id": "payments_funnel",
-            "label": "Payment funnel (intent lifecycle)",
-            "description": "Track payment intents through key lifecycle stages to see where users drop off.",
-            "reports": [
+            "id": "payments_intent_funnel",
+            "label": "Payments count by status",
+            "description": "Count of payments by status over time",
+            "objects": [
+              "payment_intent"
+            ],
+            "fields": [
               {
-                "id": "payments_funnel_by_day",
-                "label": "Payment funnel (intent lifecycle) by day",
-                "description": "Track payment intents through key lifecycle stages to see where users drop off. Grouped by day.",
-                "base_tables": [
-                  {
-                    "alias": "pi",
-                    "table": "payment_intents"
-                  }
-                ],
-                "time_column": "pi.created",
-                "metrics": [
-                  {
-                    "id": "created",
-                    "label": "Created",
-                    "expression": "SUM(CASE WHEN pi.status IS NOT NULL THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "requires_action",
-                    "label": "Requires action",
-                    "expression": "SUM(CASE WHEN pi.status = 'requires_action' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "requires_payment_method",
-                    "label": "Requires payment method",
-                    "expression": "SUM(CASE WHEN pi.status = 'requires_payment_method' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "succeeded",
-                    "label": "Succeeded",
-                    "expression": "SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "canceled",
-                    "label": "Canceled",
-                    "expression": "SUM(CASE WHEN pi.status = 'canceled' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_day",
-                    "label": "By day",
-                    "expression": "DATE(pi.created)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_day",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Payment intent created date",
-                    "type": "daterange",
-                    "column": "pi.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "payment_intent",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "payments_funnel_by_country",
-                "label": "Payment funnel (intent lifecycle) by customer country (if available)",
-                "description": "Track payment intents through key lifecycle stages to see where users drop off. Grouped by customer country (if available).",
-                "base_tables": [
-                  {
-                    "alias": "pi",
-                    "table": "payment_intents"
-                  }
-                ],
-                "time_column": "pi.created",
-                "metrics": [
-                  {
-                    "id": "created",
-                    "label": "Created",
-                    "expression": "SUM(CASE WHEN pi.status IS NOT NULL THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "requires_action",
-                    "label": "Requires action",
-                    "expression": "SUM(CASE WHEN pi.status = 'requires_action' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "requires_payment_method",
-                    "label": "Requires payment method",
-                    "expression": "SUM(CASE WHEN pi.status = 'requires_payment_method' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "succeeded",
-                    "label": "Succeeded",
-                    "expression": "SUM(CASE WHEN pi.status = 'succeeded' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "canceled",
-                    "label": "Canceled",
-                    "expression": "SUM(CASE WHEN pi.status = 'canceled' THEN 1 ELSE 0 END)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_country",
-                    "label": "By customer country (if available)",
-                    "column": "metadata_country",
-                    "table": "pi"
-                  }
-                ],
-                "default_dimension": "by_country",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Payment intent created date",
-                    "type": "daterange",
-                    "column": "pi.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "payment_intent",
+                "field": "amount",
+                "required": false
+              },
+              {
+                "object": "payment_intent",
+                "field": "currency",
+                "required": false
+              },
+              {
+                "object": "payment_intent",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "payment_intent",
+                "field": "created",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Payments count by status",
+              "source": {
+                "object": "payment_intent",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [],
+            "chartType": "bar",
+            "defaultSort": {
+              "column": "payment_intent.status",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "payment_intent",
+                "field": "status"
+              },
+              "selectedValues": []
+            }
           }
         ]
       },
       {
         "id": "payments_volume_mix",
         "label": "Volume & mix",
-        "description": "How much volume do I process, and along which dimensions?",
-        "subTopics": [
+        "description": "How much volume you process and where it comes from.",
+        "reports": [
           {
             "id": "payments_volume_over_time",
-            "label": "Payment volume over time",
-            "description": "Track gross payment volume, count, and average order value over time.",
-            "reports": [
+            "label": "Successful payments volume",
+            "description": "Total volume from successful payments",
+            "objects": [
+              "charge"
+            ],
+            "fields": [
               {
-                "id": "payments_volume_over_time_by_day",
-                "label": "Payment volume over time by day",
-                "description": "Track gross payment volume, count, and average order value over time. Grouped by day.",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "gross_volume",
-                    "label": "Gross volume",
-                    "expression": "SUM(ch.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "payment_count",
-                    "label": "Payment count",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "avg_order_value",
-                    "label": "Average order value",
-                    "expression": "SAFE_DIVIDE(SUM(ch.amount), COUNT(*)) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_day",
-                    "label": "By day",
-                    "expression": "DATE(ch.created)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_day",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Charge created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [
-                  {
-                    "id": "succeeded_only",
-                    "label": "Succeeded charges only",
-                    "type": "boolean",
-                    "column": "ch.status",
-                    "operator": "=",
-                    "param": "status",
-                    "default_value": "succeeded"
-                  }
-                ],
-                "default_order_by": []
+                "object": "charge",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "payments_volume_over_time_by_week",
-                "label": "Payment volume over time by iso week",
-                "description": "Track gross payment volume, count, and average order value over time. Grouped by iso week.",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "gross_volume",
-                    "label": "Gross volume",
-                    "expression": "SUM(ch.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "payment_count",
-                    "label": "Payment count",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "avg_order_value",
-                    "label": "Average order value",
-                    "expression": "SAFE_DIVIDE(SUM(ch.amount), COUNT(*)) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_week",
-                    "label": "By ISO week",
-                    "expression": "DATE_TRUNC(DATE(ch.created), WEEK)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_week",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Charge created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [
-                  {
-                    "id": "succeeded_only",
-                    "label": "Succeeded charges only",
-                    "type": "boolean",
-                    "column": "ch.status",
-                    "operator": "=",
-                    "param": "status",
-                    "default_value": "succeeded"
-                  }
-                ],
-                "default_order_by": []
+                "object": "charge",
+                "field": "amount",
+                "required": true
               },
               {
-                "id": "payments_volume_over_time_by_currency",
-                "label": "Payment volume over time by currency",
-                "description": "Track gross payment volume, count, and average order value over time. Grouped by currency.",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "gross_volume",
-                    "label": "Gross volume",
-                    "expression": "SUM(ch.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "payment_count",
-                    "label": "Payment count",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "avg_order_value",
-                    "label": "Average order value",
-                    "expression": "SAFE_DIVIDE(SUM(ch.amount), COUNT(*)) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_currency",
-                    "label": "By currency",
-                    "column": "currency",
-                    "table": "ch"
-                  }
-                ],
-                "default_dimension": "by_currency",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Charge created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [
-                  {
-                    "id": "succeeded_only",
-                    "label": "Succeeded charges only",
-                    "type": "boolean",
-                    "column": "ch.status",
-                    "operator": "=",
-                    "param": "status",
-                    "default_value": "succeeded"
-                  }
-                ],
-                "default_order_by": []
+                "object": "charge",
+                "field": "currency",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "status",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "created",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Successful payments volume",
+              "source": {
+                "object": "charge",
+                "field": "amount"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "week"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "charge",
+                  "field": "status"
+                },
+                "operator": "equals",
+                "value": "succeeded"
+              }
+            ],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "charge.created",
+              "direction": "desc"
+            }
           },
           {
-            "id": "payments_volume_by_attribute",
-            "label": "Payment volume by attribute",
-            "description": "Break down payment volume by currency, country, payment method, or product.",
-            "reports": [
+            "id": "payments_volume_by_method",
+            "label": "Payments volume by payment method",
+            "description": "Volume breakdown by payment method type",
+            "objects": [
+              "charge"
+            ],
+            "fields": [
               {
-                "id": "payments_volume_by_attribute_currency",
-                "label": "Currency",
-                "description": "Break down payment volume by currency, country, payment method, or product. Grouped currency.",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  },
-                  {
-                    "alias": "pm",
-                    "table": "payment_methods",
-                    "join_on": "ch.payment_method_id = pm.id",
-                    "join_type": "left"
-                  },
-                  {
-                    "alias": "il",
-                    "table": "invoice_line_items",
-                    "join_on": "ch.invoice_id = il.invoice_id",
-                    "join_type": "left"
-                  },
-                  {
-                    "alias": "pr",
-                    "table": "products",
-                    "join_on": "il.product_id = pr.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "gross_volume",
-                    "label": "Gross volume",
-                    "expression": "SUM(ch.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "payment_count",
-                    "label": "Payment count",
-                    "expression": "COUNT(DISTINCT ch.id)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "currency",
-                    "label": "Currency",
-                    "column": "currency",
-                    "table": "ch"
-                  }
-                ],
-                "default_dimension": "currency",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Charge created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "charge",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "payments_volume_by_attribute_billing_country",
-                "label": "Billing country",
-                "description": "Break down payment volume by currency, country, payment method, or product. Grouped billing country.",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  },
-                  {
-                    "alias": "pm",
-                    "table": "payment_methods",
-                    "join_on": "ch.payment_method_id = pm.id",
-                    "join_type": "left"
-                  },
-                  {
-                    "alias": "il",
-                    "table": "invoice_line_items",
-                    "join_on": "ch.invoice_id = il.invoice_id",
-                    "join_type": "left"
-                  },
-                  {
-                    "alias": "pr",
-                    "table": "products",
-                    "join_on": "il.product_id = pr.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "gross_volume",
-                    "label": "Gross volume",
-                    "expression": "SUM(ch.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "payment_count",
-                    "label": "Payment count",
-                    "expression": "COUNT(DISTINCT ch.id)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "billing_country",
-                    "label": "Billing country",
-                    "column": "billing_details_address_country",
-                    "table": "ch"
-                  }
-                ],
-                "default_dimension": "billing_country",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Charge created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "charge",
+                "field": "amount",
+                "required": true
               },
               {
-                "id": "payments_volume_by_attribute_payment_method_type",
-                "label": "Payment method type",
-                "description": "Break down payment volume by currency, country, payment method, or product. Grouped payment method type.",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  },
-                  {
-                    "alias": "pm",
-                    "table": "payment_methods",
-                    "join_on": "ch.payment_method_id = pm.id",
-                    "join_type": "left"
-                  },
-                  {
-                    "alias": "il",
-                    "table": "invoice_line_items",
-                    "join_on": "ch.invoice_id = il.invoice_id",
-                    "join_type": "left"
-                  },
-                  {
-                    "alias": "pr",
-                    "table": "products",
-                    "join_on": "il.product_id = pr.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "gross_volume",
-                    "label": "Gross volume",
-                    "expression": "SUM(ch.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "payment_count",
-                    "label": "Payment count",
-                    "expression": "COUNT(DISTINCT ch.id)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "payment_method_type",
-                    "label": "Payment method type",
-                    "column": "type",
-                    "table": "pm"
-                  }
-                ],
-                "default_dimension": "payment_method_type",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Charge created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "charge",
+                "field": "currency",
+                "required": true
               },
               {
-                "id": "payments_volume_by_attribute_product",
-                "label": "Product",
-                "description": "Break down payment volume by currency, country, payment method, or product. Grouped product.",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  },
-                  {
-                    "alias": "pm",
-                    "table": "payment_methods",
-                    "join_on": "ch.payment_method_id = pm.id",
-                    "join_type": "left"
-                  },
-                  {
-                    "alias": "il",
-                    "table": "invoice_line_items",
-                    "join_on": "ch.invoice_id = il.invoice_id",
-                    "join_type": "left"
-                  },
-                  {
-                    "alias": "pr",
-                    "table": "products",
-                    "join_on": "il.product_id = pr.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "gross_volume",
-                    "label": "Gross volume",
-                    "expression": "SUM(ch.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "payment_count",
-                    "label": "Payment count",
-                    "expression": "COUNT(DISTINCT ch.id)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "product",
-                    "label": "Product",
-                    "column": "name",
-                    "table": "pr"
-                  }
-                ],
-                "default_dimension": "product",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Charge created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "charge",
+                "field": "payment_method_details_type",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "status",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "created",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Payments volume by payment method",
+              "source": {
+                "object": "charge",
+                "field": "amount"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "charge",
+                  "field": "status"
+                },
+                "operator": "equals",
+                "value": "succeeded"
+              }
+            ],
+            "chartType": "bar",
+            "defaultSort": {
+              "column": "charge.payment_method_details_type",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "charge",
+                "field": "payment_method_details_type"
+              },
+              "selectedValues": []
+            }
+          },
+          {
+            "id": "payments_volume_by_product",
+            "label": "Payments volume by product",
+            "description": "Volume breakdown by product",
+            "objects": [
+              "charge",
+              "product"
+            ],
+            "fields": [
+              {
+                "object": "charge",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "amount",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "currency",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "product_id",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "status",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "created",
+                "required": true
+              },
+              {
+                "object": "product",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "product",
+                "field": "name",
+                "required": true
+              }
+            ],
+            "metric": {
+              "name": "Payments volume by product",
+              "source": {
+                "object": "charge",
+                "field": "amount"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [],
+            "chartType": "bar",
+            "defaultSort": {
+              "column": "charge.created",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "product",
+                "field": "name"
+              },
+              "selectedValues": []
+            }
           }
         ]
       },
       {
-        "id": "payments_refunds_costs",
+        "id": "payments_refunds_net_revenue",
         "label": "Refunds & net revenue",
-        "description": "How much value do I lose to refunds and fees, and what is my net revenue?",
-        "subTopics": [
+        "description": "Value lost to refunds and overall net income.",
+        "reports": [
           {
-            "id": "refund_rate_over_time",
-            "label": "Refund rate over time",
-            "description": "Compare refunded volume to original charges over time.",
-            "reports": [
+            "id": "payments_refund_rate_over_time",
+            "label": "Refund rate",
+            "description": "Rate of refunds relative to successful payments",
+            "objects": [
+              "charge",
+              "refund"
+            ],
+            "fields": [
               {
-                "id": "refund_rate_over_time_by_day",
-                "label": "Refund rate over time by day",
-                "description": "Compare refunded volume to original charges over time. Grouped by day.",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  },
-                  {
-                    "alias": "rf",
-                    "table": "refunds",
-                    "join_on": "rf.charge_id = ch.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "gross_volume",
-                    "label": "Gross volume",
-                    "expression": "SUM(ch.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "refund_volume",
-                    "label": "Refund volume",
-                    "expression": "SUM(COALESCE(rf.amount, 0)) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "refund_rate",
-                    "label": "Refund rate",
-                    "expression": "SAFE_DIVIDE(SUM(COALESCE(rf.amount, 0)), SUM(ch.amount))",
-                    "type": "ratio"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_day",
-                    "label": "By day",
-                    "expression": "DATE(ch.created)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_day",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Charge created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "charge",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "refund_rate_over_time_by_currency",
-                "label": "Refund rate over time by currency",
-                "description": "Compare refunded volume to original charges over time. Grouped by currency.",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  },
-                  {
-                    "alias": "rf",
-                    "table": "refunds",
-                    "join_on": "rf.charge_id = ch.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "gross_volume",
-                    "label": "Gross volume",
-                    "expression": "SUM(ch.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "refund_volume",
-                    "label": "Refund volume",
-                    "expression": "SUM(COALESCE(rf.amount, 0)) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "refund_rate",
-                    "label": "Refund rate",
-                    "expression": "SAFE_DIVIDE(SUM(COALESCE(rf.amount, 0)), SUM(ch.amount))",
-                    "type": "ratio"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_currency",
-                    "label": "By currency",
-                    "column": "currency",
-                    "table": "ch"
-                  }
-                ],
-                "default_dimension": "by_currency",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Charge created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "charge",
+                "field": "amount",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "currency",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "created",
+                "required": true
+              },
+              {
+                "object": "refund",
+                "field": "id",
+                "required": false
+              },
+              {
+                "object": "refund",
+                "field": "amount",
+                "required": true
+              },
+              {
+                "object": "refund",
+                "field": "created",
+                "required": false
               }
-            ]
+            ],
+            "metric": {
+              "name": "Refund rate",
+              "source": {
+                "object": "refund",
+                "field": "amount"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "multiBlock": {
+              "blocks": [
+                {
+                  "id": "refund_volume",
+                  "name": "Refund rate",
+                  "source": {
+                    "object": "refund",
+                    "field": "amount"
+                  },
+                  "op": "sum",
+                  "type": "sum_over_period",
+                  "filters": []
+                },
+                {
+                  "id": "charge_volume",
+                  "name": "Charge volume",
+                  "source": {
+                    "object": "charge",
+                    "field": "amount"
+                  },
+                  "op": "sum",
+                  "type": "sum_over_period",
+                  "filters": []
+                }
+              ],
+              "calculation": {
+                "operator": "divide",
+                "leftOperand": "refund_volume",
+                "rightOperand": "charge_volume",
+                "resultUnitType": "percentage"
+              },
+              "outputUnit": "rate"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "charge.created",
+              "direction": "desc"
+            }
           },
           {
-            "id": "payments_net_revenue",
-            "label": "Net revenue from payments",
-            "description": "Estimate net revenue after refunds and Stripe fees using balance transactions.",
-            "reports": [
+            "id": "payments_refunds_by_driver",
+            "label": "Refund volume by reason",
+            "description": "Refund amounts broken down by reason code",
+            "objects": [
+              "refund"
+            ],
+            "fields": [
               {
-                "id": "payments_net_revenue_by_day",
-                "label": "Net revenue from payments by day",
-                "description": "Estimate net revenue after refunds and Stripe fees using balance transactions. Grouped by day.",
-                "base_tables": [
-                  {
-                    "alias": "bt",
-                    "table": "balance_transactions"
-                  }
-                ],
-                "time_column": "bt.created",
-                "metrics": [
-                  {
-                    "id": "gross_charges",
-                    "label": "Gross charges",
-                    "expression": "SUM(CASE WHEN bt.type = 'charge' THEN bt.amount ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "refunds",
-                    "label": "Refunds",
-                    "expression": "SUM(CASE WHEN bt.type IN ('refund', 'charge_refund') THEN bt.amount ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "fees",
-                    "label": "Fees",
-                    "expression": "SUM(CASE WHEN bt.reporting_category = 'charge_fee' THEN bt.amount ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "net",
-                    "label": "Net amount",
-                    "expression": "SUM(bt.net) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_day",
-                    "label": "By day",
-                    "expression": "DATE(bt.created)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_day",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Balance transaction created date",
-                    "type": "daterange",
-                    "column": "bt.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "refund",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "payments_net_revenue_by_currency",
-                "label": "Net revenue from payments by currency",
-                "description": "Estimate net revenue after refunds and Stripe fees using balance transactions. Grouped by currency.",
-                "base_tables": [
-                  {
-                    "alias": "bt",
-                    "table": "balance_transactions"
-                  }
-                ],
-                "time_column": "bt.created",
-                "metrics": [
-                  {
-                    "id": "gross_charges",
-                    "label": "Gross charges",
-                    "expression": "SUM(CASE WHEN bt.type = 'charge' THEN bt.amount ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "refunds",
-                    "label": "Refunds",
-                    "expression": "SUM(CASE WHEN bt.type IN ('refund', 'charge_refund') THEN bt.amount ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "fees",
-                    "label": "Fees",
-                    "expression": "SUM(CASE WHEN bt.reporting_category = 'charge_fee' THEN bt.amount ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "net",
-                    "label": "Net amount",
-                    "expression": "SUM(bt.net) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_currency",
-                    "label": "By currency",
-                    "column": "currency",
-                    "table": "bt"
-                  }
-                ],
-                "default_dimension": "by_currency",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Balance transaction created date",
-                    "type": "daterange",
-                    "column": "bt.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "refund",
+                "field": "amount",
+                "required": true
+              },
+              {
+                "object": "refund",
+                "field": "reason",
+                "required": true
+              },
+              {
+                "object": "refund",
+                "field": "currency",
+                "required": true
+              },
+              {
+                "object": "refund",
+                "field": "created",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Refund volume by reason",
+              "source": {
+                "object": "refund",
+                "field": "amount"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [],
+            "chartType": "bar",
+            "defaultSort": {
+              "column": "refund.reason",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "refund",
+                "field": "reason"
+              },
+              "selectedValues": []
+            }
+          },
+          {
+            "id": "payments_net_revenue_over_time",
+            "label": "Net volume",
+            "description": "Revenue after refunds and fees",
+            "objects": [
+              "balance_transaction"
+            ],
+            "fields": [
+              {
+                "object": "balance_transaction",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "balance_transaction",
+                "field": "amount",
+                "required": true
+              },
+              {
+                "object": "balance_transaction",
+                "field": "net",
+                "required": true
+              },
+              {
+                "object": "balance_transaction",
+                "field": "currency",
+                "required": true
+              },
+              {
+                "object": "balance_transaction",
+                "field": "type",
+                "required": true
+              },
+              {
+                "object": "balance_transaction",
+                "field": "created",
+                "required": true
+              }
+            ],
+            "metric": {
+              "name": "Net volume",
+              "source": {
+                "object": "balance_transaction",
+                "field": "net"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "balance_transaction",
+                  "field": "type"
+                },
+                "operator": "in",
+                "value": [
+                  "charge",
+                  "refund",
+                  "adjustment"
+                ]
+              }
+            ],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "balance_transaction.created",
+              "direction": "desc"
+            }
+          }
+        ]
+      },
+      {
+        "id": "payments_fees_pricing",
+        "label": "Fees, pricing & tax",
+        "description": "Processing fees and pricing/tax behavior.",
+        "reports": [
+          {
+            "id": "payments_fees_over_time",
+            "label": "Fee volume",
+            "description": "Total Stripe processing fees over time",
+            "objects": [
+              "balance_transaction"
+            ],
+            "fields": [
+              {
+                "object": "balance_transaction",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "balance_transaction",
+                "field": "amount",
+                "required": true
+              },
+              {
+                "object": "balance_transaction",
+                "field": "currency",
+                "required": true
+              },
+              {
+                "object": "balance_transaction",
+                "field": "reporting_category",
+                "required": true
+              },
+              {
+                "object": "balance_transaction",
+                "field": "created",
+                "required": true
+              }
+            ],
+            "metric": {
+              "name": "Fee volume",
+              "source": {
+                "object": "balance_transaction",
+                "field": "amount"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "balance_transaction",
+                  "field": "reporting_category"
+                },
+                "operator": "equals",
+                "value": "charge_fee"
+              }
+            ],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "balance_transaction.created",
+              "direction": "desc"
+            }
+          },
+          {
+            "id": "payments_fees_by_dimension",
+            "label": "Fees by payment method",
+            "description": "Fee breakdown by payment method and card brand",
+            "objects": [
+              "charge",
+              "balance_transaction"
+            ],
+            "fields": [
+              {
+                "object": "charge",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "payment_method_details_type",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "payment_method_details_card_brand",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "billing_details_address_country",
+                "required": false
+              },
+              {
+                "object": "balance_transaction",
+                "field": "amount",
+                "required": true
+              },
+              {
+                "object": "balance_transaction",
+                "field": "currency",
+                "required": true
+              },
+              {
+                "object": "balance_transaction",
+                "field": "reporting_category",
+                "required": true
+              }
+            ],
+            "metric": {
+              "name": "Fees by payment method",
+              "source": {
+                "object": "balance_transaction",
+                "field": "amount"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "balance_transaction",
+                  "field": "reporting_category"
+                },
+                "operator": "equals",
+                "value": "charge_fee"
+              }
+            ],
+            "chartType": "bar",
+            "defaultSort": {
+              "column": "charge.payment_method_details_type",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "charge",
+                "field": "payment_method_details_type"
+              },
+              "selectedValues": []
+            }
           }
         ]
       }
@@ -1550,483 +999,576 @@ export const TEMPLATE_TAXONOMY: TemplateCategory[] = [
   {
     "id": "customers",
     "label": "Customers",
-    "description": "Understand who your customers are, how they behave, and how valuable they are.",
+    "description": "Who your customers are, how they behave over time, and how valuable they are.",
     "topics": [
       {
-        "id": "customers_acquisition",
+        "id": "customers_acquisition_growth",
         "label": "Acquisition & growth",
-        "description": "Track new customers and how they first transact.",
-        "subTopics": [
+        "description": "How you acquire and onboard new customers.",
+        "reports": [
           {
-            "id": "new_customers_over_time",
-            "label": "New customers over time",
-            "description": "Count new customers by day, country, and primary currency.",
-            "reports": [
+            "id": "customers_new_over_time",
+            "label": "New customers",
+            "description": "New customers acquired over time",
+            "objects": [
+              "customer",
+              "charge"
+            ],
+            "fields": [
               {
-                "id": "new_customers_over_time_by_day",
-                "label": "New customers over time by day",
-                "description": "Count new customers by day, country, and primary currency. Grouped by day.",
-                "base_tables": [
-                  {
-                    "alias": "c",
-                    "table": "customers"
-                  }
-                ],
-                "time_column": "c.created",
-                "metrics": [
-                  {
-                    "id": "new_customers",
-                    "label": "New customers",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_day",
-                    "label": "By day",
-                    "expression": "DATE(c.created)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_day",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Customer created date",
-                    "type": "daterange",
-                    "column": "c.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "customer",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "new_customers_over_time_by_country",
-                "label": "New customers over time by country",
-                "description": "Count new customers by day, country, and primary currency. Grouped by country.",
-                "base_tables": [
-                  {
-                    "alias": "c",
-                    "table": "customers"
-                  }
-                ],
-                "time_column": "c.created",
-                "metrics": [
-                  {
-                    "id": "new_customers",
-                    "label": "New customers",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_country",
-                    "label": "By country",
-                    "column": "address_country",
-                    "table": "c"
-                  }
-                ],
-                "default_dimension": "by_country",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Customer created date",
-                    "type": "daterange",
-                    "column": "c.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "customer",
+                "field": "email",
+                "required": false
               },
               {
-                "id": "new_customers_over_time_by_currency",
-                "label": "New customers over time by default currency",
-                "description": "Count new customers by day, country, and primary currency. Grouped by default currency.",
-                "base_tables": [
-                  {
-                    "alias": "c",
-                    "table": "customers"
-                  }
-                ],
-                "time_column": "c.created",
-                "metrics": [
-                  {
-                    "id": "new_customers",
-                    "label": "New customers",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_currency",
-                    "label": "By default currency",
-                    "column": "currency",
-                    "table": "c"
-                  }
-                ],
-                "default_dimension": "by_currency",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Customer created date",
-                    "type": "daterange",
-                    "column": "c.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "customer",
+                "field": "created",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "id",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "amount",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "created",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "status",
+                "required": false
               }
-            ]
+            ],
+            "metric": {
+              "name": "New customers",
+              "source": {
+                "object": "customer",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "week"
+            },
+            "filters": [],
+            "chartType": "bar",
+            "defaultSort": {
+              "column": "customer.created",
+              "direction": "desc"
+            }
           },
           {
-            "id": "first_purchase_behavior",
-            "label": "First purchase behavior",
-            "description": "Analyze value and timing of customers' first payments.",
-            "reports": [
+            "id": "customers_new_by_geography",
+            "label": "New customers by country",
+            "description": "Customer acquisition breakdown by country",
+            "objects": [
+              "customer"
+            ],
+            "fields": [
               {
-                "id": "first_purchase_behavior_by_signup_cohort",
-                "label": "First purchase behavior by signup month",
-                "description": "Analyze value and timing of customers' first payments. Grouped by signup month.",
-                "base_tables": [
-                  {
-                    "alias": "c",
-                    "table": "customers"
-                  },
-                  {
-                    "alias": "ch",
-                    "table": "charges",
-                    "join_on": "ch.customer_id = c.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "c.created",
-                "metrics": [
-                  {
-                    "id": "customers_with_purchase",
-                    "label": "Customers with at least one charge",
-                    "expression": "COUNT(DISTINCT CASE WHEN ch.id IS NOT NULL THEN c.id END)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_signup_cohort",
-                    "label": "By signup month",
-                    "expression": "DATE_TRUNC(DATE(c.created), MONTH)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_signup_cohort",
-                "required_filters": [
-                  {
-                    "id": "signup_date_range",
-                    "label": "Customer signup date",
-                    "type": "daterange",
-                    "column": "c.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "customer",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "first_purchase_behavior_by_country",
-                "label": "First purchase behavior by country",
-                "description": "Analyze value and timing of customers' first payments. Grouped by country.",
-                "base_tables": [
-                  {
-                    "alias": "c",
-                    "table": "customers"
-                  },
-                  {
-                    "alias": "ch",
-                    "table": "charges",
-                    "join_on": "ch.customer_id = c.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "c.created",
-                "metrics": [
-                  {
-                    "id": "customers_with_purchase",
-                    "label": "Customers with at least one charge",
-                    "expression": "COUNT(DISTINCT CASE WHEN ch.id IS NOT NULL THEN c.id END)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_country",
-                    "label": "By country",
-                    "column": "address_country",
-                    "table": "c"
-                  }
-                ],
-                "default_dimension": "by_country",
-                "required_filters": [
-                  {
-                    "id": "signup_date_range",
-                    "label": "Customer signup date",
-                    "type": "daterange",
-                    "column": "c.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "customer",
+                "field": "email",
+                "required": false
+              },
+              {
+                "object": "customer",
+                "field": "address_country",
+                "required": true
+              },
+              {
+                "object": "customer",
+                "field": "created",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "New customers by country",
+              "source": {
+                "object": "customer",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [],
+            "chartType": "bar",
+            "defaultSort": {
+              "column": "customer.address_country",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "customer",
+                "field": "address_country"
+              },
+              "selectedValues": []
+            }
+          },
+          {
+            "id": "customers_first_purchase_behavior",
+            "label": "New customer volume",
+            "description": "Revenue from first-time customer purchases",
+            "objects": [
+              "customer",
+              "charge"
+            ],
+            "fields": [
+              {
+                "object": "customer",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "customer",
+                "field": "email",
+                "required": false
+              },
+              {
+                "object": "customer",
+                "field": "created",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "id",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "customer_id",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "amount",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "currency",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "status",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "created",
+                "required": false
+              }
+            ],
+            "metric": {
+              "name": "New customer volume",
+              "source": {
+                "object": "charge",
+                "field": "amount"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "charge",
+                  "field": "status"
+                },
+                "operator": "equals",
+                "value": "succeeded"
+              }
+            ],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "customer.created",
+              "direction": "desc"
+            }
           }
         ]
       },
       {
-        "id": "customers_engagement",
+        "id": "customers_engagement_activity",
         "label": "Engagement & activity",
-        "description": "How often do customers return and purchase again?",
-        "subTopics": [
+        "description": "How often customers return and keep buying.",
+        "reports": [
           {
-            "id": "active_customers",
-            "label": "Active vs inactive customers",
-            "description": "Count customers who have purchased in a recent window versus those who have lapsed.",
-            "reports": [
+            "id": "customers_active_vs_inactive",
+            "label": "Unique customer purchases",
+            "description": "Count of customers with purchases in period",
+            "objects": [
+              "charge"
+            ],
+            "fields": [
               {
-                "id": "active_customers_by_country",
-                "label": "Active vs inactive customers by country",
-                "description": "Count customers who have purchased in a recent window versus those who have lapsed. Grouped by country.",
-                "base_tables": [
-                  {
-                    "alias": "c",
-                    "table": "customers"
-                  },
-                  {
-                    "alias": "ch",
-                    "table": "charges",
-                    "join_on": "ch.customer_id = c.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "c.created",
-                "metrics": [
-                  {
-                    "id": "active_customers",
-                    "label": "Active customers",
-                    "expression": "COUNT(DISTINCT c.id)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "inactive_customers",
-                    "label": "Inactive customers",
-                    "expression": "COUNT(DISTINCT c.id)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_country",
-                    "label": "By country",
-                    "column": "address_country",
-                    "table": "c"
-                  }
-                ],
-                "default_dimension": "by_country",
-                "required_filters": [
-                  {
-                    "id": "activity_window",
-                    "label": "Active if purchased since",
-                    "type": "date",
-                    "column": "ch.created",
-                    "operator": ">=",
-                    "param": "activity_start_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "charge",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "customer_id",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "amount",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "currency",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "created",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Unique customer purchases",
+              "source": {
+                "object": "charge",
+                "field": "customer_id"
+              },
+              "op": "count",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "week"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "charge",
+                  "field": "status"
+                },
+                "operator": "equals",
+                "value": "succeeded"
+              }
+            ],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "charge.created",
+              "direction": "desc"
+            }
           },
           {
-            "id": "purchase_frequency",
-            "label": "Purchase frequency",
-            "description": "How many orders do customers place on average?",
-            "reports": [
+            "id": "customers_purchase_frequency",
+            "label": "Customer purchase frequency",
+            "description": "Average number of purchases per customer",
+            "objects": [
+              "charge"
+            ],
+            "fields": [
               {
-                "id": "purchase_frequency_by_cohort",
-                "label": "Purchase frequency by first-order cohort month",
-                "description": "How many orders do customers place on average? Grouped by first-order cohort month.",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "customers_with_orders",
-                    "label": "Customers with orders",
-                    "expression": "COUNT(DISTINCT ch.customer_id)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "avg_orders_per_customer",
-                    "label": "Average orders per customer",
-                    "expression": "SAFE_DIVIDE(COUNT(*), COUNT(DISTINCT ch.customer_id))",
-                    "type": "float"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_cohort",
-                    "label": "By first-order cohort month",
-                    "expression": "DATE_TRUNC(DATE(ch.created), MONTH)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_cohort",
-                "required_filters": [
-                  {
-                    "id": "order_date_range",
-                    "label": "Order created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "charge",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "customer_id",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "amount",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "currency",
+                "required": false
+              },
+              {
+                "object": "charge",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "created",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Customer purchase frequency",
+              "source": {
+                "object": "charge",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "charge",
+                  "field": "status"
+                },
+                "operator": "equals",
+                "value": "succeeded"
+              }
+            ],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "charge.created",
+              "direction": "desc"
+            }
           }
         ]
       },
       {
-        "id": "customers_value",
-        "label": "Customer value & segments",
-        "description": "Which customers and cohorts are most valuable?",
-        "subTopics": [
+        "id": "customers_value_segmentation",
+        "label": "Value & segmentation",
+        "description": "Which customers and segments are most valuable.",
+        "reports": [
           {
-            "id": "customer_lifetime_value_to_date",
-            "label": "Customer LTV to date",
-            "description": "Total charges minus refunds per customer, up to today.",
-            "reports": [
+            "id": "customers_ltv_overview",
+            "label": "Customer LTV",
+            "description": "Total lifetime value per customer",
+            "objects": [
+              "charge"
+            ],
+            "fields": [
               {
-                "id": "customer_lifetime_value_to_date_customer",
-                "label": "Customer",
-                "description": "Total charges minus refunds per customer, up to today. Grouped customer.",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  },
-                  {
-                    "alias": "rf",
-                    "table": "refunds",
-                    "join_on": "rf.charge_id = ch.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "ltv",
-                    "label": "LTV (to date)",
-                    "expression": "(SUM(ch.amount) - SUM(COALESCE(rf.amount, 0))) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "customer",
-                    "label": "Customer",
-                    "column": "customer_id",
-                    "table": "ch"
-                  }
-                ],
-                "default_dimension": "customer",
-                "required_filters": [
-                  {
-                    "id": "order_date_range",
-                    "label": "Order created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "charge",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "customer_lifetime_value_to_date_country",
-                "label": "Country (from billing on charge)",
-                "description": "Total charges minus refunds per customer, up to today. Grouped country (from billing on charge).",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  },
-                  {
-                    "alias": "rf",
-                    "table": "refunds",
-                    "join_on": "rf.charge_id = ch.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "ltv",
-                    "label": "LTV (to date)",
-                    "expression": "(SUM(ch.amount) - SUM(COALESCE(rf.amount, 0))) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "country",
-                    "label": "Country (from billing on charge)",
-                    "column": "billing_details_address_country",
-                    "table": "ch"
-                  }
-                ],
-                "default_dimension": "country",
-                "required_filters": [
-                  {
-                    "id": "order_date_range",
-                    "label": "Order created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "charge",
+                "field": "customer_id",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "amount",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "currency",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "paid",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "created",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Customer LTV",
+              "source": {
+                "object": "charge",
+                "field": "amount"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "charge",
+                  "field": "status"
+                },
+                "operator": "equals",
+                "value": "succeeded"
+              },
+              {
+                "field": {
+                  "object": "charge",
+                  "field": "paid"
+                },
+                "operator": "equals",
+                "value": true
+              }
+            ],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "charge.customer_id",
+              "direction": "desc"
+            }
+          },
+          {
+            "id": "customers_top_spenders",
+            "label": "High value customers",
+            "description": "Customers who have spent over $5,000",
+            "objects": [
+              "customer",
+              "charge"
+            ],
+            "fields": [
+              {
+                "object": "customer",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "customer_id",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "amount",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "charge",
+                "field": "created",
+                "required": true
+              }
+            ],
+            "metric": {
+              "name": "High value customers",
+              "source": {
+                "object": "customer",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "latest"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "week"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "charge",
+                  "field": "status"
+                },
+                "operator": "equals",
+                "value": "succeeded"
+              }
+            ],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "charge.created",
+              "direction": "desc"
+            }
+          },
+          {
+            "id": "customers_revenue_by_cohort_segment",
+            "label": "Customers by country",
+            "description": "Customer distribution across countries",
+            "objects": [
+              "customer"
+            ],
+            "fields": [
+              {
+                "object": "customer",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "customer",
+                "field": "created",
+                "required": true
+              },
+              {
+                "object": "customer",
+                "field": "address_country",
+                "required": true
+              }
+            ],
+            "metric": {
+              "name": "Customers by country",
+              "source": {
+                "object": "customer",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "latest"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "week"
+            },
+            "filters": [],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "customer.created",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "customer",
+                "field": "address_country"
+              },
+              "selectedValues": []
+            }
           }
         ]
       }
@@ -2035,1281 +1577,1063 @@ export const TEMPLATE_TAXONOMY: TemplateCategory[] = [
   {
     "id": "subscriptions_invoicing",
     "label": "Subscriptions & Invoicing",
-    "description": "Track recurring revenue, churn, and invoice health.",
+    "description": "How your recurring business is performing: MRR/ARR, churn, billing, and trials.",
     "topics": [
       {
-        "id": "subscriptions_revenue",
+        "id": "subs_recurring_revenue_growth",
         "label": "Recurring revenue & growth",
-        "description": "MRR/ARR and subscription counts over time.",
-        "subTopics": [
+        "description": "MRR/ARR levels and subscription growth.",
+        "reports": [
           {
-            "id": "mrr_by_plan",
-            "label": "MRR by plan",
-            "description": "Monthly recurring revenue by subscription plan (price).",
-            "reports": [
+            "id": "subs_mrr_arr_over_time",
+            "label": "MRR",
+            "description": "Monthly recurring revenue from active subscriptions",
+            "objects": [
+              "subscription",
+              "customer",
+              "subscription_item",
+              "price"
+            ],
+            "fields": [
               {
-                "id": "mrr_by_plan_by_month",
-                "label": "MRR by plan by month (period start)",
-                "description": "Monthly recurring revenue by subscription plan (price). Grouped by month (period start).",
-                "base_tables": [
-                  {
-                    "alias": "s",
-                    "table": "subscriptions"
-                  },
-                  {
-                    "alias": "si",
-                    "table": "subscription_items",
-                    "join_on": "si.subscription_id = s.id",
-                    "join_type": "inner"
-                  },
-                  {
-                    "alias": "p",
-                    "table": "prices",
-                    "join_on": "si.price_id = p.id",
-                    "join_type": "inner"
-                  }
-                ],
-                "time_column": "s.current_period_start",
-                "metrics": [
-                  {
-                    "id": "mrr",
-                    "label": "MRR",
-                    "expression": "SUM(CASE WHEN p.recurring_interval = 'month' THEN p.unit_amount * si.quantity WHEN p.recurring_interval = 'year' THEN (p.unit_amount * si.quantity) / 12 ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "active_subscriptions",
-                    "label": "Active subscriptions",
-                    "expression": "COUNT(DISTINCT CASE WHEN s.status = 'active' THEN s.id END)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_month",
-                    "label": "By month (period start)",
-                    "expression": "DATE_TRUNC(DATE(s.current_period_start), MONTH)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_month",
-                "required_filters": [
-                  {
-                    "id": "period_start_range",
-                    "label": "Current period start",
-                    "type": "daterange",
-                    "column": "s.current_period_start",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [
-                  {
-                    "id": "subscription_status",
-                    "label": "Subscription status",
-                    "type": "enum",
-                    "column": "s.status",
-                    "operator": "in",
-                    "param": "status_list"
-                  }
-                ],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "mrr_by_plan_plan",
-                "label": "Plan / price",
-                "description": "Monthly recurring revenue by subscription plan (price). Grouped plan / price.",
-                "base_tables": [
-                  {
-                    "alias": "s",
-                    "table": "subscriptions"
-                  },
-                  {
-                    "alias": "si",
-                    "table": "subscription_items",
-                    "join_on": "si.subscription_id = s.id",
-                    "join_type": "inner"
-                  },
-                  {
-                    "alias": "p",
-                    "table": "prices",
-                    "join_on": "si.price_id = p.id",
-                    "join_type": "inner"
-                  }
-                ],
-                "time_column": "s.current_period_start",
-                "metrics": [
-                  {
-                    "id": "mrr",
-                    "label": "MRR",
-                    "expression": "SUM(CASE WHEN p.recurring_interval = 'month' THEN p.unit_amount * si.quantity WHEN p.recurring_interval = 'year' THEN (p.unit_amount * si.quantity) / 12 ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "active_subscriptions",
-                    "label": "Active subscriptions",
-                    "expression": "COUNT(DISTINCT CASE WHEN s.status = 'active' THEN s.id END)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "plan",
-                    "label": "Plan / price",
-                    "column": "nickname",
-                    "table": "p"
-                  }
-                ],
-                "default_dimension": "plan",
-                "required_filters": [
-                  {
-                    "id": "period_start_range",
-                    "label": "Current period start",
-                    "type": "daterange",
-                    "column": "s.current_period_start",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [
-                  {
-                    "id": "subscription_status",
-                    "label": "Subscription status",
-                    "type": "enum",
-                    "column": "s.status",
-                    "operator": "in",
-                    "param": "status_list"
-                  }
-                ],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "subscription",
+                "field": "current_period_start",
+                "required": true
+              },
+              {
+                "object": "subscription",
+                "field": "current_period_end",
+                "required": true
+              },
+              {
+                "object": "customer",
+                "field": "id",
+                "required": false
+              },
+              {
+                "object": "customer",
+                "field": "email",
+                "required": false
+              },
+              {
+                "object": "subscription_item",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "subscription_item",
+                "field": "quantity",
+                "required": false
+              },
+              {
+                "object": "price",
+                "field": "unit_amount",
+                "required": true
+              },
+              {
+                "object": "price",
+                "field": "currency",
+                "required": true
+              },
+              {
+                "object": "price",
+                "field": "recurring_interval",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Monthly Recurring Revenue (MRR)",
+              "source": {
+                "object": "price",
+                "field": "unit_amount"
+              },
+              "op": "sum",
+              "type": "latest"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "week"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "subscription",
+                  "field": "status"
+                },
+                "operator": "equals",
+                "value": "active"
+              }
+            ],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "subscription.current_period_start",
+              "direction": "desc"
+            }
+          },
+          {
+            "id": "subs_mrr_by_plan",
+            "label": "MRR by product",
+            "description": "Monthly recurring revenue breakdown by product",
+            "objects": [
+              "subscription",
+              "customer",
+              "subscription_item",
+              "price",
+              "product"
+            ],
+            "fields": [
+              {
+                "object": "subscription",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "subscription",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "subscription",
+                "field": "current_period_start",
+                "required": true
+              },
+              {
+                "object": "subscription",
+                "field": "current_period_end",
+                "required": true
+              },
+              {
+                "object": "customer",
+                "field": "id",
+                "required": false
+              },
+              {
+                "object": "customer",
+                "field": "email",
+                "required": false
+              },
+              {
+                "object": "subscription_item",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "subscription_item",
+                "field": "quantity",
+                "required": false
+              },
+              {
+                "object": "price",
+                "field": "unit_amount",
+                "required": true
+              },
+              {
+                "object": "price",
+                "field": "currency",
+                "required": true
+              },
+              {
+                "object": "price",
+                "field": "recurring_interval",
+                "required": true
+              },
+              {
+                "object": "price",
+                "field": "product_id",
+                "required": true
+              },
+              {
+                "object": "product",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "product",
+                "field": "name",
+                "required": true
+              }
+            ],
+            "metric": {
+              "name": "MRR by product",
+              "source": {
+                "object": "price",
+                "field": "unit_amount"
+              },
+              "op": "sum",
+              "type": "latest"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "week"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "subscription",
+                  "field": "status"
+                },
+                "operator": "equals",
+                "value": "active"
+              }
+            ],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "subscription.current_period_start",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "product",
+                "field": "name"
+              },
+              "selectedValues": []
+            }
+          },
+          {
+            "id": "subs_subscription_counts_over_time",
+            "label": "Active Subscribers",
+            "description": "Count of active subscriptions over time",
+            "objects": [
+              "subscription",
+              "customer",
+              "invoice"
+            ],
+            "fields": [
+              {
+                "object": "subscription",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "subscription",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "subscription",
+                "field": "current_period_end",
+                "required": true
+              },
+              {
+                "object": "subscription",
+                "field": "cancel_at_period_end",
+                "required": false
+              },
+              {
+                "object": "customer",
+                "field": "id",
+                "required": false
+              },
+              {
+                "object": "customer",
+                "field": "email",
+                "required": false
+              },
+              {
+                "object": "invoice",
+                "field": "id",
+                "required": false
+              },
+              {
+                "object": "invoice",
+                "field": "amount_paid",
+                "required": false
+              },
+              {
+                "object": "invoice",
+                "field": "created",
+                "required": false
+              }
+            ],
+            "metric": {
+              "name": "Active Subscribers",
+              "source": {
+                "object": "subscription",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "latest"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "week"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "subscription",
+                  "field": "status"
+                },
+                "operator": "in",
+                "value": ["active"]
+              }
+            ],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "subscription.current_period_end",
+              "direction": "desc"
+            }
           }
         ]
       },
       {
-        "id": "subscriptions_churn",
+        "id": "subs_churn_retention",
         "label": "Churn & retention",
-        "description": "Where do subscriptions cancel, and how much MRR do you lose?",
-        "subTopics": [
+        "description": "Where and why subscriptions churn.",
+        "reports": [
           {
-            "id": "subscription_churn_over_time",
-            "label": "Subscription churn over time",
-            "description": "Canceled subscriptions and lost MRR.",
-            "reports": [
+            "id": "subs_churn_rate_over_time",
+            "label": "Churn rate",
+            "description": "Rate of canceled subscriptions",
+            "objects": [
+              "subscription"
+            ],
+            "fields": [
               {
-                "id": "subscription_churn_over_time_by_month",
-                "label": "Subscription churn over time by month (canceled_at)",
-                "description": "Canceled subscriptions and lost MRR. Grouped by month (canceled_at).",
-                "base_tables": [
-                  {
-                    "alias": "s",
-                    "table": "subscriptions"
-                  },
-                  {
-                    "alias": "si",
-                    "table": "subscription_items",
-                    "join_on": "si.subscription_id = s.id",
-                    "join_type": "inner"
-                  },
-                  {
-                    "alias": "p",
-                    "table": "prices",
-                    "join_on": "si.price_id = p.id",
-                    "join_type": "inner"
-                  }
-                ],
-                "time_column": "s.canceled_at",
-                "metrics": [
-                  {
-                    "id": "canceled_subscriptions",
-                    "label": "Canceled subscriptions",
-                    "expression": "COUNT(DISTINCT CASE WHEN s.status = 'canceled' THEN s.id END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "lost_mrr",
-                    "label": "Lost MRR",
-                    "expression": "SUM(CASE WHEN s.status = 'canceled' THEN CASE WHEN p.recurring_interval = 'month' THEN p.unit_amount * si.quantity WHEN p.recurring_interval = 'year' THEN (p.unit_amount * si.quantity) / 12 ELSE 0 END ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_month",
-                    "label": "By month (canceled_at)",
-                    "expression": "DATE_TRUNC(DATE(s.canceled_at), MONTH)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_month",
-                "required_filters": [
-                  {
-                    "id": "canceled_at_range",
-                    "label": "Canceled at",
-                    "type": "daterange",
-                    "column": "s.canceled_at",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "subscription_churn_over_time_plan",
-                "label": "Plan / price",
-                "description": "Canceled subscriptions and lost MRR. Grouped plan / price.",
-                "base_tables": [
-                  {
-                    "alias": "s",
-                    "table": "subscriptions"
-                  },
-                  {
-                    "alias": "si",
-                    "table": "subscription_items",
-                    "join_on": "si.subscription_id = s.id",
-                    "join_type": "inner"
-                  },
-                  {
-                    "alias": "p",
-                    "table": "prices",
-                    "join_on": "si.price_id = p.id",
-                    "join_type": "inner"
-                  }
-                ],
-                "time_column": "s.canceled_at",
-                "metrics": [
-                  {
-                    "id": "canceled_subscriptions",
-                    "label": "Canceled subscriptions",
-                    "expression": "COUNT(DISTINCT CASE WHEN s.status = 'canceled' THEN s.id END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "lost_mrr",
-                    "label": "Lost MRR",
-                    "expression": "SUM(CASE WHEN s.status = 'canceled' THEN CASE WHEN p.recurring_interval = 'month' THEN p.unit_amount * si.quantity WHEN p.recurring_interval = 'year' THEN (p.unit_amount * si.quantity) / 12 ELSE 0 END ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "plan",
-                    "label": "Plan / price",
-                    "column": "nickname",
-                    "table": "p"
-                  }
-                ],
-                "default_dimension": "plan",
-                "required_filters": [
-                  {
-                    "id": "canceled_at_range",
-                    "label": "Canceled at",
-                    "type": "daterange",
-                    "column": "s.canceled_at",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "invoices_health",
-        "label": "Invoices & billing health",
-        "description": "Monitor invoice states, overdue amounts, and collections.",
-        "subTopics": [
-          {
-            "id": "invoice_status_over_time",
-            "label": "Invoice status over time",
-            "description": "Issued, paid, and overdue invoices.",
-            "reports": [
-              {
-                "id": "invoice_status_over_time_by_day",
-                "label": "Invoice status over time by day",
-                "description": "Issued, paid, and overdue invoices. Grouped by day.",
-                "base_tables": [
-                  {
-                    "alias": "inv",
-                    "table": "invoices"
-                  }
-                ],
-                "time_column": "inv.created",
-                "metrics": [
-                  {
-                    "id": "issued_invoices",
-                    "label": "Issued invoices",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "paid_invoices",
-                    "label": "Paid invoices",
-                    "expression": "COUNT(CASE WHEN inv.status = 'paid' THEN 1 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "overdue_invoices",
-                    "label": "Overdue invoices",
-                    "expression": "COUNT(CASE WHEN inv.status = 'open' AND inv.due_date < CURRENT_DATE THEN 1 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "amount_due",
-                    "label": "Amount due",
-                    "expression": "SUM(inv.amount_due) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_day",
-                    "label": "By day",
-                    "expression": "DATE(inv.created)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_day",
-                "required_filters": [
-                  {
-                    "id": "created_date_range",
-                    "label": "Invoice created date",
-                    "type": "daterange",
-                    "column": "inv.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "status",
+                "required": true
               },
               {
-                "id": "invoice_status_over_time_by_status",
-                "label": "Invoice status over time by status",
-                "description": "Issued, paid, and overdue invoices. Grouped by status.",
-                "base_tables": [
-                  {
-                    "alias": "inv",
-                    "table": "invoices"
-                  }
-                ],
-                "time_column": "inv.created",
-                "metrics": [
-                  {
-                    "id": "issued_invoices",
-                    "label": "Issued invoices",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "paid_invoices",
-                    "label": "Paid invoices",
-                    "expression": "COUNT(CASE WHEN inv.status = 'paid' THEN 1 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "overdue_invoices",
-                    "label": "Overdue invoices",
-                    "expression": "COUNT(CASE WHEN inv.status = 'open' AND inv.due_date < CURRENT_DATE THEN 1 END)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "amount_due",
-                    "label": "Amount due",
-                    "expression": "SUM(inv.amount_due) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_status",
-                    "label": "By status",
-                    "column": "status",
-                    "table": "inv"
-                  }
-                ],
-                "default_dimension": "by_status",
-                "required_filters": [
-                  {
-                    "id": "created_date_range",
-                    "label": "Invoice created date",
-                    "type": "daterange",
-                    "column": "inv.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "balances_payouts",
-    "label": "Balances & Payouts",
-    "description": "Understand where funds are, how they move, and when you get paid.",
-    "topics": [
-      {
-        "id": "balances_overview",
-        "label": "Balance overview",
-        "description": "Available and pending balances and what drives them.",
-        "subTopics": [
-          {
-            "id": "current_balances",
-            "label": "Current balances by currency",
-            "description": "Snapshot of available and pending balance by currency.",
-            "reports": [
+                "object": "subscription",
+                "field": "created",
+                "required": true
+              },
               {
-                "id": "current_balances_currency",
-                "label": "Currency",
-                "description": "Snapshot of available and pending balance by currency. Grouped currency.",
-                "base_tables": [
-                  {
-                    "alias": "b",
-                    "table": "balances"
-                  }
-                ],
-                "time_column": "b.as_of",
-                "metrics": [
-                  {
-                    "id": "available",
-                    "label": "Available balance",
-                    "expression": "SUM(b.available_amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "pending",
-                    "label": "Pending balance",
-                    "expression": "SUM(b.pending_amount) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "currency",
-                    "label": "Currency",
-                    "column": "currency",
-                    "table": "b"
-                  }
-                ],
-                "default_dimension": "currency",
-                "required_filters": [],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "canceled_at",
+                "required": false
               }
-            ]
+            ],
+            "metric": {
+              "name": "Churn rate",
+              "source": {
+                "object": "subscription",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "sum_over_period"
+            },
+            "multiBlock": {
+              "blocks": [
+                {
+                  "id": "canceled_subscriptions",
+                  "name": "Churn rate",
+                  "source": {
+                    "object": "subscription",
+                    "field": "id"
+                  },
+                  "op": "count",
+                  "type": "sum_over_period",
+                  "filters": [
+                    {
+                      "field": {
+                        "object": "subscription",
+                        "field": "status"
+                      },
+                      "operator": "equals",
+                      "value": "canceled"
+                    }
+                  ]
+                },
+                {
+                  "id": "total_subscriptions",
+                  "name": "Total subscriptions",
+                  "source": {
+                    "object": "subscription",
+                    "field": "id"
+                  },
+                  "op": "count",
+                  "type": "sum_over_period",
+                  "filters": []
+                }
+              ],
+              "calculation": {
+                "operator": "divide",
+                "leftOperand": "canceled_subscriptions",
+                "rightOperand": "total_subscriptions",
+                "resultUnitType": "percentage"
+              },
+              "outputUnit": "rate"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "subscription.created",
+              "direction": "desc"
+            }
           },
           {
-            "id": "balance_flows_over_time",
-            "label": "Balance inflows and outflows over time",
-            "description": "Use balance transactions to see inflows (charges, top-ups) and outflows (payouts, refunds, fees).",
-            "reports": [
+            "id": "subs_churn_by_plan",
+            "label": "Churn rate by plan",
+            "description": "Churn rate breakdown by product",
+            "objects": [
+              "subscription",
+              "subscription_item",
+              "price"
+            ],
+            "fields": [
               {
-                "id": "balance_flows_over_time_by_day",
-                "label": "Balance inflows and outflows over time by day",
-                "description": "Use balance transactions to see inflows (charges, top-ups) and outflows (payouts, refunds, fees). Grouped by day.",
-                "base_tables": [
-                  {
-                    "alias": "bt",
-                    "table": "balance_transactions"
-                  }
-                ],
-                "time_column": "bt.created",
-                "metrics": [
-                  {
-                    "id": "inflows",
-                    "label": "Inflows",
-                    "expression": "SUM(CASE WHEN bt.type IN ('charge', 'topup') THEN bt.amount ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "outflows",
-                    "label": "Outflows",
-                    "expression": "SUM(CASE WHEN bt.type IN ('payout', 'refund', 'charge_refund', 'adjustment') THEN bt.amount ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "net_change",
-                    "label": "Net change",
-                    "expression": "SUM(bt.net) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_day",
-                    "label": "By day",
-                    "expression": "DATE(bt.created)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_day",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Balance transaction created date",
-                    "type": "daterange",
-                    "column": "bt.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "balance_flows_over_time_by_currency",
-                "label": "Balance inflows and outflows over time by currency",
-                "description": "Use balance transactions to see inflows (charges, top-ups) and outflows (payouts, refunds, fees). Grouped by currency.",
-                "base_tables": [
-                  {
-                    "alias": "bt",
-                    "table": "balance_transactions"
-                  }
-                ],
-                "time_column": "bt.created",
-                "metrics": [
-                  {
-                    "id": "inflows",
-                    "label": "Inflows",
-                    "expression": "SUM(CASE WHEN bt.type IN ('charge', 'topup') THEN bt.amount ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "outflows",
-                    "label": "Outflows",
-                    "expression": "SUM(CASE WHEN bt.type IN ('payout', 'refund', 'charge_refund', 'adjustment') THEN bt.amount ELSE 0 END) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "net_change",
-                    "label": "Net change",
-                    "expression": "SUM(bt.net) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_currency",
-                    "label": "By currency",
-                    "column": "currency",
-                    "table": "bt"
-                  }
-                ],
-                "default_dimension": "by_currency",
-                "required_filters": [
-                  {
-                    "id": "date_range",
-                    "label": "Balance transaction created date",
-                    "type": "daterange",
-                    "column": "bt.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "payouts_cashflow",
-        "label": "Payouts & cash flow",
-        "description": "Track payouts to your bank accounts and reconcile them.",
-        "subTopics": [
-          {
-            "id": "payouts_over_time",
-            "label": "Payouts over time",
-            "description": "Payout amounts, counts, and statuses by day and currency.",
-            "reports": [
-              {
-                "id": "payouts_over_time_by_day",
-                "label": "Payouts over time by day",
-                "description": "Payout amounts, counts, and statuses by day and currency. Grouped by day.",
-                "base_tables": [
-                  {
-                    "alias": "po",
-                    "table": "payouts"
-                  }
-                ],
-                "time_column": "po.created",
-                "metrics": [
-                  {
-                    "id": "payout_amount",
-                    "label": "Payout amount",
-                    "expression": "SUM(po.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "payout_count",
-                    "label": "Payout count",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_day",
-                    "label": "By day",
-                    "expression": "DATE(po.created)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_day",
-                "required_filters": [
-                  {
-                    "id": "created_date_range",
-                    "label": "Payout created date",
-                    "type": "daterange",
-                    "column": "po.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "status",
+                "required": true
               },
               {
-                "id": "payouts_over_time_currency",
-                "label": "Currency",
-                "description": "Payout amounts, counts, and statuses by day and currency. Grouped currency.",
-                "base_tables": [
-                  {
-                    "alias": "po",
-                    "table": "payouts"
-                  }
-                ],
-                "time_column": "po.created",
-                "metrics": [
-                  {
-                    "id": "payout_amount",
-                    "label": "Payout amount",
-                    "expression": "SUM(po.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "payout_count",
-                    "label": "Payout count",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "currency",
-                    "label": "Currency",
-                    "column": "currency",
-                    "table": "po"
-                  }
-                ],
-                "default_dimension": "currency",
-                "required_filters": [
-                  {
-                    "id": "created_date_range",
-                    "label": "Payout created date",
-                    "type": "daterange",
-                    "column": "po.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "canceled_at",
+                "required": true
               },
               {
-                "id": "payouts_over_time_status",
-                "label": "Status",
-                "description": "Payout amounts, counts, and statuses by day and currency. Grouped status.",
-                "base_tables": [
-                  {
-                    "alias": "po",
-                    "table": "payouts"
-                  }
-                ],
-                "time_column": "po.created",
-                "metrics": [
-                  {
-                    "id": "payout_amount",
-                    "label": "Payout amount",
-                    "expression": "SUM(po.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "payout_count",
-                    "label": "Payout count",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "status",
-                    "label": "Status",
-                    "column": "status",
-                    "table": "po"
-                  }
-                ],
-                "default_dimension": "status",
-                "required_filters": [
-                  {
-                    "id": "created_date_range",
-                    "label": "Payout created date",
-                    "type": "daterange",
-                    "column": "po.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "disputes_risk",
-    "label": "Disputes & Risk",
-    "description": "Monitor disputes and fraud-related behavior.",
-    "topics": [
-      {
-        "id": "disputes_overview",
-        "label": "Dispute overview",
-        "description": "Dispute rates, outcomes, and where they come from.",
-        "subTopics": [
-          {
-            "id": "dispute_rates_over_time",
-            "label": "Dispute rates over time",
-            "description": "Disputed volume and rates over time.",
-            "reports": [
+                "object": "subscription_item",
+                "field": "id",
+                "required": false
+              },
               {
-                "id": "dispute_rates_over_time_by_month",
-                "label": "Dispute rates over time by month",
-                "description": "Disputed volume and rates over time. Grouped by month.",
-                "base_tables": [
-                  {
-                    "alias": "ch",
-                    "table": "charges"
-                  },
-                  {
-                    "alias": "dp",
-                    "table": "disputes",
-                    "join_on": "dp.charge_id = ch.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "ch.created",
-                "metrics": [
-                  {
-                    "id": "charge_volume",
-                    "label": "Charge volume",
-                    "expression": "SUM(ch.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "disputed_volume",
-                    "label": "Disputed volume",
-                    "expression": "SUM(COALESCE(dp.amount, 0)) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "dispute_rate",
-                    "label": "Dispute rate",
-                    "expression": "SAFE_DIVIDE(SUM(COALESCE(dp.amount, 0)), SUM(ch.amount))",
-                    "type": "ratio"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_month",
-                    "label": "By month",
-                    "expression": "DATE_TRUNC(DATE(ch.created), MONTH)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_month",
-                "required_filters": [
-                  {
-                    "id": "charge_date_range",
-                    "label": "Charge created date",
-                    "type": "daterange",
-                    "column": "ch.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "subscription_item",
+                "field": "subscription_id",
+                "required": false
+              },
+              {
+                "object": "price",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "price",
+                "field": "nickname",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Churn rate by plan",
+              "source": {
+                "object": "subscription",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "subscription",
+                  "field": "status"
+                },
+                "operator": "equals",
+                "value": "canceled"
+              }
+            ],
+            "chartType": "bar",
+            "defaultSort": {
+              "column": "price.nickname",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "price",
+                "field": "nickname"
+              },
+              "selectedValues": []
+            }
           },
           {
-            "id": "disputes_by_reason_and_country",
-            "label": "Disputes by reason and country",
-            "description": "Break down disputes by reason code and card country.",
-            "reports": [
+            "id": "subs_involuntary_churn",
+            "label": "Involuntary churn volume",
+            "description": "Revenue lost from failed payment subscriptions",
+            "objects": [
+              "subscription",
+              "subscription_item",
+              "price"
+            ],
+            "fields": [
               {
-                "id": "disputes_by_reason_and_country_reason",
-                "label": "Reason",
-                "description": "Break down disputes by reason code and card country. Grouped reason.",
-                "base_tables": [
-                  {
-                    "alias": "dp",
-                    "table": "disputes"
-                  },
-                  {
-                    "alias": "ch",
-                    "table": "charges",
-                    "join_on": "dp.charge_id = ch.id",
-                    "join_type": "inner"
-                  }
-                ],
-                "time_column": "dp.created",
-                "metrics": [
-                  {
-                    "id": "dispute_count",
-                    "label": "Disputes",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "disputed_amount",
-                    "label": "Disputed amount",
-                    "expression": "SUM(dp.amount) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "reason",
-                    "label": "Reason",
-                    "column": "reason",
-                    "table": "dp"
-                  }
-                ],
-                "default_dimension": "reason",
-                "required_filters": [
-                  {
-                    "id": "created_date_range",
-                    "label": "Dispute created date",
-                    "type": "daterange",
-                    "column": "dp.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "disputes_by_reason_and_country_card_country",
-                "label": "Card country",
-                "description": "Break down disputes by reason code and card country. Grouped card country.",
-                "base_tables": [
-                  {
-                    "alias": "dp",
-                    "table": "disputes"
-                  },
-                  {
-                    "alias": "ch",
-                    "table": "charges",
-                    "join_on": "dp.charge_id = ch.id",
-                    "join_type": "inner"
-                  }
-                ],
-                "time_column": "dp.created",
-                "metrics": [
-                  {
-                    "id": "dispute_count",
-                    "label": "Disputes",
-                    "expression": "COUNT(*)",
-                    "type": "integer"
-                  },
-                  {
-                    "id": "disputed_amount",
-                    "label": "Disputed amount",
-                    "expression": "SUM(dp.amount) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "card_country",
-                    "label": "Card country",
-                    "column": "payment_method_details_card_country",
-                    "table": "ch"
-                  }
-                ],
-                "default_dimension": "card_country",
-                "required_filters": [
-                  {
-                    "id": "created_date_range",
-                    "label": "Dispute created date",
-                    "type": "daterange",
-                    "column": "dp.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "products_pricing_tax",
-    "label": "Products, Pricing & Tax",
-    "description": "Which products drive your revenue, and how do discounts and tax behave?",
-    "topics": [
-      {
-        "id": "product_performance",
-        "label": "Product performance",
-        "description": "Revenue and units sold per product.",
-        "subTopics": [
-          {
-            "id": "revenue_by_product",
-            "label": "Revenue by product",
-            "description": "Volume and units by product, using invoice line items.",
-            "reports": [
-              {
-                "id": "revenue_by_product_product",
-                "label": "Product",
-                "description": "Volume and units by product, using invoice line items. Grouped product.",
-                "base_tables": [
-                  {
-                    "alias": "il",
-                    "table": "invoice_line_items"
-                  },
-                  {
-                    "alias": "inv",
-                    "table": "invoices",
-                    "join_on": "il.invoice_id = inv.id",
-                    "join_type": "inner"
-                  },
-                  {
-                    "alias": "pr",
-                    "table": "products",
-                    "join_on": "il.product_id = pr.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "inv.created",
-                "metrics": [
-                  {
-                    "id": "revenue",
-                    "label": "Revenue",
-                    "expression": "SUM(il.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "units",
-                    "label": "Units",
-                    "expression": "SUM(il.quantity)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "product",
-                    "label": "Product",
-                    "column": "name",
-                    "table": "pr"
-                  }
-                ],
-                "default_dimension": "product",
-                "required_filters": [
-                  {
-                    "id": "invoice_date_range",
-                    "label": "Invoice created date",
-                    "type": "daterange",
-                    "column": "inv.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "status",
+                "required": true
               },
               {
-                "id": "revenue_by_product_by_month",
-                "label": "Revenue by product by month (invoice created)",
-                "description": "Volume and units by product, using invoice line items. Grouped by month (invoice created).",
-                "base_tables": [
-                  {
-                    "alias": "il",
-                    "table": "invoice_line_items"
-                  },
-                  {
-                    "alias": "inv",
-                    "table": "invoices",
-                    "join_on": "il.invoice_id = inv.id",
-                    "join_type": "inner"
-                  },
-                  {
-                    "alias": "pr",
-                    "table": "products",
-                    "join_on": "il.product_id = pr.id",
-                    "join_type": "left"
-                  }
-                ],
-                "time_column": "inv.created",
-                "metrics": [
-                  {
-                    "id": "revenue",
-                    "label": "Revenue",
-                    "expression": "SUM(il.amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "units",
-                    "label": "Units",
-                    "expression": "SUM(il.quantity)",
-                    "type": "integer"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_month",
-                    "label": "By month (invoice created)",
-                    "expression": "DATE_TRUNC(DATE(inv.created), MONTH)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_month",
-                "required_filters": [
-                  {
-                    "id": "invoice_date_range",
-                    "label": "Invoice created date",
-                    "type": "daterange",
-                    "column": "inv.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "canceled_at",
+                "required": true
+              },
+              {
+                "object": "subscription",
+                "field": "cancellation_details_reason",
+                "required": true
+              },
+              {
+                "object": "subscription_item",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "subscription_item",
+                "field": "quantity",
+                "required": false
+              },
+              {
+                "object": "price",
+                "field": "unit_amount",
+                "required": true
+              },
+              {
+                "object": "price",
+                "field": "currency",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Involuntary churn volume",
+              "source": {
+                "object": "price",
+                "field": "unit_amount"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [
+              {
+                "field": {
+                  "object": "subscription",
+                  "field": "cancellation_details_reason"
+                },
+                "operator": "equals",
+                "value": "payment_failed"
+              }
+            ],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "subscription.canceled_at",
+              "direction": "desc"
+            }
           }
         ]
       },
       {
-        "id": "discounts_promotions",
-        "label": "Discounts & promotions",
-        "description": "How much revenue is discounted and by which promotions?",
-        "subTopics": [
+        "id": "subs_billing_invoices",
+        "label": "Billing & invoices",
+        "description": "Invoice lifecycle, aging, and composition.",
+        "reports": [
           {
-            "id": "discounted_vs_full_price",
-            "label": "Discounted vs full-price revenue",
-            "description": "Compare revenue that used discounts vs full price.",
-            "reports": [
+            "id": "subs_invoice_lifecycle_over_time",
+            "label": "Invoice volume by status",
+            "description": "Invoice amounts broken down by status",
+            "objects": [
+              "invoice"
+            ],
+            "fields": [
               {
-                "id": "discounted_vs_full_price_by_month",
-                "label": "Discounted vs full-price revenue by month",
-                "description": "Compare revenue that used discounts vs full price. Grouped by month.",
-                "base_tables": [
-                  {
-                    "alias": "inv",
-                    "table": "invoices"
-                  }
-                ],
-                "time_column": "inv.created",
-                "metrics": [
-                  {
-                    "id": "total_revenue",
-                    "label": "Total revenue",
-                    "expression": "SUM(inv.amount_paid) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "discount_amount",
-                    "label": "Discount amount",
-                    "expression": "SUM(inv.total_discount_amounts_amount) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "discounted_share",
-                    "label": "Discounted share of revenue",
-                    "expression": "SAFE_DIVIDE(SUM(inv.total_discount_amounts_amount), SUM(inv.amount_paid))",
-                    "type": "ratio"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_month",
-                    "label": "By month",
-                    "expression": "DATE_TRUNC(DATE(inv.created), MONTH)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_month",
-                "required_filters": [
-                  {
-                    "id": "invoice_date_range",
-                    "label": "Invoice created date",
-                    "type": "daterange",
-                    "column": "inv.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "invoice",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "invoice",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "invoice",
+                "field": "amount_due",
+                "required": true
+              },
+              {
+                "object": "invoice",
+                "field": "amount_paid",
+                "required": false
+              },
+              {
+                "object": "invoice",
+                "field": "due_date",
+                "required": false
+              },
+              {
+                "object": "invoice",
+                "field": "created",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Invoice volume by status",
+              "source": {
+                "object": "invoice",
+                "field": "amount_due"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "week"
+            },
+            "filters": [],
+            "chartType": "bar",
+            "defaultSort": {
+              "column": "invoice.created",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "invoice",
+                "field": "status"
+              },
+              "selectedValues": []
+            }
+          },
+          {
+            "id": "subs_invoice_time_to_pay",
+            "label": "Paid invoice rate",
+            "description": "Percentage of invoices successfully paid",
+            "objects": [
+              "invoice"
+            ],
+            "fields": [
+              {
+                "object": "invoice",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "invoice",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "invoice",
+                "field": "amount_paid",
+                "required": false
+              },
+              {
+                "object": "invoice",
+                "field": "paid_at",
+                "required": false
+              },
+              {
+                "object": "invoice",
+                "field": "created",
+                "required": true
+              }
+            ],
+            "metric": {
+              "name": "Paid invoice rate",
+              "source": {
+                "object": "invoice",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "sum_over_period"
+            },
+            "multiBlock": {
+              "blocks": [
+                {
+                  "id": "paid_invoices",
+                  "name": "Paid invoices",
+                  "source": {
+                    "object": "invoice",
+                    "field": "id"
+                  },
+                  "op": "count",
+                  "type": "sum_over_period",
+                  "filters": [
+                    {
+                      "field": {
+                        "object": "invoice",
+                        "field": "status"
+                      },
+                      "operator": "equals",
+                      "value": "paid"
+                    }
+                  ]
+                },
+                {
+                  "id": "total_invoices",
+                  "name": "Total invoices",
+                  "source": {
+                    "object": "invoice",
+                    "field": "id"
+                  },
+                  "op": "count",
+                  "type": "sum_over_period",
+                  "filters": []
+                }
+              ],
+              "calculation": {
+                "operator": "divide",
+                "leftOperand": "paid_invoices",
+                "rightOperand": "total_invoices",
+                "resultUnitType": "percentage"
+              },
+              "outputUnit": "rate"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "week"
+            },
+            "filters": [],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "invoice.created",
+              "direction": "desc"
+            }
+          },
+          {
+            "id": "subs_invoice_composition_by_plan",
+            "label": "Invoice composition by plan and charges",
+            "description": "Invoice breakdown by status and line items",
+            "objects": [
+              "invoice"
+            ],
+            "fields": [
+              {
+                "object": "invoice",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "invoice",
+                "field": "amount_due",
+                "required": true
+              },
+              {
+                "object": "invoice",
+                "field": "amount_paid",
+                "required": false
+              },
+              {
+                "object": "invoice",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "invoice",
+                "field": "currency",
+                "required": true
+              },
+              {
+                "object": "invoice",
+                "field": "created",
+                "required": true
+              }
+            ],
+            "metric": {
+              "name": "Invoice composition by plan and charges",
+              "source": {
+                "object": "invoice",
+                "field": "amount_due"
+              },
+              "op": "sum",
+              "type": "sum_over_period"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [],
+            "chartType": "bar",
+            "defaultSort": {
+              "column": "invoice.created",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "invoice",
+                "field": "status"
+              },
+              "selectedValues": []
+            }
           }
         ]
       },
       {
-        "id": "tax_behavior",
-        "label": "Tax behavior",
-        "description": "Where and how much tax you collect.",
-        "subTopics": [
+        "id": "subs_trials_promotions_upgrades",
+        "label": "Trials",
+        "description": "Trials, promotions, and plan changes.",
+        "reports": [
           {
-            "id": "tax_by_jurisdiction",
-            "label": "Tax by jurisdiction",
-            "description": "Tax collected by jurisdiction using invoices.",
-            "reports": [
+            "id": "subs_trials_started_converted",
+            "label": "Trial conversion rate",
+            "description": "Rate of trials that convert to paid subscriptions",
+            "objects": [
+              "subscription"
+            ],
+            "fields": [
               {
-                "id": "tax_by_jurisdiction_customer_country",
-                "label": "Customer country",
-                "description": "Tax collected by jurisdiction using invoices. Grouped customer country.",
-                "base_tables": [
-                  {
-                    "alias": "inv",
-                    "table": "invoices"
-                  }
-                ],
-                "time_column": "inv.created",
-                "metrics": [
-                  {
-                    "id": "tax_amount",
-                    "label": "Tax amount",
-                    "expression": "SUM(inv.tax) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "taxable_amount",
-                    "label": "Taxable amount",
-                    "expression": "SUM(inv.subtotal) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "customer_country",
-                    "label": "Customer country",
-                    "column": "customer_address_country",
-                    "table": "inv"
-                  }
-                ],
-                "default_dimension": "customer_country",
-                "required_filters": [
-                  {
-                    "id": "invoice_date_range",
-                    "label": "Invoice created date",
-                    "type": "daterange",
-                    "column": "inv.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "id",
+                "required": true
               },
               {
-                "id": "tax_by_jurisdiction_by_month",
-                "label": "Tax by jurisdiction by month",
-                "description": "Tax collected by jurisdiction using invoices. Grouped by month.",
-                "base_tables": [
-                  {
-                    "alias": "inv",
-                    "table": "invoices"
-                  }
-                ],
-                "time_column": "inv.created",
-                "metrics": [
-                  {
-                    "id": "tax_amount",
-                    "label": "Tax amount",
-                    "expression": "SUM(inv.tax) / 100.0",
-                    "type": "currency"
-                  },
-                  {
-                    "id": "taxable_amount",
-                    "label": "Taxable amount",
-                    "expression": "SUM(inv.subtotal) / 100.0",
-                    "type": "currency"
-                  }
-                ],
-                "dimensions": [
-                  {
-                    "id": "by_month",
-                    "label": "By month",
-                    "expression": "DATE_TRUNC(DATE(inv.created), MONTH)",
-                    "column": null,
-                    "table": null
-                  }
-                ],
-                "default_dimension": "by_month",
-                "required_filters": [
-                  {
-                    "id": "invoice_date_range",
-                    "label": "Invoice created date",
-                    "type": "daterange",
-                    "column": "inv.created",
-                    "operator": "between",
-                    "param_from": "start_date",
-                    "param_to": "end_date"
-                  }
-                ],
-                "optional_filters": [],
-                "default_order_by": []
+                "object": "subscription",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "subscription",
+                "field": "trial_start",
+                "required": false
+              },
+              {
+                "object": "subscription",
+                "field": "trial_end",
+                "required": false
+              },
+              {
+                "object": "subscription",
+                "field": "created",
+                "required": true
               }
-            ]
+            ],
+            "metric": {
+              "name": "Trial conversion rate",
+              "source": {
+                "object": "subscription",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "sum_over_period"
+            },
+            "multiBlock": {
+              "blocks": [
+                {
+                  "id": "converted_trials",
+                  "name": "Trial conversion rate",
+                  "source": {
+                    "object": "subscription",
+                    "field": "id"
+                  },
+                  "op": "count",
+                  "type": "sum_over_period",
+                  "filters": [
+                    {
+                      "field": {
+                        "object": "subscription",
+                        "field": "status"
+                      },
+                      "operator": "in",
+                      "value": [
+                        "active",
+                        "past_due"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "all_trials",
+                  "name": "All trials",
+                  "source": {
+                    "object": "subscription",
+                    "field": "id"
+                  },
+                  "op": "count",
+                  "type": "sum_over_period",
+                  "filters": [
+                    {
+                      "field": {
+                        "object": "subscription",
+                        "field": "status"
+                      },
+                      "operator": "in",
+                      "value": [
+                        "trialing",
+                        "active",
+                        "past_due"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "calculation": {
+                "operator": "divide",
+                "leftOperand": "converted_trials",
+                "rightOperand": "all_trials",
+                "resultUnitType": "percentage"
+              },
+              "outputUnit": "rate"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [],
+            "chartType": "line",
+            "defaultSort": {
+              "column": "subscription.created",
+              "direction": "desc"
+            }
+          },
+          {
+            "id": "subs_trial_conversion_by_plan",
+            "label": "Trial conversion by plan",
+            "description": "Trial conversion breakdown by product",
+            "objects": [
+              "subscription",
+              "subscription_item",
+              "price"
+            ],
+            "fields": [
+              {
+                "object": "subscription",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "subscription",
+                "field": "status",
+                "required": true
+              },
+              {
+                "object": "subscription_item",
+                "field": "id",
+                "required": false
+              },
+              {
+                "object": "subscription_item",
+                "field": "subscription_id",
+                "required": false
+              },
+              {
+                "object": "price",
+                "field": "id",
+                "required": true
+              },
+              {
+                "object": "price",
+                "field": "nickname",
+                "required": true
+              }
+            ],
+            "metric": {
+              "name": "Trial conversion by plan",
+              "source": {
+                "object": "subscription",
+                "field": "id"
+              },
+              "op": "count",
+              "type": "sum_over_period"
+            },
+            "multiBlock": {
+              "blocks": [
+                {
+                  "id": "converted_trials_by_plan",
+                  "name": "Trial conversion by plan",
+                  "source": {
+                    "object": "subscription",
+                    "field": "id"
+                  },
+                  "op": "count",
+                  "type": "sum_over_period",
+                  "filters": [
+                    {
+                      "field": {
+                        "object": "subscription",
+                        "field": "status"
+                      },
+                      "operator": "in",
+                      "value": [
+                        "active",
+                        "past_due"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "all_trials_by_plan",
+                  "name": "All trials",
+                  "source": {
+                    "object": "subscription",
+                    "field": "id"
+                  },
+                  "op": "count",
+                  "type": "sum_over_period",
+                  "filters": [
+                    {
+                      "field": {
+                        "object": "subscription",
+                        "field": "status"
+                      },
+                      "operator": "in",
+                      "value": [
+                        "trialing",
+                        "active",
+                        "past_due"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "calculation": {
+                "operator": "divide",
+                "leftOperand": "converted_trials_by_plan",
+                "rightOperand": "all_trials_by_plan",
+                "resultUnitType": "percentage"
+              },
+              "outputUnit": "rate"
+            },
+            "range": {
+              "start": "YTD",
+              "end": "today",
+              "granularity": "month"
+            },
+            "filters": [],
+            "chartType": "bar",
+            "defaultSort": {
+              "column": "price.nickname",
+              "direction": "desc"
+            },
+            "groupBy": {
+              "field": {
+                "object": "price",
+                "field": "nickname"
+              },
+              "selectedValues": []
+            }
           }
         ]
       }

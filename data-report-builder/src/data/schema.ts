@@ -71,6 +71,7 @@ const schema: SchemaCatalog = {
         { name: 'discount_end', label: 'Discount End', type: 'date', definition: 'If the coupon has a duration of repeating, the date that this discount will end.' },
         { name: 'discount_start', label: 'Discount Start', type: 'date', definition: 'Date that the coupon was applied.' },
         { name: 'discount_subscription', label: 'Discount Subscription', type: 'string', definition: 'The subscription that this coupon is applied to, if any.' },
+        { name: 'cancellation_details_reason', label: 'Cancellation Reason', type: 'string', enum: ['payment_failed', 'customer_request', 'other'], definition: 'The reason for the subscription cancellation.' },
       ],
     },
     {
@@ -146,6 +147,9 @@ const schema: SchemaCatalog = {
         { name: 'failure_code', label: 'Failure Code', type: 'string', definition: 'Error code explaining reason for charge failure if available.' },
         { name: 'failure_message', label: 'Failure Message', type: 'string', definition: 'Message to user further explaining reason for charge failure if available.' },
         { name: 'description', label: 'Description', type: 'string', definition: 'An arbitrary string attached to the object. Often useful for displaying to users.' },
+        { name: 'payment_method_details_type', label: 'Payment Method Type', type: 'string', enum: ['card', 'bank_account', 'us_bank_account'], definition: 'The type of payment method used in the charge.' },
+        { name: 'payment_method_details_card_brand', label: 'Card Brand', type: 'string', enum: ['visa', 'mastercard', 'amex', 'discover', 'diners', 'jcb', 'unionpay'], definition: 'Card brand. Can be amex, diners, discover, jcb, mastercard, unionpay, visa, or unknown.' },
+        { name: 'billing_details_address_country', label: 'Billing Country', type: 'string', definition: 'Billing address country.' },
       ],
     },
     {
@@ -377,6 +381,7 @@ const schema: SchemaCatalog = {
         { name: 'amount', label: 'Amount', type: 'number', definition: 'Gross amount of the transaction, in cents.' },
         { name: 'currency', label: 'Currency', type: 'string', enum: ['usd', 'eur', 'gbp', 'cad', 'aud'], definition: 'Three-letter ISO currency code, in lowercase.' },
         { name: 'type', label: 'Type', type: 'string', enum: ['charge', 'refund', 'adjustment', 'application_fee', 'transfer', 'payout'], definition: 'Transaction type: charge, refund, adjustment, application_fee, transfer, or payout.' },
+        { name: 'reporting_category', label: 'Reporting Category', type: 'string', enum: ['charge', 'charge_fee', 'refund', 'refund_fee', 'dispute', 'dispute_reversal', 'payout', 'payout_cancel', 'transfer', 'transfer_cancel'], definition: 'Reporting category for this balance transaction, used for detailed financial reporting.' },
         { name: 'source_id', label: 'Source ID', type: 'id', definition: 'The Stripe object to which this transaction is related.' },
         { name: 'status', label: 'Status', type: 'string', enum: ['available', 'pending'], definition: 'If the transaction\'s net funds are available in the Stripe balance yet. Either available or pending.' },
         { name: 'fee', label: 'Fee', type: 'number', definition: 'Fees (in cents) paid for this transaction.' },

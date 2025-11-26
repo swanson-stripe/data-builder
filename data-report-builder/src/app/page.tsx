@@ -19,6 +19,7 @@ import { WarehouseProvider, useWarehouseStore } from '@/lib/useWarehouse';
 import { useState, useRef, useEffect } from 'react';
 import TemplateSelector from '@/components/TemplateSelector';
 import TemplateReopenButton from '@/components/TemplateReopenButton';
+import { getGroupValues } from '@/lib/grouping';
 
 function PageContent() {
   const { state, dispatch } = useApp();
@@ -74,6 +75,30 @@ function PageContent() {
       return () => clearTimeout(timeout);
     }
   }, [isLoading, loadingProgress]);
+
+  // Auto-populate groupBy values when warehouse data loads (safety net)
+  // Primary loading happens in TemplateCarousel before applyPreset is called
+  useEffect(() => {
+    const hasGroupBy = !!state.groupBy;
+    const selectedValuesLength = state.groupBy?.selectedValues?.length || 0;
+    
+    // Check if the specific object we need is loaded
+    const requiredObject = state.groupBy?.field?.object;
+    const objectIsLoaded = requiredObject && warehouse?.[requiredObject] && Array.isArray(warehouse[requiredObject]);
+    const objectRowCount = objectIsLoaded ? (warehouse[requiredObject] as any[]).length : 0;
+    
+    // Get the primary object for cross-object grouping
+    const primaryObject = state.selectedObjects[0] || state.metricFormula.blocks[0]?.source?.object;
+    
+    // Only run if groupBy is set, has no selected values, and the required object is loaded
+    if (hasGroupBy && selectedValuesLength === 0 && objectIsLoaded && objectRowCount > 0) {
+      const selectedValues = getGroupValues(warehouse, state.groupBy!.field, 10, primaryObject);
+      
+      if (selectedValues.length > 0) {
+        dispatch(actions.updateGroupValues(selectedValues));
+      }
+    }
+  }, [state.groupBy, state.selectedObjects, state.metricFormula.blocks, warehouse, dispatch]);
 
   // Handle resize
   useEffect(() => {

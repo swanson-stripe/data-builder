@@ -88,8 +88,10 @@ export function MetricTab() {
   // Available values for the selected group field
   const availableGroupValues = useMemo(() => {
     if (!state.groupBy || !warehouse) return [];
-    return getGroupValues(warehouse, state.groupBy.field, 50); // Get top 50, user can select max 10
-  }, [state.groupBy?.field, version]);
+    // Get the primary object for cross-object grouping
+    const primaryObject = state.selectedObjects[0] || state.metricFormula.blocks[0]?.source?.object;
+    return getGroupValues(warehouse, state.groupBy.field, 50, primaryObject); // Get top 50, user can select max 10
+  }, [state.groupBy?.field, state.selectedObjects, state.metricFormula.blocks, version]);
   
   // Helper to format value to sentence case
   const formatValueLabel = (value: string) => {
