@@ -92,8 +92,8 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
     const hasGroupBy = !!state.groupBy;
     const selectedValuesLength = state.groupBy?.selectedValues?.length || 0;
     const requiredObject = state.groupBy?.field?.object;
-    const objectIsLoaded = requiredObject && warehouse?.[requiredObject] && Array.isArray(warehouse[requiredObject]);
-    const objectRowCount = objectIsLoaded ? (warehouse[requiredObject] as any[]).length : 0;
+    const objectIsLoaded = requiredObject && warehouse?.[requiredObject as keyof typeof warehouse] && Array.isArray(warehouse[requiredObject as keyof typeof warehouse]);
+    const objectRowCount = objectIsLoaded ? (warehouse[requiredObject as keyof typeof warehouse] as any[]).length : 0;
     const primaryObject = state.selectedObjects[0] || state.metricFormula.blocks[0]?.source?.object;
     
     if (hasGroupBy && selectedValuesLength === 0 && objectIsLoaded && objectRowCount > 0) {
