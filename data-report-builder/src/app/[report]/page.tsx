@@ -543,7 +543,7 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
       </nav>
 
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 min-h-0">
         {/* Top Navigation Bar */}
         <header 
           className="flex items-center justify-between" 
@@ -655,9 +655,9 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
         </header>
 
         {/* Main content area with title and report viewer */}
-        <main className="flex flex-col flex-1 overflow-hidden" role="main">
+        <main className="flex flex-col flex-1 min-h-0" role="main">
           {/* Report viewer */}
-          <div className="flex-1 overflow-hidden min-w-0" style={{ paddingLeft: '40px' }}>
+          <div className="flex-1 min-h-0 min-w-0" style={{ paddingLeft: '40px' }}>
             <ReportViewer 
               showDataList={true} 
               padding="40px" 

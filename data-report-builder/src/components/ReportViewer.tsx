@@ -24,7 +24,7 @@ export function ReportViewer({ showDataList = true, padding = '32px', actionButt
 
   return (
     <section 
-      className="flex-1 py-6 overflow-y-auto custom-scrollbar" 
+      className="flex-1 py-6 overflow-y-auto custom-scrollbar h-full" 
       style={{ paddingRight: padding, backgroundColor: 'var(--bg-primary)' }} 
       role="region" 
       aria-label="Report visualizations"
