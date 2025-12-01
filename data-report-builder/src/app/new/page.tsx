@@ -18,7 +18,7 @@ import { Toast } from '@/components/Toast';
 import TemplateSelector from '@/components/TemplateSelector';
 import TemplateReopenButton from '@/components/TemplateReopenButton';
 import { useReportHeuristics } from '@/hooks/useReportHeuristics';
-import { getGroupValues } from '@/lib/grouping';
+// getGroupValues import removed - users now manually select group values
 import { getSlugForKey, toSlug } from '@/lib/slugs';
 import { TEMPLATE_TAXONOMY } from '@/data/templateTaxonomy';
 
@@ -70,22 +70,7 @@ function NewPageContent() {
     }
   }, [isLoading, loadingProgress]);
 
-  // Auto-populate groupBy values
-  useEffect(() => {
-    const hasGroupBy = !!state.groupBy;
-    const selectedValuesLength = state.groupBy?.selectedValues?.length || 0;
-    const requiredObject = state.groupBy?.field?.object;
-    const objectIsLoaded = requiredObject && warehouse?.[requiredObject as keyof typeof warehouse] && Array.isArray(warehouse[requiredObject as keyof typeof warehouse]);
-    const objectRowCount = objectIsLoaded ? (warehouse[requiredObject as keyof typeof warehouse] as any[]).length : 0;
-    const primaryObject = state.selectedObjects[0] || state.metricFormula.blocks[0]?.source?.object;
-    
-    if (hasGroupBy && selectedValuesLength === 0 && objectIsLoaded && objectRowCount > 0) {
-      const selectedValues = getGroupValues(warehouse, state.groupBy!.field, 10, primaryObject);
-      if (selectedValues.length > 0) {
-        dispatch(actions.updateGroupValues(selectedValues));
-      }
-    }
-  }, [state.groupBy, state.selectedObjects, state.metricFormula.blocks, warehouse, dispatch]);
+  // Note: We no longer auto-populate groupBy values - users should manually select which values to include
 
   // Handle resize
   useEffect(() => {
