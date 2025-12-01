@@ -110,7 +110,7 @@ export function convertReportToPreset(report: TemplateReport): ConvertedPresetCo
         rightOperand: report.multiBlock.calculation.rightOperand,
         resultUnitType: report.multiBlock.calculation.resultUnitType,
       },
-      outputUnit: report.multiBlock.outputUnit === 'currency' ? 'volume' : report.multiBlock.outputUnit,
+      outputUnit: report.multiBlock.outputUnit === 'currency' ? 'volume' : (report.multiBlock.outputUnit as 'count' | 'rate' | 'volume'),
     };
   }
 
