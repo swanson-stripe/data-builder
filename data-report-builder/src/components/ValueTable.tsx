@@ -15,6 +15,7 @@ import schema from '@/data/schema';
 import { buildDataListView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
 import { resolveFieldValue, createFilteredWarehouse, batchResolveFieldValues } from '@/lib/grouping';
+import { formatDisplayValue } from '@/lib/formatters';
 
 export function ValueTable() {
   const { state, dispatch } = useApp();
@@ -526,10 +527,10 @@ export function ValueTable() {
                   const isOtherGroup = groupKey.startsWith('__other__');
                   const otherCount = isOtherGroup ? parseInt(groupKey.replace('__other__', '')) : 0;
                   
-                  // Get display name
+                  // Get display name with proper formatting (e.g., country codes)
                   const displayName = isOtherGroup
                     ? `All ${otherCount} other ${state.groupBy!.field.field}${otherCount === 1 ? '' : 's'}`
-                    : groupKey;
+                    : formatDisplayValue(groupKey, state.groupBy!.field.field);
                   
                   const colors = [
                     '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',

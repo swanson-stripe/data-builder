@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { formatDisplayValue } from '@/lib/formatters';
 
 export type GroupBySelectorProps = {
   availableValues: string[];
@@ -10,6 +11,7 @@ export type GroupBySelectorProps = {
   onCancel: () => void;
   maxSelections?: number;
   chipLabel?: string; // The label from the chip to display at top
+  fieldName?: string; // The field name for context-aware formatting (e.g., "country")
 };
 
 /**
@@ -24,19 +26,14 @@ export default function GroupBySelector({
   onCancel,
   maxSelections = 10,
   chipLabel = 'Group by',
+  fieldName,
 }: GroupBySelectorProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set(initialSelected));
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Helper to format value to sentence case
+  // Helper to format value using context-aware formatting
   const formatValueLabel = (value: string) => {
-    return value
-      .replace(/_/g, ' ')
-      .replace(/([A-Z])/g, ' $1')
-      .trim()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+    return formatDisplayValue(value, fieldName);
   };
 
   const filteredValues = useMemo(() => {

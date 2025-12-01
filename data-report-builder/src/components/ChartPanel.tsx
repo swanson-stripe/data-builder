@@ -15,6 +15,7 @@ import schema from '@/data/schema';
 import { buildDataListView } from '@/lib/views';
 import { applyFilters } from '@/lib/filters';
 import { getAvailableGroupFields, getGroupValues, resolveFieldValue, createFilteredWarehouse, batchResolveFieldValues } from '@/lib/grouping';
+import { formatDisplayValue } from '@/lib/formatters';
 import GroupBySelector from './GroupBySelector';
 import { FieldFilter } from './FieldFilter';
 import type { MetricResult, FilterCondition, SchemaField } from '@/types';
@@ -1010,16 +1011,9 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
     return cache;
   }, [enabledFields, warehouse, version]);
 
-  // Helper to format value to sentence case
-  const formatValueLabel = useCallback((value: string) => {
-    // Convert snake_case or camelCase to Title Case
-    return value
-      .replace(/_/g, ' ')
-      .replace(/([A-Z])/g, ' $1')
-      .trim()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+  // Helper to format value with context-aware formatting (e.g., country codes)
+  const formatValueLabel = useCallback((value: string, fieldName?: string) => {
+    return formatDisplayValue(value, fieldName);
   }, []);
 
   const formatFilterSummary = useCallback((schemaField?: SchemaField, condition?: FilterCondition) => {
@@ -1158,7 +1152,8 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
   const groupByLabel = useMemo(() => {
     if (!state.groupBy) return 'Group by';
     
-    const values = state.groupBy.selectedValues.map(formatValueLabel);
+    const fieldName = state.groupBy.field.field;
+    const values = state.groupBy.selectedValues.map(v => formatValueLabel(v, fieldName));
     if (values.length === 0) return 'Group by';
     
     const MAX_CHARS = 20;
@@ -2521,6 +2516,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                       setIsGroupByValueSelectorOpen(false);
                     }}
                     maxSelections={10}
+                    fieldName={state.groupBy.field.field}
                   />
                 )
               )}

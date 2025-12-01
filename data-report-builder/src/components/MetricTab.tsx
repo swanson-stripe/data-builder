@@ -702,6 +702,7 @@ export function MetricTab() {
                     setIsGroupByValueSelectorOpen(false);
                   }}
                   maxSelections={10}
+                  fieldName={state.groupBy.field.field}
                 />
               </div>
             )}
