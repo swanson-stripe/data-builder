@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { formatDisplayValue } from '@/lib/formatters';
 
 export type GroupBySelectorProps = {
@@ -30,6 +30,12 @@ export default function GroupBySelector({
 }: GroupBySelectorProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set(initialSelected));
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Sync internal state when initialSelected changes (e.g., when field changes)
+  // Use JSON.stringify to properly detect array content changes
+  useEffect(() => {
+    setSelected(new Set(initialSelected));
+  }, [JSON.stringify(initialSelected)]);
   
   // Helper to format value using context-aware formatting
   const formatValueLabel = (value: string) => {
