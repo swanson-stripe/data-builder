@@ -2,7 +2,7 @@
 import { Granularity } from '@/lib/time';
 import { MetricDef, FilterCondition, MetricOp, MetricType, CalculationOperator, UnitType, GroupBy } from '@/types';
 import { AppAction, ChartType } from '@/state/app';
-import { getGroupValues } from '@/lib/grouping';
+// getGroupValues import removed - users now manually select group values
 
 export type PresetKey =
   | 'blank'
@@ -509,18 +509,11 @@ export function applyPreset(
 
   // Apply groupBy if specified
   if (p.groupBy) {
-    // Check if warehouse has data loaded
-    const warehouseHasData = warehouse && Object.keys(warehouse).length > 0;
-    
-    // Get the primary object (first selected object or metric source object)
-    const primaryObject = p.objects?.[0] || p.metric?.source?.object;
-    
-    // Always get values from warehouse data if available, up to 10
-    // If preset has specific values selected, use those; otherwise get top 10 from data
-    // Pass primaryObject so cross-object grouping (e.g. subscription -> product.name) works correctly
+    // Use preset's selectedValues if explicitly specified, otherwise start with empty array
+    // This lets users choose which values to add rather than pre-selecting top 10
     const selectedValues = (p.groupBy.selectedValues && p.groupBy.selectedValues.length > 0)
       ? p.groupBy.selectedValues
-      : (warehouseHasData ? getGroupValues(warehouse, p.groupBy.field, 10, primaryObject) : []);
+      : [];
 
     dispatch({
       type: 'SET_GROUP_BY',

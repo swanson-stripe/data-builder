@@ -945,10 +945,13 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
   // Group By: Get available values for selected field
   const availableGroupValues = useMemo(() => {
     if (!state.groupBy) return [];
+    
     // Get the primary object for cross-object grouping
+    // For groupBy to work across objects, we need to find an object that has a relationship path
+    // to the groupBy field's object. Start with selectedObjects, then fall back to metric source.
     const primaryObject = state.selectedObjects[0] || state.metricFormula.blocks[0]?.source?.object;
     return getGroupValues(warehouse, state.groupBy.field, 100, primaryObject);
-  }, [state.groupBy?.field, state.selectedObjects, state.metricFormula.blocks, version]);
+  }, [state.groupBy?.field, state.selectedObjects, state.metricFormula.blocks, warehouse, version]);
   
   const enabledFields = useMemo(() => {
     const orderMap = new Map<string, number>();
