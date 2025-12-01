@@ -529,7 +529,7 @@ export function ValueTable() {
                   
                   // Get display name with proper formatting (e.g., country codes)
                   const displayName = isOtherGroup
-                    ? `All ${otherCount} other ${state.groupBy!.field.field}${otherCount === 1 ? '' : 's'}`
+                    ? `${otherCount} others`
                     : formatDisplayValue(groupKey, state.groupBy!.field.field);
                   
                   const colors = [
