@@ -75,6 +75,9 @@
   --button-secondary-bg-hover: #D8DEE4;
   --button-secondary-text: #374151;
   
+  /* Semantic Tokens - Accent */
+  --accent-text: #675DFF;
+  
   /* Semantic Tokens - Charts */
   --chart-line-primary: #9966FF;
   --chart-line-secondary: #9ca3af;
@@ -177,6 +180,9 @@
   --button-secondary-bg: #252629;
   --button-secondary-bg-hover: #2a2d31;
   --button-secondary-text: #e5e7eb;
+  
+  /* Semantic Tokens - Accent (Dark) */
+  --accent-text: #A89EFF;
   
   /* Semantic Tokens - Charts (Dark) */
   --chart-line-primary: #8B7FDB;

@@ -381,30 +381,37 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
     router.push(`/${reportInfo.slug}/edit`);
   };
 
-  // Nav item component for cleaner code
-  const NavItem = ({ icon, label, isActive = false, hasChevron = false }: { icon: React.ReactNode; label: string; isActive?: boolean; hasChevron?: boolean }) => (
-    <button
-      className="flex items-center justify-between w-full px-3 py-2 rounded-md transition-colors"
-      style={{
-        backgroundColor: isActive ? 'var(--bg-surface)' : 'transparent',
-        color: isActive ? 'var(--button-primary-bg)' : 'var(--text-primary)',
-        border: 'none',
-        cursor: 'pointer',
-        fontWeight: isActive ? 500 : 400,
-        fontSize: '14px',
-      }}
-    >
-      <div className="flex items-center gap-3">
-        {icon}
-        <span>{label}</span>
-      </div>
-      {hasChevron && (
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4.5 3L7.5 6L4.5 9" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      )}
-    </button>
-  );
+  // Nav item component for cleaner code with hover states
+  const NavItem = ({ icon, label, isActive = false, hasChevron = false, onClick }: { icon: React.ReactNode; label: string; isActive?: boolean; hasChevron?: boolean; onClick?: () => void }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    return (
+      <button
+        onClick={onClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className="flex items-center justify-between w-full px-3 py-2 rounded-md transition-colors"
+        style={{
+          backgroundColor: isHovered ? 'var(--bg-surface)' : 'transparent',
+          color: isActive ? 'var(--accent-text)' : 'var(--text-primary)',
+          border: 'none',
+          cursor: 'pointer',
+          fontWeight: isActive ? 500 : 400,
+          fontSize: '14px',
+        }}
+      >
+        <div className="flex items-center gap-3">
+          {icon}
+          <span>{label}</span>
+        </div>
+        {hasChevron && (
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4.5 3L7.5 6L4.5 9" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="h-screen flex" style={{ backgroundColor: 'var(--bg-primary)', overflow: 'hidden' }}>
@@ -443,7 +450,8 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
           {/* Primary Nav Items */}
           <div className="flex flex-col gap-1">
             <NavItem
-              isActive={true}
+              isActive={false}
+              onClick={() => router.push('/')}
               icon={
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M2 6L8 2L14 6V13C14 13.5523 13.5523 14 13 14H3C2.44772 14 2 13.5523 2 13V6Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
