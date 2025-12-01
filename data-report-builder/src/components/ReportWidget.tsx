@@ -45,7 +45,7 @@ export function ReportWidget({ presetKey, label }: ReportWidgetProps) {
     // Check if required data is loaded for this preset
     const requiredObjects = preset.objects;
     const hasRequiredData = requiredObjects.some(obj => {
-      const data = warehouse[obj];
+      const data = warehouse[obj as keyof typeof warehouse];
       return data && Array.isArray(data) && data.length > 0;
     });
 

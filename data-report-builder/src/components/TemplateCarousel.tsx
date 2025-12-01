@@ -16,26 +16,9 @@ const TEMPLATE_KEYS: PresetKey[] = [
   'gross_volume',
   'active_subscribers',
   'refund_count',
+  'subscriber_ltv',
   'customer_acquisition',
   'payment_success_rate',
-  'revenue_by_product',
-  'payment_acceptance_by_method',
-  'payment_funnel',
-  'payment_volume_by_attribute',
-  'payments_net_revenue',
-  'first_purchase_behavior',
-  'active_customers',
-  'purchase_frequency',
-  'customer_ltv',
-  'subscription_churn',
-  'invoice_status',
-  'current_balances',
-  'balance_flows',
-  'payouts_over_time',
-  'dispute_rates',
-  'disputes_by_reason',
-  'discounted_revenue',
-  'tax_by_jurisdiction',
 ];
 
 type Props = {
@@ -150,7 +133,7 @@ export default function TemplateCarousel({ onExploreOwn, filterPath, onSelectTem
       const requiredObject = presetConfig.groupBy.field.object;
       console.log('[TemplateCarousel] Preset has groupBy, ensuring', requiredObject, 'is loaded');
       
-      if (!warehouse[requiredObject] || !Array.isArray(warehouse[requiredObject]) || warehouse[requiredObject].length === 0) {
+      if (!warehouse[requiredObject as keyof typeof warehouse] || !Array.isArray(warehouse[requiredObject as keyof typeof warehouse]) || warehouse[requiredObject as keyof typeof warehouse]!.length === 0) {
         console.log('[TemplateCarousel] Loading', requiredObject, 'before applying preset');
         try {
           await loadEntity(requiredObject as any);
@@ -201,12 +184,8 @@ export default function TemplateCarousel({ onExploreOwn, filterPath, onSelectTem
                 template={{
                   key: report.id as PresetKey,
                   label: report.label,
-                  reportId: report.id,
-                  // Placeholder values for now - these reports don't have full preset configs yet
                   objects: [],
-                  fields: [],
-                  metric: { name: '', source: { object: '', field: '' }, op: 'count', type: 'sum_over_period' },
-                  range: { start: '', end: '', granularity: 'day' },
+                  metric: { name: '', op: 'count', type: 'sum_over_period' },
                 }}
                 description={report.description}
                 onSelect={async () => {
@@ -217,7 +196,7 @@ export default function TemplateCarousel({ onExploreOwn, filterPath, onSelectTem
                   
                   // Ensure all objects are loaded before applying preset
                   for (const obj of objectsToLoad) {
-                    if (!warehouse[obj] || !Array.isArray(warehouse[obj]) || warehouse[obj].length === 0) {
+                    if (!warehouse[obj as keyof typeof warehouse] || !Array.isArray(warehouse[obj as keyof typeof warehouse]) || warehouse[obj as keyof typeof warehouse]!.length === 0) {
                       console.log('[TemplateCarousel] Loading', obj, 'before applying preset');
                       try {
                         await loadEntity(obj as any);
@@ -228,7 +207,8 @@ export default function TemplateCarousel({ onExploreOwn, filterPath, onSelectTem
                   }
                   
                   // Now apply the preset with loaded warehouse data
-                  applyPreset(presetConfig, dispatch, state, warehouse);
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  applyPreset(presetConfig as any, dispatch, state, warehouse);
                   dispatch({ type: 'HIDE_TEMPLATE_SELECTOR' });
                   
                   // Notify parent about template selection (for URL navigation)

@@ -344,8 +344,8 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
     if (hasAppliedPreset) return;
     
     // Wait for warehouse to have some data
-    const hasData = warehouse && Object.keys(warehouse).some(k => 
-      Array.isArray(warehouse[k]) && warehouse[k].length > 0
+    const hasData = warehouse && (Object.keys(warehouse) as Array<keyof typeof warehouse>).some(k => 
+      Array.isArray(warehouse[k]) && warehouse[k]!.length > 0
     );
     
     if (!hasData) return;
@@ -354,7 +354,8 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
       applyPreset(reportInfo.key as PresetKey, dispatch, state, warehouse);
     } else if (reportInfo.report) {
       const presetConfig = convertReportToPreset(reportInfo.report);
-      applyPreset(presetConfig, dispatch, state, warehouse);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      applyPreset(presetConfig as any, dispatch, state, warehouse);
     }
     
     setHasAppliedPreset(true);
@@ -365,8 +366,8 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
     const hasGroupBy = !!state.groupBy;
     const selectedValuesLength = state.groupBy?.selectedValues?.length || 0;
     const requiredObject = state.groupBy?.field?.object;
-    const objectIsLoaded = requiredObject && warehouse?.[requiredObject] && Array.isArray(warehouse[requiredObject]);
-    const objectRowCount = objectIsLoaded ? (warehouse[requiredObject] as any[]).length : 0;
+    const objectIsLoaded = requiredObject && warehouse?.[requiredObject as keyof typeof warehouse] && Array.isArray(warehouse[requiredObject as keyof typeof warehouse]);
+    const objectRowCount = objectIsLoaded ? (warehouse[requiredObject as keyof typeof warehouse] as any[]).length : 0;
     const primaryObject = state.selectedObjects[0] || state.metricFormula.blocks[0]?.source?.object;
     
     if (hasGroupBy && selectedValuesLength === 0 && objectIsLoaded && objectRowCount > 0) {

@@ -213,7 +213,7 @@ export function ValueTable() {
     // Compute "other" group for all unselected values (using pre-computed values)
     const otherRows = (allRows as any[]).filter(row => {
       const value = resolvedValues.get(row);
-      if (value === null) return false;
+      if (value === null || value === undefined) return false;
       return !state.groupBy!.selectedValues.includes(value);
     });
 
