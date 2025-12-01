@@ -41,7 +41,12 @@ const REPORT_LABELS: Record<ReportKey, string> = {
   tax_by_jurisdiction: 'Tax by Jurisdiction',
 };
 
-export function MetricHeader() {
+type MetricHeaderProps = {
+  /** Optional action buttons to display inline with the metric value */
+  actionButtons?: React.ReactNode;
+};
+
+export function MetricHeader({ actionButtons }: MetricHeaderProps = {}) {
   const { state } = useApp();
   const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
 
@@ -346,22 +351,31 @@ export function MetricHeader() {
           {title}
         </h3>
 
-        {/* Value and Delta */}
-        <div className="flex items-baseline gap-3">
-          <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
-            {formattedValue}
+        {/* Value, Delta, and Action Buttons */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-baseline gap-3">
+            <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              {formattedValue}
+            </div>
+            {formattedDelta && (
+              <div
+                className={`text-lg font-medium ${
+                  formattedDelta.isPositive
+                    ? 'text-green-600 dark:text-green-400'
+                    : formattedDelta.isNegative
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                {formattedDelta.absolute}{formattedDelta.percent && <span className="text-sm"> ({formattedDelta.percent})</span>}
+              </div>
+            )}
           </div>
-          {formattedDelta && (
-            <div
-              className={`text-lg font-medium ${
-                formattedDelta.isPositive
-                  ? 'text-green-600 dark:text-green-400'
-                  : formattedDelta.isNegative
-                  ? 'text-red-600 dark:text-red-400'
-                  : 'text-gray-500 dark:text-gray-400'
-              }`}
-            >
-              {formattedDelta.absolute}{formattedDelta.percent && <span className="text-sm"> ({formattedDelta.percent})</span>}
+          
+          {/* Action Buttons */}
+          {actionButtons && (
+            <div className="flex-shrink-0">
+              {actionButtons}
             </div>
           )}
         </div>

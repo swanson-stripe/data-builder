@@ -41,9 +41,11 @@ const TEMPLATE_KEYS: PresetKey[] = [
 type Props = {
   onExploreOwn: () => void;
   filterPath?: FilterPath;
+  /** Callback when a template is selected - receives the report ID/key */
+  onSelectTemplate?: (reportKey: string) => void;
 };
 
-export default function TemplateCarousel({ onExploreOwn, filterPath }: Props) {
+export default function TemplateCarousel({ onExploreOwn, filterPath, onSelectTemplate }: Props) {
   const { state, dispatch } = useApp();
   const { store: warehouse, loadEntity } = useWarehouseStore();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -161,6 +163,11 @@ export default function TemplateCarousel({ onExploreOwn, filterPath }: Props) {
     
     applyPreset(key, dispatch, state, warehouse);
     dispatch({ type: 'HIDE_TEMPLATE_SELECTOR' });
+    
+    // Notify parent about template selection (for URL navigation)
+    if (onSelectTemplate) {
+      onSelectTemplate(key);
+    }
   };
 
   return (
@@ -223,6 +230,11 @@ export default function TemplateCarousel({ onExploreOwn, filterPath }: Props) {
                   // Now apply the preset with loaded warehouse data
                   applyPreset(presetConfig, dispatch, state, warehouse);
                   dispatch({ type: 'HIDE_TEMPLATE_SELECTOR' });
+                  
+                  // Notify parent about template selection (for URL navigation)
+                  if (onSelectTemplate) {
+                    onSelectTemplate(report.id);
+                  }
                 }}
               />
             </div>

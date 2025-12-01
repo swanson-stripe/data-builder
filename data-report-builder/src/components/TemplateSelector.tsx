@@ -6,7 +6,12 @@ import TemplatePromptInput from './TemplatePromptInput';
 import TemplateCarousel from './TemplateCarousel';
 import CategoryFilter, { FilterPath } from './CategoryFilter';
 
-export default function TemplateSelector() {
+type Props = {
+  /** Callback when a template is selected - receives the report ID/key */
+  onSelectTemplate?: (reportKey: string) => void;
+};
+
+export default function TemplateSelector({ onSelectTemplate }: Props) {
   const { dispatch } = useApp();
   const [filterPath, setFilterPath] = useState<FilterPath>({});
 
@@ -34,7 +39,11 @@ export default function TemplateSelector() {
 
           {/* Template Carousel */}
           <div className="w-full">
-            <TemplateCarousel onExploreOwn={handleExploreOwn} filterPath={filterPath} />
+            <TemplateCarousel 
+              onExploreOwn={handleExploreOwn} 
+              filterPath={filterPath}
+              onSelectTemplate={onSelectTemplate}
+            />
           </div>
         </div>
       </div>

@@ -118,7 +118,12 @@ const rangePresets: RangePreset[] = [
 
 const granularityOptions: Granularity[] = ['day', 'week', 'month', 'quarter', 'year'];
 
-export function ChartPanel() {
+type ChartPanelProps = {
+  /** Optional action buttons to display inline with the metric header */
+  actionButtons?: React.ReactNode;
+};
+
+export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
   const { state, dispatch } = useApp();
   const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
 
@@ -1650,7 +1655,7 @@ export function ChartPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Metric Header */}
-      <MetricHeader />
+      <MetricHeader actionButtons={actionButtons} />
 
       {/* Controls */}
       <div className="flex flex-wrap items-center mt-10" style={{ gap: '8px' }}>
