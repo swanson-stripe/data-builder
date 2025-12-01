@@ -69,8 +69,8 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
   useEffect(() => {
     if (hasAppliedPreset) return;
     
-    const hasData = warehouse && Object.keys(warehouse).some(k => 
-      Array.isArray(warehouse[k]) && warehouse[k].length > 0
+    const hasData = warehouse && (Object.keys(warehouse) as Array<keyof typeof warehouse>).some(k => 
+      Array.isArray(warehouse[k]) && warehouse[k]!.length > 0
     );
     
     if (!hasData) return;
