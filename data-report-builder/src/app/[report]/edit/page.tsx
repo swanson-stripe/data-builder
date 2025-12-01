@@ -79,7 +79,9 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
       applyPreset(reportInfo.key as PresetKey, dispatch, state, warehouse);
     } else if (reportInfo.report) {
       const presetConfig = convertReportToPreset(reportInfo.report);
-      applyPreset(presetConfig, dispatch, state, warehouse);
+      // Cast to any since ConvertedPresetConfig has compatible structure with PresetConfig
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      applyPreset(presetConfig as any, dispatch, state, warehouse);
     }
     
     setHasAppliedPreset(true);
