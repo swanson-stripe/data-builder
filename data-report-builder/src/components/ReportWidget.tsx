@@ -188,18 +188,18 @@ export function ReportWidget({ presetKey, label }: ReportWidgetProps) {
         <span style={{ 
           fontSize: '14px', 
           fontWeight: 500, 
-          color: isHovered ? 'var(--accent-text)' : 'var(--text-primary)',
+          color: isHovered ? 'var(--button-primary-bg)' : 'var(--text-primary)',
           transition: 'color 0.15s ease',
         }}>
           {displayLabel}
         </span>
         {/* Arrow icon - changes on hover */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
           {isHovered && (
             <span style={{ 
               fontSize: '12px', 
               fontWeight: 500, 
-              color: 'var(--accent-text)',
+              color: 'var(--button-primary-bg)',
             }}>
               Open
             </span>
@@ -210,11 +210,14 @@ export function ReportWidget({ presetKey, label }: ReportWidgetProps) {
             viewBox="0 0 14 14" 
             fill="none" 
             xmlns="http://www.w3.org/2000/svg"
-            style={{ transition: 'color 0.15s ease' }}
+            style={{ 
+              transition: 'all 0.15s ease',
+              flexShrink: 0,
+            }}
           >
             <path 
               d="M4 10L10 4M10 4H5M10 4V9" 
-              stroke={isHovered ? 'var(--accent-text)' : 'var(--text-muted)'} 
+              stroke={isHovered ? 'var(--button-primary-bg)' : 'var(--text-muted)'} 
               strokeWidth="1.5" 
               strokeLinecap="round" 
               strokeLinejoin="round"
