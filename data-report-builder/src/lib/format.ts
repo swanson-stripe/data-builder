@@ -26,8 +26,16 @@ export function currency(value: number, options?: { compact?: boolean }): string
 /**
  * Format a number with commas
  */
-export function number(value: number, options?: { decimals?: number }): string {
-  const { decimals = 0 } = options || {};
+export function number(value: number, options?: { decimals?: number; compact?: boolean }): string {
+  const { decimals = 0, compact = false } = options || {};
+
+  if (compact) {
+    if (Math.abs(value) >= 1_000_000) {
+      return `${(value / 1_000_000).toFixed(2)}M`;
+    } else if (Math.abs(value) >= 10_000) {
+      return `${(value / 1_000).toFixed(1)}K`;
+    }
+  }
 
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: decimals,

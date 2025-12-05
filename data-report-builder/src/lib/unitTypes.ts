@@ -19,6 +19,8 @@ const CURRENCY_FIELDS = new Set([
   'tax',
   'starting_balance',
   'ending_balance',
+  'net', // balance_transaction.net
+  'fee', // balance_transaction.fee
 ]);
 
 /**

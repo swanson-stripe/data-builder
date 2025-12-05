@@ -359,15 +359,17 @@ export function MetricHeader({ actionButtons }: MetricHeaderProps = {}) {
             </div>
             {formattedDelta && (
               <div
-                className={`text-lg font-medium ${
-                  formattedDelta.isPositive
-                    ? 'text-green-600 dark:text-green-400'
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: formattedDelta.isPositive
+                    ? 'var(--color-positive)'
                     : formattedDelta.isNegative
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-gray-500 dark:text-gray-400'
-                }`}
+                    ? 'var(--color-negative)'
+                    : 'var(--text-muted)',
+                }}
               >
-                {formattedDelta.absolute}{formattedDelta.percent && <span className="text-sm"> ({formattedDelta.percent})</span>}
+                {formattedDelta.absolute}{formattedDelta.percent && <span style={{ fontSize: '16px', fontWeight: 600 }}> ({formattedDelta.percent})</span>}
               </div>
             )}
           </div>

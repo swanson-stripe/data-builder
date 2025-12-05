@@ -33,9 +33,15 @@
   --color-blue-600: #2563eb;
   --color-green-400: #4ade80;
   --color-green-500: #22c55e;
+  --color-green-600: #217005;
   --color-red-500: #ef4444;
   --color-red-600: #dc2626;
   --color-red-700: #E61947;
+  --color-orange-600: #B13600;
+
+  /* Comparison colors */
+  --color-positive: #217005;
+  --color-negative: #B13600;
 
   /* Semantic Tokens - Backgrounds */
   --bg-primary: #ffffff;
@@ -193,6 +199,10 @@
   --chart-axis: #6b7280;
   --chart-tooltip-bg: #1a1b1e;
   --chart-tooltip-border: #2a2d31;
+
+  /* Comparison colors (Dark) - keep original green/red for better contrast */
+  --color-positive: #22c55e;
+  --color-negative: #ef4444;
   
   /* Semantic Tokens - Code/Syntax (Dark) */
   --syntax-keyword: #c792ea;
@@ -257,6 +267,41 @@ textarea:not(.sql-editor-textarea) {
   border-radius: 8px !important;
   padding-left: 12px !important;
   padding-right: 12px !important;
+}
+
+input.search-input-transparent {
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding-left: 8px !important;
+  padding-right: 0 !important;
+}
+
+/* Modal scrollbar - transparent background, only visible on scroll */
+.modal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.modal-scrollbar:hover {
+  scrollbar-color: var(--border-default) transparent;
+}
+
+.modal-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.modal-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: var(--border-default);
 }
 
 select {

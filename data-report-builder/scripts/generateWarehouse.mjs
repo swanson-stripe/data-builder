@@ -693,6 +693,45 @@ Object.keys(warehouse).forEach(entityName => {
   console.log(`   ✅ ${entityName.padEnd(18)} ${String(data.length).padStart(6)} records  ${sizeKB.padStart(6)} KB`);
 });
 
+// Create singular symlinks for compatibility with presets that use singular names
+const singularMappings = {
+  'customers': 'customer',
+  'payments': 'payment',
+  'refunds': 'refund',
+  'subscriptions': 'subscription',
+  'subscription_items': 'subscription_item',
+  'invoices': 'invoice',
+  'charges': 'charge',
+  'payouts': 'payout',
+  'prices': 'price',
+  'products': 'product',
+  'payment_methods': 'payment_method',
+  'balance_transactions': 'balance_transaction',
+  'coupons': 'coupon',
+  'disputes': 'dispute',
+};
+
+console.log('\n📎 Creating singular symlinks...');
+Object.entries(singularMappings).forEach(([plural, singular]) => {
+  const symlinkPath = path.join(publicDataDir, `${singular}.json`);
+  const targetFile = `${plural}.json`;
+  
+  // Remove existing symlink if it exists
+  try {
+    fs.unlinkSync(symlinkPath);
+  } catch (e) {
+    // File doesn't exist, that's fine
+  }
+  
+  // Create symlink
+  try {
+    fs.symlinkSync(targetFile, symlinkPath);
+    console.log(`   🔗 ${singular}.json -> ${targetFile}`);
+  } catch (e) {
+    console.log(`   ⚠️  Could not create symlink for ${singular}: ${e.message}`);
+  }
+});
+
 // Create manifest
 const manifest = {
   generated: new Date().toISOString(),

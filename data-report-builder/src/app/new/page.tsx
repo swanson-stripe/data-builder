@@ -99,15 +99,8 @@ function NewPageContent() {
   };
 
   const handleCloseClick = () => {
-    // If a report is loaded, go to its detail page; otherwise go to MRR
-    if (state.report && state.report !== 'blank') {
-      const slug = getSlugForKey(state.report);
-      if (slug) {
-        router.push(`/${slug}`);
-        return;
-      }
-    }
-    router.push('/mrr');
+    // Go back to the previous page
+    router.back();
   };
 
   // Handle preset selection from DevTools - navigate to detail page

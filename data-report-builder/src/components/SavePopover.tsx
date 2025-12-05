@@ -259,7 +259,7 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
                     style={{
                       fontSize: '14px',
                       fontWeight: 500,
-                      color: comparisonValue >= 0 ? '#22c55e' : '#ef4444',
+                      color: comparisonValue >= 0 ? 'var(--color-positive)' : 'var(--color-negative)',
                       display: 'flex',
                       gap: '4px',
                       alignItems: 'baseline',

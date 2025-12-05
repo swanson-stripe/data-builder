@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter, notFound } from 'next/navigation';
+import { useParams, useRouter, useSearchParams, notFound } from 'next/navigation';
+import Link from 'next/link';
 import { useApp, AppProvider, actions } from '@/state/app';
 import { ThemeProvider } from '@/state/theme';
 import { WarehouseProvider, useWarehouseStore } from '@/lib/useWarehouse';
 import { fromSlug, ReportInfo } from '@/lib/slugs';
 import { applyPreset, PRESET_CONFIGS, PresetKey } from '@/lib/presets';
-import { ReportViewer } from '@/components/ReportViewer';
+import { ReportViewer, Breadcrumb } from '@/components/ReportViewer';
 import { DevToolsMenu } from '@/components/DevToolsMenu';
 import { useReportHeuristics } from '@/hooks/useReportHeuristics';
 // getGroupValues import removed - users now manually select group values
@@ -312,8 +313,34 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
   const { state, dispatch } = useApp();
   const { store: warehouse } = useWarehouseStore();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [hasAppliedPreset, setHasAppliedPreset] = useState(false);
+
+  // Build breadcrumbs based on navigation context
+  const breadcrumbs: Breadcrumb[] = (() => {
+    const from = searchParams.get('from');
+    const group = searchParams.get('group');
+    
+    const crumbs: Breadcrumb[] = [];
+    
+    if (from === 'analytics') {
+      crumbs.push({ label: 'Analytics', href: '/analytics' });
+      if (group) {
+        // Decode and format group name
+        const groupLabel = decodeURIComponent(group)
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        crumbs.push({ label: groupLabel, href: `/analytics?group=${group}` });
+      }
+    } else {
+      // Default to Home
+      crumbs.push({ label: 'Home', href: '/' });
+    }
+    
+    return crumbs;
+  })();
 
   // Enable automatic report switching based on object selection
   useReportHeuristics();
@@ -368,24 +395,21 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
   };
 
   // Nav item component for cleaner code with hover states
-  const NavItem = ({ icon, label, isActive = false, hasChevron = false, onClick }: { icon: React.ReactNode; label: string; isActive?: boolean; hasChevron?: boolean; onClick?: () => void }) => {
+  const NavItem = ({ icon, label, isActive = false, hasChevron = false, onClick, href }: { icon: React.ReactNode; label: string; isActive?: boolean; hasChevron?: boolean; onClick?: () => void; href?: string }) => {
     const [isHovered, setIsHovered] = useState(false);
     
-    return (
-      <button
-        onClick={onClick}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className="flex items-center justify-between w-full px-3 py-2 rounded-md transition-colors"
-        style={{
-          backgroundColor: isHovered ? 'var(--bg-surface)' : 'transparent',
-          color: isActive ? 'var(--accent-text)' : 'var(--text-primary)',
-          border: 'none',
-          cursor: 'pointer',
-          fontWeight: isActive ? 500 : 400,
-          fontSize: '14px',
-        }}
-      >
+    const styles = {
+      backgroundColor: isHovered ? 'var(--bg-surface)' : 'transparent',
+      color: isActive ? 'var(--accent-text)' : 'var(--text-primary)',
+      border: 'none',
+      cursor: 'pointer',
+      fontWeight: isActive ? 500 : 400,
+      fontSize: '14px',
+      textDecoration: 'none',
+    };
+
+    const content = (
+      <>
         <div className="flex items-center gap-3">
           {icon}
           <span>{label}</span>
@@ -395,6 +419,32 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
             <path d="M4.5 3L7.5 6L4.5 9" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         )}
+      </>
+    );
+
+    if (href) {
+      return (
+        <Link
+          href={href}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          className="flex items-center justify-between w-full px-3 py-2 rounded-md transition-colors"
+          style={styles}
+        >
+          {content}
+        </Link>
+      );
+    }
+    
+    return (
+      <button
+        onClick={onClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className="flex items-center justify-between w-full px-3 py-2 rounded-md transition-colors"
+        style={styles}
+      >
+        {content}
       </button>
     );
   };
@@ -479,6 +529,15 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
                 </svg>
               }
               label="Product catalog"
+            />
+            <NavItem
+              href="/analytics"
+              icon={
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 12V8M6 12V4M10 12V6M14 12V2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              }
+              label="Analytics"
             />
           </div>
 
@@ -661,6 +720,7 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
             <ReportViewer 
               showDataList={true} 
               padding="40px" 
+              breadcrumbs={breadcrumbs}
               actionButtons={
                 <ActionButtons onEditClick={handleEditClick} />
               }

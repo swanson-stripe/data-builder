@@ -2,12 +2,13 @@
 import { Granularity } from '@/lib/time';
 import { MetricDef, FilterCondition, MetricOp, MetricType, CalculationOperator, UnitType, GroupBy } from '@/types';
 import { AppAction, ChartType } from '@/state/app';
-// getGroupValues import removed - users now manually select group values
+import { getGroupValues } from '@/lib/grouping';
 
 export type PresetKey =
   | 'blank'
   | 'mrr'
   | 'gross_volume'
+  | 'net_volume'
   | 'active_subscribers'
   | 'refund_count'
   | 'subscriber_ltv'
@@ -145,6 +146,40 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
     defaultSort: {
       column: 'charge.created',
+      direction: 'desc',
+    },
+  },
+
+  net_volume: {
+    key: 'net_volume',
+    label: 'Net Volume',
+    reportId: 'payments_net_revenue_over_time',
+    objects: ['balance_transaction'],
+    fields: [
+      { object: 'balance_transaction', field: 'id' },
+      { object: 'balance_transaction', field: 'amount' },
+      { object: 'balance_transaction', field: 'net' },
+      { object: 'balance_transaction', field: 'currency' },
+      { object: 'balance_transaction', field: 'type' },
+      { object: 'balance_transaction', field: 'created' },
+    ],
+    // Flow metric — sum net amounts per bucket (revenue after refunds and fees)
+    metric: {
+      name: 'Net Volume',
+      source: { object: 'balance_transaction', field: 'net' },
+      op: 'sum',
+      type: 'sum_over_period',
+    },
+    range: { start: `${new Date().getFullYear()}-01-01`, end: todayISO(), granularity: 'week' },
+    filters: [
+      {
+        field: { object: 'balance_transaction', field: 'type' },
+        operator: 'in',
+        value: ['charge', 'refund', 'adjustment'],
+      },
+    ],
+    defaultSort: {
+      column: 'balance_transaction.created',
       direction: 'desc',
     },
   },
@@ -509,11 +544,17 @@ export function applyPreset(
 
   // Apply groupBy if specified
   if (p.groupBy) {
-    // Use preset's selectedValues if explicitly specified, otherwise start with empty array
-    // This lets users choose which values to add rather than pre-selecting top 10
-    const selectedValues = (p.groupBy.selectedValues && p.groupBy.selectedValues.length > 0)
-      ? p.groupBy.selectedValues
-      : [];
+    // Use preset's selectedValues if explicitly specified
+    // Otherwise, get top 10 values from the warehouse data
+    let selectedValues: string[] = [];
+    
+    if (p.groupBy.selectedValues && p.groupBy.selectedValues.length > 0) {
+      selectedValues = p.groupBy.selectedValues;
+    } else if (warehouse) {
+      // Get top 10 values for the groupBy field
+      const primaryObject = p.objects[0];
+      selectedValues = getGroupValues(warehouse, p.groupBy.field, 10, primaryObject);
+    }
 
     dispatch({
       type: 'SET_GROUP_BY',

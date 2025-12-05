@@ -56,6 +56,14 @@ function getReportConfig(key: ReportKey) {
         volatility: 0.2,
         floor: 50000,
       };
+    case 'net_volume':
+      return {
+        label: 'Net Volume',
+        baseValue: 220000,
+        growthRate: 0.04,
+        volatility: 0.18,
+        floor: 40000,
+      };
     case 'active_subscribers':
       return {
         label: 'Active Subscribers',

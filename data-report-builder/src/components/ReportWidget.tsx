@@ -14,20 +14,36 @@ import {
   Line,
   ResponsiveContainer,
   YAxis,
+  XAxis,
   Tooltip,
+  CartesianGrid,
 } from 'recharts';
 
 type ReportWidgetProps = {
   presetKey: PresetKey;
   /** Override label if needed */
   label?: string;
+  /** Hide the previous period comparison text */
+  hidePreviousPeriod?: boolean;
+  /** Navigation context - page user came from */
+  from?: 'home' | 'analytics';
+  /** Group name if coming from a specific group */
+  group?: string;
+  /** Disable click navigation and remove interactive styling */
+  disableClick?: boolean;
+  /** Remove border and padding for embedded use */
+  noBorder?: boolean;
+  /** Hide the "Open" link and arrow icon */
+  hideOpenLink?: boolean;
+  /** Show X axis with date labels and gridline */
+  showXAxis?: boolean;
 };
 
 /**
  * A clickable widget that displays a preset report's key metrics and sparkline.
  * Used on the analytics index page.
  */
-export function ReportWidget({ presetKey, label }: ReportWidgetProps) {
+export function ReportWidget({ presetKey, label, hidePreviousPeriod, from, group, disableClick, noBorder, hideOpenLink, showXAxis }: ReportWidgetProps) {
   const router = useRouter();
   const { state, dispatch } = useApp();
   const { store: warehouse } = useWarehouseStore();
@@ -156,74 +172,81 @@ export function ReportWidget({ presetKey, label }: ReportWidgetProps) {
   }, [previousValue, preset.metric.op]);
 
   const handleClick = () => {
+    if (disableClick) return;
     const slug = toSlug(displayLabel);
-    router.push(`/${slug}`);
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (group) params.set('group', group);
+    const queryString = params.toString();
+    router.push(`/${slug}${queryString ? `?${queryString}` : ''}`);
   };
 
   return (
     <div
-      onClick={handleClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="flex flex-col cursor-pointer transition-all"
+      onClick={disableClick ? undefined : handleClick}
+      onMouseEnter={disableClick ? undefined : () => setIsHovered(true)}
+      onMouseLeave={disableClick ? undefined : () => setIsHovered(false)}
+      className={`flex flex-col transition-all ${disableClick ? '' : 'cursor-pointer'}`}
       style={{
         backgroundColor: 'var(--bg-primary)',
-        border: `1px solid ${isHovered ? 'var(--border-medium)' : 'var(--border-default)'}`,
-        borderRadius: '12px',
-        padding: '16px',
+        border: noBorder ? 'none' : `1px solid ${isHovered ? 'var(--border-medium)' : 'var(--border-default)'}`,
+        borderRadius: noBorder ? '0' : '12px',
+        padding: noBorder ? '0' : '16px',
         minHeight: '200px',
       }}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
+      role={disableClick ? undefined : "button"}
+      tabIndex={disableClick ? undefined : 0}
+      onKeyDown={disableClick ? undefined : (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           handleClick();
         }
       }}
-      aria-label={`View ${displayLabel} report`}
+      aria-label={disableClick ? undefined : `View ${displayLabel} report`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className={`flex items-center justify-between ${hideOpenLink ? '' : 'mb-2'}`}>
         <span style={{ 
           fontSize: '14px', 
           fontWeight: 500, 
-          color: isHovered ? 'var(--button-primary-bg)' : 'var(--text-primary)',
+          color: isHovered && !disableClick ? 'var(--button-primary-bg)' : 'var(--text-primary)',
           transition: 'color 0.15s ease',
         }}>
           {displayLabel}
         </span>
         {/* Arrow icon - changes on hover */}
-        <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
-          {isHovered && (
-            <span style={{ 
-              fontSize: '12px', 
-              fontWeight: 500, 
-              color: 'var(--button-primary-bg)',
-            }}>
-              Open
-            </span>
-          )}
-          <svg 
-            width="14" 
-            height="14" 
-            viewBox="0 0 14 14" 
-            fill="none" 
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ 
-              transition: 'all 0.15s ease',
-              flexShrink: 0,
-            }}
-          >
-            <path 
-              d="M4 10L10 4M10 4H5M10 4V9" 
-              stroke={isHovered ? 'var(--button-primary-bg)' : 'var(--text-muted)'} 
-              strokeWidth="1.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
+        {!hideOpenLink && (
+          <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+            {isHovered && (
+              <span style={{ 
+                fontSize: '12px', 
+                fontWeight: 500, 
+                color: 'var(--button-primary-bg)',
+              }}>
+                Open
+              </span>
+            )}
+            <svg 
+              width="14" 
+              height="14" 
+              viewBox="0 0 14 14" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ 
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+              }}
+            >
+              <path 
+                d="M4 10L10 4M10 4H5M10 4V9" 
+                stroke={isHovered ? 'var(--button-primary-bg)' : 'var(--text-muted)'} 
+                strokeWidth="1.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        )}
       </div>
 
       {/* Value and change */}
@@ -236,7 +259,7 @@ export function ReportWidget({ presetKey, label }: ReportWidgetProps) {
             style={{
               fontSize: '14px',
               fontWeight: 500,
-              color: isNegativeChange ? '#ef4444' : '#22c55e',
+              color: isNegativeChange ? 'var(--color-negative)' : 'var(--color-positive)',
             }}
           >
             {isNegativeChange ? '' : '+'}{percentChange.toFixed(0)}%
@@ -245,18 +268,40 @@ export function ReportWidget({ presetKey, label }: ReportWidgetProps) {
       </div>
 
       {/* Previous period */}
-      {formattedPrevious && (
+      {formattedPrevious && !hidePreviousPeriod && (
         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
           {formattedPrevious}
         </div>
       )}
 
       {/* Sparkline chart with tooltip */}
-      <div className="flex-1 min-h-[60px]">
+      <div style={{ flex: 1, width: '100%', minHeight: showXAxis ? '200px' : '80px' }}>
         {chartData.length > 0 && (
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
+          <ResponsiveContainer width="100%" height={showXAxis ? 200 : 80}>
+            <LineChart data={chartData} margin={{ top: 5, right: 5, bottom: showXAxis ? 20 : 5, left: 5 }}>
+              {showXAxis && (
+                <CartesianGrid 
+                  horizontal={false} 
+                  vertical={true} 
+                  strokeDasharray="3 3" 
+                  stroke="var(--border-subtle)"
+                />
+              )}
               <YAxis hide domain={['dataMin', 'dataMax']} />
+              {showXAxis && (
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={{ stroke: 'var(--border-default)' }}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                  tickFormatter={(dateString: string) => {
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  }}
+                  interval="preserveStartEnd"
+                  minTickGap={50}
+                />
+              )}
               <Tooltip
                 cursor={{ stroke: 'var(--border-medium)', strokeWidth: 1, strokeDasharray: '4 4' }}
                 contentStyle={{
@@ -280,7 +325,7 @@ export function ReportWidget({ presetKey, label }: ReportWidgetProps) {
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke="var(--button-primary-bg)"
+                stroke="#635BFF"
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
