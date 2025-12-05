@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Large generated data files
+    "src/data/warehouse-data.ts",
   ]),
 ]);
 
