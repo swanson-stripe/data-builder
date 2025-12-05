@@ -1584,12 +1584,12 @@ function StarredMetricToggle({ presetKey, label, isSelected, onClick }: StarredM
  */
 // Group toggle data
 const GROUP_TOGGLES = [
-  { id: 'churn', label: 'Churn', subtitle: 'Private', count: 3 },
-  { id: 'subscriber-performance', label: 'New subscriber performance', subtitle: 'Shared by sgresh', count: 6 },
-  { id: 'products-breakdown', label: 'Products breakdown', subtitle: 'Shared by sgresh', count: 6 },
-  { id: 'scheduled-alerts', label: 'Scheduled alerts', subtitle: 'Shared by you', count: 6 },
-  { id: 'revenue-trends', label: 'Revenue trends', subtitle: 'Private', count: 4 },
-  { id: 'customer-cohorts', label: 'Customer cohorts', subtitle: 'Shared by team', count: 8 },
+  { id: 'churn', label: 'Churn', subtitle: 'Private', count: 3, isPrivate: true },
+  { id: 'subscriber-performance', label: 'New subscriber performance', subtitle: 'Shared by sgresh', count: 6, isPrivate: false },
+  { id: 'products-breakdown', label: 'Products breakdown', subtitle: 'Shared by sgresh', count: 6, isPrivate: false },
+  { id: 'scheduled-alerts', label: 'Scheduled alerts', subtitle: 'Shared by you', count: 6, isPrivate: false },
+  { id: 'revenue-trends', label: 'Revenue trends', subtitle: 'Private', count: 4, isPrivate: true },
+  { id: 'customer-cohorts', label: 'Customer cohorts', subtitle: 'Shared by team', count: 8, isPrivate: false },
 ];
 
 // Warehouse data sources for the Updated chip popover

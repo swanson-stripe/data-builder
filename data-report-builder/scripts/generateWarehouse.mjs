@@ -649,7 +649,8 @@ validateMetrics(warehouse);
 console.log('\n📝 Writing warehouse data to file...');
 
 const outputPath = path.join(__dirname, '..', 'src', 'data', 'warehouse-data.ts');
-const content = `/**
+const content = `// @ts-nocheck
+/**
  * Auto-generated synthetic Stripe-like dataset
  * Generated: ${new Date().toISOString()}
  * Run: npm run generate-warehouse
