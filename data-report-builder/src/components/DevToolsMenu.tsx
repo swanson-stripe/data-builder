@@ -34,10 +34,10 @@ export function DevToolsMenu({ loadingProgress, showNewButton = true, onPresetSe
     if (onPresetSelect) {
       onPresetSelect(presetKey);
     } else {
-      // Default behavior: navigate to the preset's detail page
+      // Default behavior: navigate to the preset's edit page
       const slug = getSlugForKey(presetKey);
       if (slug) {
-        router.push(`/${slug}`);
+        router.push(`/${slug}/edit`);
       }
     }
     setShowPresetOptions(false);
