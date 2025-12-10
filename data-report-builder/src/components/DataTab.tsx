@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo, useRef, useEffect, forwardRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp, actions, ChartType, XSourceMode, YSourceMode, Comparison } from '@/state/app';
 import schema, { getRelated, getFieldLabel } from '@/data/schema';
 import { SchemaObject, MetricBlock, MetricFormula } from '@/types';
@@ -830,8 +831,21 @@ export function DataTab() {
   const [isGroupByFieldSelectorOpen, setIsGroupByFieldSelectorOpen] = useState(false);
   const [isGroupByValueSelectorOpen, setIsGroupByValueSelectorOpen] = useState(false);
   const [groupBySearchQuery, setGroupBySearchQuery] = useState('');
+  const [groupByPopoverPosition, setGroupByPopoverPosition] = useState({ top: 0, left: 0 });
   const groupByButtonRef = useRef<HTMLButtonElement>(null);
   const groupByPopoverRef = useRef<HTMLDivElement>(null);
+
+  // Update Group By popover position when opened
+  useEffect(() => {
+    if ((isGroupByFieldSelectorOpen || isGroupByValueSelectorOpen) && groupByButtonRef.current) {
+      const rect = groupByButtonRef.current.getBoundingClientRect();
+      // Store the button's right edge so each popover can calculate its own left position
+      setGroupByPopoverPosition({
+        top: rect.bottom + 4,
+        left: rect.right, // Store right edge of button
+      });
+    }
+  }, [isGroupByFieldSelectorOpen, isGroupByValueSelectorOpen]);
 
   // Build list of qualified field names from selected fields
   const fieldOptions = state.selectedFields.map((field) => ({
@@ -936,6 +950,78 @@ export function DataTab() {
       return `${values[0]}, ${values[1]}, ${values[2]}, and ${remaining} more`;
     }
   }, [state.groupBy?.selectedValues]);
+
+  // Display section description - describes chart type, data, and options
+  const displayDescription = useMemo(() => {
+    const chartVerbs: Record<string, string> = { 
+      line: 'plotting', 
+      area: 'plotting', 
+      bar: 'showing', 
+      table: 'listing' 
+    };
+    const verb = chartVerbs[state.chart.type] || 'showing';
+    const chartLabel = state.chart.type === 'table' 
+      ? 'Table' 
+      : `${state.chart.type.charAt(0).toUpperCase() + state.chart.type.slice(1)} chart`;
+    
+    // Get metric name from first block
+    const metricName = state.metricFormula.blocks[0]?.name?.toLowerCase() || 'data';
+    
+    // X-axis clause
+    const xAxis = state.chart.xSourceMode === 'time' 
+      ? 'over time' 
+      : state.chart.xSource 
+        ? `by ${getFieldLabel(state.chart.xSource.object, state.chart.xSource.field)?.toLowerCase() || state.chart.xSource.field}` 
+        : 'over time';
+    
+    // Comparison clause
+    const comparisonMap: Record<string, string> = {
+      previous_period: ', compared to previous period',
+      previous_year: ', compared to previous year',
+      period_start: ', compared to start of period',
+      benchmarks: ', compared to benchmarks',
+    };
+    const comparison = comparisonMap[state.chart.comparison] || '';
+    
+    // Group by clause
+    const groupByClause = state.groupBy 
+      ? `, grouped by ${getFieldLabel(state.groupBy.field.object, state.groupBy.field.field)?.toLowerCase() || state.groupBy.field.field}` 
+      : '';
+    
+    return `${chartLabel} ${verb} ${metricName} ${xAxis}${comparison}${groupByClause}`;
+  }, [state.chart, state.metricFormula.blocks, state.groupBy]);
+
+  // Metric section description - describes the calculation
+  const metricDescription = useMemo(() => {
+    const block = state.metricFormula.blocks[0];
+    if (!block) return '';
+    
+    const fieldName = block.name?.toLowerCase() || 'data';
+    const objectName = block.source?.object?.replace(/_/g, ' ') || 'records';
+    
+    // Operation phrases
+    const opPhrases: Record<string, string> = {
+      sum: `The sum of ${fieldName}`,
+      avg: `The average of ${fieldName}`,
+      count: `The count of ${objectName}`,
+      distinct_count: `The distinct count of ${fieldName}`,
+      median: `The median of ${fieldName}`,
+      mode: `The mode of ${fieldName}`,
+    };
+    
+    // Aggregation type phrases
+    const typePhrases: Record<string, string> = {
+      sum_over_period: 'totaled over the period',
+      average_over_period: 'averaged over time',
+      latest: 'at period end',
+      first: 'at period start',
+    };
+    
+    const opPhrase = opPhrases[block.op] || `The ${block.op} of ${fieldName}`;
+    const typePhrase = typePhrases[block.type] || '';
+    
+    return `${opPhrase} ${typePhrase}`.trim();
+  }, [state.metricFormula.blocks]);
 
   // Close Group By popovers when clicking outside
   useEffect(() => {
@@ -1229,12 +1315,50 @@ export function DataTab() {
     };
   }, [sortedObjects, state.selectedObjects]);
 
-  // Chart configuration options
-  const chartTypes: { value: ChartType; label: string }[] = [
-    { value: 'table', label: 'Table' },
-    { value: 'line', label: 'Line' },
-    { value: 'area', label: 'Area' },
-    { value: 'bar', label: 'Bar' },
+  // Chart configuration options with icons
+  const chartTypes: { value: ChartType; label: string; icon: React.ReactNode }[] = [
+    { 
+      value: 'line', 
+      label: 'Line',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 14L7 10L11 13L17 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+    { 
+      value: 'area', 
+      label: 'Area',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 14L7 10L11 13L17 6V16H3V14Z" fill="currentColor" fillOpacity="0.3"/>
+          <path d="M3 14L7 10L11 13L17 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+    { 
+      value: 'bar', 
+      label: 'Bar',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="10" width="3" height="7" rx="1" fill="currentColor"/>
+          <rect x="8.5" y="6" width="3" height="11" rx="1" fill="currentColor"/>
+          <rect x="14" y="3" width="3" height="14" rx="1" fill="currentColor"/>
+        </svg>
+      )
+    },
+    { 
+      value: 'table', 
+      label: 'Table',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+          <line x1="3" y1="7.5" x2="17" y2="7.5" stroke="currentColor" strokeWidth="1.5"/>
+          <line x1="3" y1="12" x2="17" y2="12" stroke="currentColor" strokeWidth="1.5"/>
+          <line x1="8" y1="7.5" x2="8" y2="17" stroke="currentColor" strokeWidth="1.5"/>
+        </svg>
+      )
+    },
   ];
 
   const comparisonOptions: { value: Comparison; label: string }[] = [
@@ -1323,61 +1447,82 @@ export function DataTab() {
       {/* Chart Configuration Section */}
       <div style={{ borderBottom: '1px solid var(--border-subtle)', marginLeft: '-16px', marginRight: '-16px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '16px' }}>
         {/* Display Section Header */}
-        <button
-          onClick={() => setIsDisplayExpanded(!isDisplayExpanded)}
-          className="flex items-center w-full text-left cursor-pointer"
-          style={{ background: 'none', border: 'none', padding: 0, gap: '4px', marginBottom: isDisplayExpanded ? '12px' : '0px' }}
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            style={{
-              transform: isDisplayExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 0.15s ease',
-              color: 'var(--text-muted)',
-            }}
+        <div style={{ marginBottom: isDisplayExpanded ? '12px' : '0px' }}>
+          <button
+            onClick={() => setIsDisplayExpanded(!isDisplayExpanded)}
+            className="flex items-center w-full text-left cursor-pointer"
+            style={{ background: 'none', border: 'none', padding: 0, gap: '4px' }}
           >
-            <path
-              d="M4.5 2.5L8 6L4.5 9.5"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
-            Display
-          </span>
-        </button>
+            <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
+              Display
+            </span>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+              style={{
+                transform: isDisplayExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                transition: 'transform 0.15s ease',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <path
+                d="M4.5 2.5L8 6L4.5 9.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <p style={{ 
+            color: 'var(--text-muted)', 
+            fontSize: '13px', 
+            marginTop: '4px',
+            lineHeight: '1.4',
+          }}>
+            {displayDescription}
+          </p>
+        </div>
 
         <div 
           className="space-y-4"
           style={{
-            overflow: 'hidden',
-            maxHeight: isDisplayExpanded ? '1000px' : '0',
+            overflow: isDisplayExpanded ? 'visible' : 'hidden',
+            maxHeight: isDisplayExpanded ? 'none' : '0',
             opacity: isDisplayExpanded ? 1 : 0,
-            transition: 'max-height 400ms ease-in-out, opacity 400ms ease-in-out',
+            transition: 'opacity 400ms ease-in-out',
           }}
         >
-            {/* Display Type Toggle Buttons */}
-            <div className="flex gap-2">
+            {/* Display Type Toggle Buttons - 2x2 Grid */}
+            <div className="grid grid-cols-2 gap-2">
             {chartTypes.map((chartType) => {
               const isSelected = state.chart.type === chartType.value;
               return (
                 <button
                   key={chartType.value}
                   onClick={() => dispatch(actions.setChartType(chartType.value))}
-                  className="px-4 py-2 text-sm font-medium transition-colors cursor-pointer"
+                  className="flex flex-col items-center justify-center gap-1.5 py-3 text-xs font-medium cursor-pointer hover-fast"
                   style={{
-                    backgroundColor: isSelected ? '#635BFF' : 'transparent',
-                    color: isSelected ? 'white' : 'var(--text-primary)',
-                    border: isSelected ? '2px solid #635BFF' : '2px solid var(--border-subtle)',
-                    borderRadius: '8px',
-                    minWidth: '64px',
+                    backgroundColor: isSelected ? 'var(--bg-chip-selected)' : 'var(--bg-surface)',
+                    color: isSelected ? 'var(--text-inverse)' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    minHeight: '64px',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = 'var(--button-secondary-bg-hover)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                    }
                   }}
                 >
+                  {chartType.icon}
                   {chartType.label}
                 </button>
               );
@@ -1434,6 +1579,197 @@ export function DataTab() {
               />
             </div>
 
+            {/* Group By - inline with button (styled like CustomSelect) */}
+            <div className="flex items-center justify-between relative">
+              <label className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                Group by
+              </label>
+              <button
+                ref={groupByButtonRef}
+                onClick={() => {
+                  if (!state.groupBy) {
+                    setIsGroupByFieldSelectorOpen(true);
+                  } else {
+                    setIsGroupByValueSelectorOpen(true);
+                  }
+                }}
+                className="text-sm border-none focus:outline-none cursor-pointer flex items-center transition-colors gap-2 hover-fast"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  paddingLeft: '12px',
+                  paddingRight: '12px',
+                  paddingTop: '8px',
+                  paddingBottom: '8px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  fontWeight: 400,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <span style={{ whiteSpace: 'nowrap' }}>
+                  {state.groupBy ? groupByLabel : 'None'}
+                </span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{
+                    flexShrink: 0,
+                    transition: 'transform 0.2s',
+                    transform: isGroupByFieldSelectorOpen || isGroupByValueSelectorOpen ? 'rotate(180deg)' : 'none',
+                  }}
+                >
+                  <path d="M3 4.5L6 7.5L9 4.5" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+
+              {/* Field Selector Popover - rendered via portal */}
+              {isGroupByFieldSelectorOpen && typeof document !== 'undefined' && createPortal(
+                <div
+                  ref={groupByPopoverRef}
+                  style={{
+                    position: 'fixed',
+                    top: groupByPopoverPosition.top,
+                    left: groupByPopoverPosition.left - 280, // Right-align: button right edge minus popover width
+                    width: '280px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    backgroundColor: 'var(--bg-elevated)',
+                    borderRadius: '8px',
+                    boxShadow: 'var(--shadow-popover)',
+                    zIndex: 9999,
+                    paddingTop: '4px',
+                    paddingBottom: '4px',
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  {/* None option to clear grouping */}
+                  <button
+                    onClick={() => {
+                      dispatch(actions.clearGroupBy());
+                      setIsGroupByFieldSelectorOpen(false);
+                    }}
+                    className="w-full text-left flex items-center justify-between hover-fast"
+                    style={{
+                      padding: '12px 16px',
+                      backgroundColor: !state.groupBy ? 'var(--bg-surface)' : 'transparent',
+                      transition: 'background-color 100ms ease',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = !state.groupBy ? 'var(--bg-surface)' : 'transparent'}
+                  >
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '14px' }}>
+                      None
+                    </span>
+                    {!state.groupBy && (
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                        <path d="M13 4L6 11L3 8" stroke="var(--text-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* Field options - with name and field path */}
+                  {[...filteredGroupFields.common, ...filteredGroupFields.other].map((field) => {
+                    const plainLabel = getFieldDisplayLabel(field.label);
+                    const fieldPath = `${field.object}.${field.field}`;
+                    const isSelected = state.groupBy?.field.object === field.object && state.groupBy?.field.field === field.field;
+                    return (
+                      <button
+                        key={fieldPath}
+                        onClick={() => {
+                          dispatch(actions.setGroupBy({
+                            field: { object: field.object, field: field.field },
+                            selectedValues: [],
+                            autoAddedField: false,
+                          }));
+                          
+                          setIsGroupByFieldSelectorOpen(false);
+                          setTimeout(() => setIsGroupByValueSelectorOpen(true), 100);
+                        }}
+                        className="w-full text-left flex flex-col hover-fast"
+                        style={{
+                          padding: '12px 16px',
+                          backgroundColor: isSelected ? 'var(--bg-surface)' : 'transparent',
+                          transition: 'background-color 100ms ease',
+                          gap: '2px',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isSelected ? 'var(--bg-surface)' : 'transparent'}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '14px' }}>
+                            {plainLabel}
+                          </span>
+                          {isSelected && (
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                              <path d="M13 4L6 11L3 8" stroke="var(--text-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </div>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '13px', fontWeight: 400 }}>
+                          {fieldPath}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>,
+                document.body
+              )}
+
+              {/* Value Selector Popover - rendered via portal */}
+              {isGroupByValueSelectorOpen && state.groupBy && typeof document !== 'undefined' && createPortal(
+                <div
+                  ref={groupByPopoverRef}
+                  className="py-1"
+                  style={{
+                    position: 'fixed',
+                    top: groupByPopoverPosition.top,
+                    left: groupByPopoverPosition.left - 280, // Right-align: button right edge minus popover width
+                    width: '280px',
+                    maxHeight: '360px',
+                    backgroundColor: 'var(--bg-elevated)',
+                    borderRadius: '16px',
+                    boxShadow: '0 5px 15px rgba(0, 0, 0, 0.16)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    zIndex: 9999,
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <GroupBySelector
+                    availableValues={availableGroupValues}
+                    selectedValues={state.groupBy.selectedValues}
+                    onApply={(selectedValues) => {
+                      dispatch(actions.updateGroupValues(selectedValues));
+                      setIsGroupByValueSelectorOpen(false);
+                    }}
+                    onRemove={() => {
+                      dispatch(actions.clearGroupBy());
+                      setIsGroupByValueSelectorOpen(false);
+                    }}
+                    onCancel={() => {
+                      setIsGroupByValueSelectorOpen(false);
+                    }}
+                    maxSelections={10}
+                    fieldName={state.groupBy.field.field}
+                  />
+                </div>,
+                document.body
+              )}
+            </div>
+
             {/* Compare - inline with select */}
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
@@ -1457,6 +1793,9 @@ export function DataTab() {
             className="flex items-center text-left cursor-pointer"
             style={{ background: 'none', border: 'none', padding: 0, gap: '4px' }}
           >
+            <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
+              Data
+            </span>
             <svg
               width="12"
               height="12"
@@ -1476,9 +1815,6 @@ export function DataTab() {
                 strokeLinejoin="round"
               />
             </svg>
-            <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
-              Data
-            </span>
           </button>
           {isDataExpanded && (
             <button
@@ -1529,10 +1865,10 @@ export function DataTab() {
 
         <div
           style={{
-            overflow: 'hidden',
-            maxHeight: isDataExpanded ? '5000px' : '0',
+            overflow: isDataExpanded ? 'visible' : 'hidden',
+            maxHeight: isDataExpanded ? 'none' : '0',
             opacity: isDataExpanded ? 1 : 0,
-            transition: 'max-height 400ms ease-in-out, opacity 400ms ease-in-out',
+            transition: 'opacity 400ms ease-in-out',
           }}
         >
 
@@ -1714,67 +2050,77 @@ export function DataTab() {
       {/* Metric Section */}
       <div className="pt-4">
         {/* Metric Header */}
-        <div className="flex items-center justify-between" style={{ marginBottom: isMetricExpanded ? '12px' : '0px' }}>
-          <button
-            onClick={() => setIsMetricExpanded(!isMetricExpanded)}
-            className="flex items-center text-left cursor-pointer"
-            style={{ background: 'none', border: 'none', padding: 0, gap: '4px' }}
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 12 12"
-              fill="none"
-              style={{
-                transform: isMetricExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                transition: 'transform 0.15s ease',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <path
-                d="M4.5 2.5L8 6L4.5 9.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
-              Metric
-            </span>
-          </button>
-          {isMetricExpanded && isMultiBlock && hasUnappliedChanges && (
+        <div style={{ marginBottom: isMetricExpanded ? '12px' : '0px' }}>
+          <div className="flex items-center justify-between">
             <button
-              onClick={handleApplyChanges}
-              className="transition-colors"
-              style={{
-                backgroundColor: '#675DFF',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '6px 16px',
-                fontSize: '14px',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#5548E0';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#675DFF';
-              }}
+              onClick={() => setIsMetricExpanded(!isMetricExpanded)}
+              className="flex items-center text-left cursor-pointer"
+              style={{ background: 'none', border: 'none', padding: 0, gap: '4px' }}
             >
-              Apply
+              <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
+                Metric
+              </span>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+                style={{
+                  transform: isMetricExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.15s ease',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                <path
+                  d="M4.5 2.5L8 6L4.5 9.5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
-          )}
+            {isMetricExpanded && isMultiBlock && hasUnappliedChanges && (
+              <button
+                onClick={handleApplyChanges}
+                className="transition-colors"
+                style={{
+                  backgroundColor: '#675DFF',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '6px 16px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#5548E0';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#675DFF';
+                }}
+              >
+                Apply
+              </button>
+            )}
+          </div>
+          <p style={{ 
+            color: 'var(--text-muted)', 
+            fontSize: '13px', 
+            marginTop: '4px',
+            lineHeight: '1.4',
+          }}>
+            {metricDescription}
+          </p>
         </div>
 
         <div
           style={{
-            overflow: 'hidden',
-            maxHeight: isMetricExpanded ? '5000px' : '0',
+            overflow: isMetricExpanded ? 'visible' : 'hidden',
+            maxHeight: isMetricExpanded ? 'none' : '0',
             opacity: isMetricExpanded ? 1 : 0,
-            transition: 'max-height 400ms ease-in-out, opacity 400ms ease-in-out',
+            transition: 'opacity 400ms ease-in-out',
           }}
         >
           {activeFormula.blocks.map((block) => {
@@ -1825,325 +2171,6 @@ export function DataTab() {
             </svg>
             Add block
           </button>
-          
-          {/* Group By Button */}
-          <div className="relative inline-flex items-center" style={{ marginTop: '8px' }}>
-            <button
-              ref={groupByButtonRef}
-              onClick={() => {
-                if (!state.groupBy) {
-                  // Open field selector
-                  setIsGroupByFieldSelectorOpen(true);
-                } else {
-                  // Open value selector
-                  setIsGroupByValueSelectorOpen(true);
-                }
-              }}
-              className="text-sm border-none focus:outline-none cursor-pointer flex items-center transition-colors gap-2"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                color: state.groupBy ? 'var(--text-primary)' : 'var(--text-muted)',
-                fontWeight: 400,
-                borderRadius: '10px',
-                padding: '6px 12px',
-                height: '32px',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-active)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-              }}
-            >
-              {state.groupBy ? (
-                // Icon when grouping is applied
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M1.3125 3.1875C1.82812 3.1875 2.25 2.76562 2.25 2.25C2.25 1.73438 1.82812 1.3125 1.3125 1.3125C0.796875 1.3125 0.375 1.73438 0.375 2.25C0.375 2.775 0.796875 3.1875 1.3125 3.1875Z" fill="currentColor"/>
-                  <path d="M1.3125 6.9375C1.82812 6.9375 2.25 6.51562 2.25 6C2.25 5.48438 1.82812 5.0625 1.3125 5.0625C0.796875 5.0625 0.375 5.48438 0.375 6C0.375 6.525 0.796875 6.9375 1.3125 6.9375Z" fill="currentColor"/>
-                  <path d="M1.3125 10.6875C1.82812 10.6875 2.25 10.2656 2.25 9.75C2.25 9.23438 1.82812 8.8125 1.3125 8.8125C0.796875 8.8125 0.375 9.23438 0.375 9.75C0.375 10.275 0.796875 10.6875 1.3125 10.6875Z" fill="currentColor"/>
-                  <path fillRule="evenodd" clipRule="evenodd" d="M3 2.15625C3 1.79381 3.29381 1.5 3.65625 1.5H10.9688C11.3312 1.5 11.625 1.79381 11.625 2.15625C11.625 2.51869 11.3312 2.8125 10.9688 2.8125H3.65625C3.29381 2.8125 3 2.51869 3 2.15625Z" fill="currentColor"/>
-                  <path fillRule="evenodd" clipRule="evenodd" d="M3 6.00073C3 5.6383 3.29381 5.34448 3.65625 5.34448H10.9688C11.3312 5.34448 11.625 5.6383 11.625 6.00073C11.625 6.36317 11.3312 6.65698 10.9688 6.65698H3.65625C3.29381 6.65698 3 6.36317 3 6.00073Z" fill="currentColor"/>
-                  <path fillRule="evenodd" clipRule="evenodd" d="M3 9.84375C3 9.48131 3.29381 9.1875 3.65625 9.1875H10.9688C11.3312 9.1875 11.625 9.48131 11.625 9.84375C11.625 10.2062 11.3312 10.5 10.9688 10.5H3.65625C3.29381 10.5 3 10.2062 3 9.84375Z" fill="currentColor"/>
-                </svg>
-              ) : (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="currentColor"/>
-                  <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="currentColor"/>
-                </svg>
-              )}
-              <span>
-                {state.groupBy ? groupByLabel : 'Group by'}
-              </span>
-              {state.groupBy && (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </button>
-
-            {/* Field Selector Popover */}
-            {isGroupByFieldSelectorOpen && (
-              <div
-                ref={groupByPopoverRef}
-                className="absolute py-1 z-50"
-                style={{
-                  top: 0,
-                  left: 0,
-                  minWidth: '240px',
-                  maxHeight: '360px',
-                  backgroundColor: 'var(--bg-elevated)',
-                  borderRadius: '16px',
-                  boxShadow: '0 5px 15px rgba(0, 0, 0, 0.16)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                {/* Toggle */}
-                <div style={{ padding: '12px', display: 'flex', gap: '8px' }}>
-                  <button
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      color: 'var(--text-muted)',
-                      backgroundColor: 'var(--bg-surface)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M2 4.5H14M4.5 8H11.5M6.5 11.5H9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                    <span>Filter</span>
-                  </button>
-                  <button
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      color: 'var(--text-primary)',
-                      backgroundColor: 'var(--bg-elevated)',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path d="M1.3125 3.1875C1.82812 3.1875 2.25 2.76562 2.25 2.25C2.25 1.73438 1.82812 1.3125 1.3125 1.3125C0.796875 1.3125 0.375 1.73438 0.375 2.25C0.375 2.775 0.796875 3.1875 1.3125 3.1875Z" fill="currentColor"/>
-                      <path d="M1.3125 6.9375C1.82812 6.9375 2.25 6.51562 2.25 6C2.25 5.48438 1.82812 5.0625 1.3125 5.0625C0.796875 5.0625 0.375 5.48438 0.375 6C0.375 6.525 0.796875 6.9375 1.3125 6.9375Z" fill="currentColor"/>
-                      <path d="M1.3125 10.6875C1.82812 10.6875 2.25 10.2656 2.25 9.75C2.25 9.23438 1.82812 8.8125 1.3125 8.8125C0.796875 8.8125 0.375 9.23438 0.375 9.75C0.375 10.275 0.796875 10.6875 1.3125 10.6875Z" fill="currentColor"/>
-                      <path fillRule="evenodd" clipRule="evenodd" d="M3 2.15625C3 1.79381 3.29381 1.5 3.65625 1.5H10.9688C11.3312 1.5 11.625 1.79381 11.625 2.15625C11.625 2.51869 11.3312 2.8125 10.9688 2.8125H3.65625C3.29381 2.8125 3 2.51869 3 2.15625Z" fill="currentColor"/>
-                      <path fillRule="evenodd" clipRule="evenodd" d="M3 6.00073C3 5.6383 3.29381 5.34448 3.65625 5.34448H10.9688C11.3312 5.34448 11.625 5.6383 11.625 6.00073C11.625 6.36317 11.3312 6.65698 10.9688 6.65698H3.65625C3.29381 6.65698 3 6.36317 3 6.00073Z" fill="currentColor"/>
-                      <path fillRule="evenodd" clipRule="evenodd" d="M3 9.84375C3 9.48131 3.29381 9.1875 3.65625 9.1875H10.9688C11.3312 9.1875 11.625 9.48131 11.625 9.84375C11.625 10.2062 11.3312 10.5 10.9688 10.5H3.65625C3.29381 10.5 3 10.2062 3 9.84375Z" fill="currentColor"/>
-                    </svg>
-                    <span>Group</span>
-                  </button>
-                </div>
-
-                {/* Search bar */}
-                <div style={{ padding: '0 12px', borderBottom: '1px solid var(--border-subtle)' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 0',
-                      backgroundColor: 'transparent',
-                    }}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      <path
-                        d="M7 12C9.76142 12 12 9.76142 12 7C12 4.23858 9.76142 2 7 2C4.23858 2 2 4.23858 2 7C2 9.76142 4.23858 12 7 12Z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M10.5 10.5L14 14"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <input
-                      type="text"
-                      placeholder="Search"
-                      value={groupBySearchQuery}
-                      onChange={(e) => setGroupBySearchQuery(e.target.value)}
-                      style={{
-                        flex: 1,
-                        border: 'none',
-                        backgroundColor: 'transparent',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
-                        outline: 'none',
-                        padding: 0,
-                      }}
-                    />
-                  </div>
-                </div>
-                
-                {/* Scrollable field list */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
-                  {filteredGroupFields.all.length === 0 ? (
-                    <div className="px-4 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-                      No matching fields
-                    </div>
-                  ) : (
-                    <>
-                      {/* Common section */}
-                      {filteredGroupFields.common.length > 0 && (
-                        <>
-                          <div className="px-4 py-2 text-xs" style={{ color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            Common
-                          </div>
-                          {filteredGroupFields.common.map((field) => {
-                            const plainLabel = getFieldDisplayLabel(field.label);
-                            return (
-                              <button
-                                key={`${field.object}.${field.field}`}
-                                onClick={() => {
-                                  dispatch(actions.setGroupBy({
-                                    field: { object: field.object, field: field.field },
-                                    selectedValues: [],
-                                    autoAddedField: false,
-                                  }));
-                                  
-                                  // Transition to value selector
-                                  setIsGroupByFieldSelectorOpen(false);
-                                  setGroupBySearchQuery(''); // Clear search
-                                  setTimeout(() => setIsGroupByValueSelectorOpen(true), 100);
-                                }}
-                                className="w-full text-left transition-colors flex flex-col gap-1"
-                                style={{
-                                  paddingLeft: '16px',
-                                  paddingRight: '16px',
-                                  paddingTop: '8px',
-                                  paddingBottom: '8px',
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                              >
-                                <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>
-                                  {plainLabel}
-                                </span>
-                                <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
-                                  {field.object}.{field.field}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </>
-                      )}
-                      
-                      {/* Other section */}
-                      {filteredGroupFields.other.length > 0 && (
-                        <>
-                          <div className="px-4 py-2 text-xs" style={{ color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            {filteredGroupFields.common.length > 0 ? 'Other' : 'All Fields'}
-                          </div>
-                          {filteredGroupFields.other.map((field) => {
-                            const plainLabel = getFieldDisplayLabel(field.label);
-                            return (
-                              <button
-                                key={`${field.object}.${field.field}`}
-                                onClick={() => {
-                                  dispatch(actions.setGroupBy({
-                                    field: { object: field.object, field: field.field },
-                                    selectedValues: [],
-                                    autoAddedField: false,
-                                  }));
-                                  
-                                  // Transition to value selector
-                                  setIsGroupByFieldSelectorOpen(false);
-                                  setGroupBySearchQuery(''); // Clear search
-                                  setTimeout(() => setIsGroupByValueSelectorOpen(true), 100);
-                                }}
-                                className="w-full text-left transition-colors flex flex-col gap-1"
-                                style={{
-                                  paddingLeft: '16px',
-                                  paddingRight: '16px',
-                                  paddingTop: '8px',
-                                  paddingBottom: '8px',
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                              >
-                                <span className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>
-                                  {plainLabel}
-                                </span>
-                                <span className="text-xs font-mono" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
-                                  {field.object}.{field.field}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Value Selector Popover */}
-            {isGroupByValueSelectorOpen && state.groupBy && (
-              <div
-                ref={groupByPopoverRef}
-                className="absolute py-1 z-50"
-                style={{
-                  top: 0,
-                  left: 0,
-                  minWidth: '240px',
-                  maxHeight: '360px',
-                  backgroundColor: 'var(--bg-elevated)',
-                  borderRadius: '16px',
-                  boxShadow: '0 5px 15px rgba(0, 0, 0, 0.16)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <GroupBySelector
-                  availableValues={availableGroupValues}
-                  selectedValues={state.groupBy.selectedValues}
-                  onApply={(selectedValues) => {
-                    dispatch(actions.updateGroupValues(selectedValues));
-                    setIsGroupByValueSelectorOpen(false);
-                  }}
-                  onRemove={() => {
-                    dispatch(actions.clearGroupBy());
-                    setIsGroupByValueSelectorOpen(false);
-                  }}
-                  onCancel={() => {
-                    setIsGroupByValueSelectorOpen(false);
-                  }}
-                  maxSelections={10}
-                  fieldName={state.groupBy.field.field}
-                />
-              </div>
-            )}
-          </div>
 
           {/* Formula Builder - only shown when 2+ blocks */}
           {activeFormula.blocks.length >= 2 && (

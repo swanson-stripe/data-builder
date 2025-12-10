@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 type CustomSelectProps = {
   value: string;
@@ -15,7 +16,21 @@ type CustomSelectProps = {
 export function CustomSelect({ value, onChange, options, disabled = false, placeholder, showSchemaName = false, backgroundColor, hoverBackgroundColor }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Update dropdown position when opened
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: Math.max(200, rect.width),
+      });
+    }
+  }, [isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -38,6 +53,7 @@ export function CustomSelect({ value, onChange, options, disabled = false, place
   return (
     <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
       <button
+        ref={buttonRef}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -93,24 +109,24 @@ export function CustomSelect({ value, onChange, options, disabled = false, place
         </svg>
       </button>
 
-      {/* Dropdown menu */}
-      {isOpen && (
+      {/* Dropdown menu - rendered via portal */}
+      {isOpen && typeof document !== 'undefined' && createPortal(
         <div
           style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            marginTop: '4px',
-            minWidth: '200px',
+            position: 'fixed',
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            minWidth: dropdownPosition.width,
             maxHeight: '300px',
             overflowY: 'auto',
             backgroundColor: 'var(--bg-elevated)',
             borderRadius: '8px',
             boxShadow: 'var(--shadow-popover)',
-            zIndex: 1000,
+            zIndex: 9999,
             paddingTop: '4px',
             paddingBottom: '4px',
           }}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {options.map((option) => (
             <button
@@ -156,7 +172,8 @@ export function CustomSelect({ value, onChange, options, disabled = false, place
               )}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

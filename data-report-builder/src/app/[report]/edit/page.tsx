@@ -150,7 +150,9 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
       <header 
         className="flex items-center justify-between relative" 
         style={{ 
-          height: '56px', 
+          height: '56px',
+          minHeight: '56px',
+          flexShrink: 0,
           backgroundColor: 'var(--bg-primary)', 
           borderBottom: '1px solid var(--border-subtle)', 
           paddingLeft: '20px', 
@@ -158,17 +160,41 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
         }} 
         role="banner"
       >
-        {/* Close button - returns to detail page */}
-        <button 
-          onClick={handleCloseClick}
-          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center" 
-          style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '6px', width: '30px', height: '30px' }} 
-          aria-label="Close editor"
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
-            <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
+        {/* Close button, divider, and label */}
+        <div className="flex items-center">
+          <button 
+            onClick={handleCloseClick}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-center hover-fast cursor-pointer" 
+            style={{ backgroundColor: 'transparent', borderRadius: '6px', width: '30px', height: '30px' }} 
+            aria-label="Close editor"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+              <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          
+          {/* Vertical divider */}
+          <div 
+            style={{ 
+              width: '1px', 
+              height: '12px', 
+              backgroundColor: 'var(--border-subtle)', 
+              marginLeft: '12px', 
+              marginRight: '12px' 
+            }} 
+          />
+          
+          {/* Edit report label */}
+          <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
+            Edit report
+          </span>
+        </div>
 
         {/* Save/Duplicate button */}
         <div className="relative">
@@ -217,6 +243,8 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
             padding: '20px',
             gap: '20px',
             transition: 'width 400ms ease-in-out',
+            maxHeight: '100%',
+            overflow: 'visible',
           }}
           role="complementary" 
           aria-label="Configuration sidebar"
@@ -225,14 +253,16 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
           {activePanel === 'config' ? (
             /* Expanded config panel */
             <div 
-              className="flex flex-col overflow-hidden"
+              className="flex flex-col"
               style={{
                 border: '1px solid var(--border-subtle)',
                 borderRadius: '12px',
                 backgroundColor: 'var(--bg-primary)',
+                overflow: 'hidden',
+                maxHeight: '100%',
               }}
             >
-              <div className="overflow-y-auto overflow-x-hidden relative hide-scrollbar">
+              <div className="relative overflow-y-auto overflow-x-hidden hide-scrollbar">
                 <DataTab />
               </div>
 
@@ -272,6 +302,7 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
                 border: '1px solid var(--border-subtle)',
                 borderRadius: '12px',
                 backgroundColor: 'var(--bg-primary)',
+                minHeight: 0,
               }}
             >
               <SQLTab />
