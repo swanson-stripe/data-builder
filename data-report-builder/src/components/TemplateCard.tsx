@@ -11,7 +11,7 @@ type PresetConfig = {
     op: string;
     type: string;
   };
-  chartType?: 'line' | 'area' | 'bar';
+  chartType?: 'table' | 'line' | 'area' | 'bar';
 };
 
 type Props = {

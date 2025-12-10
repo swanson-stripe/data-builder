@@ -6,11 +6,7 @@ import { useApp, AppProvider, actions } from '@/state/app';
 import { ThemeProvider } from '@/state/theme';
 import { WarehouseProvider, useWarehouseStore } from '@/lib/useWarehouse';
 import { applyPreset, PresetKey } from '@/lib/presets';
-import { SidebarTabs } from '@/components/SidebarTabs';
 import { DataTab } from '@/components/DataTab';
-import { ChartTab } from '@/components/ChartTab';
-import { MetricTab } from '@/components/MetricTab';
-import { SQLTab } from '@/components/SQLTab';
 import { ReportViewer } from '@/components/ReportViewer';
 import { DevToolsMenu } from '@/components/DevToolsMenu';
 import { SavePopover } from '@/components/SavePopover';
@@ -121,7 +117,7 @@ function NewPageContent() {
   const buttonText = isPreset ? 'Duplicate' : 'Save';
 
   return (
-    <div className="h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
+    <div className="h-screen flex flex-col dot-grid-bg">
       {/* Template Selector Overlay */}
       {state.showTemplateSelector && (
         <TemplateSelector 
@@ -214,25 +210,35 @@ function NewPageContent() {
 
       {/* Hide main content when template selector is showing */}
       {!state.showTemplateSelector && (
-        <main className="flex flex-1 overflow-hidden gap-10" role="main">
+        <main className="flex flex-1 overflow-hidden" role="main">
           <aside 
             ref={sidebarRef}
             className="flex flex-col relative"
-            style={{ width: `${sidebarWidth}px`, flexShrink: 0, borderRight: '1px solid var(--border-subtle)' }}
+            style={{ 
+              width: `${sidebarWidth}px`, 
+              flexShrink: 0,
+              padding: '20px',
+              gap: '20px',
+            }}
             role="complementary" 
             aria-label="Configuration sidebar"
           >
-            <SidebarTabs />
+            {/* Config Panel */}
+            <div 
+              className="flex flex-col flex-1 overflow-hidden"
+              style={{
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '12px',
+                backgroundColor: 'var(--bg-primary)',
+              }}
+            >
+              <div className="flex-1 overflow-y-auto overflow-x-hidden relative hide-scrollbar">
+                <DataTab />
+              </div>
 
-            <div className="flex-1 overflow-auto custom-scrollbar relative" style={{ padding: state.activeTab === 'sql' ? '0' : '0 20px 0 20px' }}>
-              {state.activeTab === 'data' && <DataTab />}
-              {state.activeTab === 'chart' && <ChartTab />}
-              {state.activeTab === 'metric' && <MetricTab />}
-              {state.activeTab === 'sql' && <SQLTab />}
+              {/* Template Reopen Button */}
+              <TemplateReopenButton />
             </div>
-
-            {/* Template Reopen Button */}
-            <TemplateReopenButton />
 
             {/* Resize Handle */}
             <div
@@ -248,7 +254,7 @@ function NewPageContent() {
             />
           </aside>
 
-          <ReportViewer showDataList={true} padding="32px" />
+          <ReportViewer showDataList={true} padding="32px" paddingLeft="20px" />
         </main>
       )}
 

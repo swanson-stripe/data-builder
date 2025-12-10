@@ -11,6 +11,8 @@
    DESIGN TOKENS - Light Mode (Default)
    ============================================ */
 :root {
+  /* Theme transition */
+  transition: background-color 500ms ease-in-out, color 500ms ease-in-out;
   /* Primitive Colors - Grays */
   --color-gray-50: #f9fafb;
   --color-gray-100: #f3f4f6;
@@ -52,6 +54,7 @@
   --bg-active: #e5e7eb;
   --bg-selected: #f0f4ff;
   --bg-blue-subtle: #f0f4ff;
+  --bg-chip-selected: #374151;
   
   /* Semantic Tokens - Text */
   --text-primary: #374151;
@@ -107,28 +110,28 @@
   --chip-filter: #FEF3C7;
   
   /* Semantic Tokens - Connection Lines */
-  --connection-line: #6DC9FC;
-  --connection-arrow: #6DC9FC;
+  --connection-line: #e5e7eb;
+  --connection-arrow: #e5e7eb;
   
   /* Semantic Tokens - Data Tab Specific */
-  --data-chip-table-bg: #0B46AD;
-  --data-chip-table-icon: #088EF9;
-  --data-chip-table-text: #FFFFFF;
-  --data-chip-table-counter-bg: #6DC9FC;
-  --data-chip-table-counter-text: #0B46AD;
-  --data-chip-table-hover-stroke: #0A2156;
-  
-  --data-chip-field-bg: #0072E9;
-  --data-chip-field-icon: #6DC9FC;
-  --data-chip-field-text: #FFFFFF;
-  --data-chip-field-counter-bg: #6DC9FC;
-  --data-chip-field-counter-text: #0B46AD;
-  --data-chip-field-hover-stroke: #0B46AD;
-  
-  --data-chip-filter-bg: #E2FBFE;
-  --data-chip-filter-border: #6DC9FC;
-  --data-chip-filter-text: #045AD0;
-  --data-chip-filter-icon: #0072E9;
+  --data-chip-table-bg: #374151;
+  --data-chip-table-icon: #9ca3af;
+  --data-chip-table-text: #ffffff;
+  --data-chip-table-counter-bg: #6b7280;
+  --data-chip-table-counter-text: #ffffff;
+  --data-chip-table-hover-stroke: #1f2937;
+
+  --data-chip-field-bg: #4b5563;
+  --data-chip-field-icon: #9ca3af;
+  --data-chip-field-text: #ffffff;
+  --data-chip-field-counter-bg: #6b7280;
+  --data-chip-field-counter-text: #ffffff;
+  --data-chip-field-hover-stroke: #374151;
+
+  --data-chip-filter-bg: #6b7280;
+  --data-chip-filter-border: #9ca3af;
+  --data-chip-filter-text: #ffffff;
+  --data-chip-filter-icon: #ffffff;
   
   --data-tab-link: #0B46AD;
 }
@@ -158,6 +161,7 @@
   --bg-active: #303339;
   --bg-selected: #2d2e3e;
   --bg-blue-subtle: #1e2a3a;
+  --bg-chip-selected: #e5e7eb;
   
   /* Semantic Tokens - Text (Dark) */
   --text-primary: #e5e7eb;
@@ -217,28 +221,28 @@
   --chip-filter: #92400E;
   
   /* Semantic Tokens - Connection Lines (Dark) */
-  --connection-line: #6DC9FC;
-  --connection-arrow: #6DC9FC;
+  --connection-line: #2a2d31;
+  --connection-arrow: #2a2d31;
   
   /* Semantic Tokens - Data Tab Specific (Dark) - Blue theme adapted for dark mode */
-  --data-chip-table-bg: #1e3a5f;
-  --data-chip-table-icon: #60a5fa;
-  --data-chip-table-text: #e0e7ff;
-  --data-chip-table-counter-bg: #1e293b;
-  --data-chip-table-counter-text: #60a5fa;
-  --data-chip-table-hover-stroke: #2563eb;
-  
-  --data-chip-field-bg: #1e40af;
-  --data-chip-field-icon: #93c5fd;
-  --data-chip-field-text: #dbeafe;
-  --data-chip-field-counter-bg: #1e293b;
-  --data-chip-field-counter-text: #93c5fd;
-  --data-chip-field-hover-stroke: #3b82f6;
-  
-  --data-chip-filter-bg: #1e3a5f;
-  --data-chip-filter-border: #60a5fa;
-  --data-chip-filter-text: #93c5fd;
-  --data-chip-filter-icon: #60a5fa;
+  --data-chip-table-bg: #e5e7eb;
+  --data-chip-table-icon: #6b7280;
+  --data-chip-table-text: #111827;
+  --data-chip-table-counter-bg: #9ca3af;
+  --data-chip-table-counter-text: #111827;
+  --data-chip-table-hover-stroke: #f3f4f6;
+
+  --data-chip-field-bg: #d1d5db;
+  --data-chip-field-icon: #6b7280;
+  --data-chip-field-text: #111827;
+  --data-chip-field-counter-bg: #9ca3af;
+  --data-chip-field-counter-text: #111827;
+  --data-chip-field-hover-stroke: #e5e7eb;
+
+  --data-chip-filter-bg: #9ca3af;
+  --data-chip-filter-border: #6b7280;
+  --data-chip-filter-text: #111827;
+  --data-chip-filter-icon: #111827;
   
   --data-tab-link: #60a5fa;
 }
@@ -248,6 +252,24 @@ body {
   font-weight: 400;
   background-color: var(--bg-primary);
   color: var(--text-primary);
+  transition: background-color 500ms ease-in-out, color 500ms ease-in-out;
+}
+
+/* Theme transition for all elements */
+*, *::before, *::after {
+  transition: background-color 500ms ease-in-out, border-color 500ms ease-in-out, color 300ms ease-in-out;
+}
+
+/* Fast hover transitions for interactive elements */
+.hover-fast {
+  transition: background-color 100ms ease-in-out, border-color 100ms ease-in-out, color 100ms ease-in-out !important;
+}
+
+/* Dot grid background for editor */
+.dot-grid-bg {
+  background-color: var(--bg-primary);
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='2' height='2' fill='%23A3ABB8' fill-opacity='0.1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
 }
 
 button {
@@ -352,6 +374,36 @@ input[type="checkbox"]:focus {
   scrollbar-color: var(--bg-surface) transparent;
 }
 
+/* WebKit browsers (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+/* Show scrollbar on hover */
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: var(--bg-surface);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--border-subtle);
+}
+
+/* Show scrollbar when actively scrolling */
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: var(--border-medium);
+}
+
 /* Hide scrollbar completely for line numbers */
 .overflow-y-scroll::-webkit-scrollbar {
   display: none;
@@ -381,36 +433,6 @@ input[type="checkbox"]:focus {
 
 .animate-slideUp {
   animation: slideUp 0.3s ease-out;
-}
-
-/* WebKit browsers (Chrome, Safari, Edge) */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 4px;
-  transition: background 0.3s ease;
-}
-
-/* Show scrollbar on hover */
-.custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background: var(--bg-surface);
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--border-subtle);
-}
-
-/* Show scrollbar when actively scrolling */
-.custom-scrollbar::-webkit-scrollbar-thumb:active {
-  background: var(--border-medium);
 }
 
 /* Hide scrollbar completely */

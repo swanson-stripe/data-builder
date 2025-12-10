@@ -1336,7 +1336,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                   setIsGroupByFieldSelectorOpen(false);
                   setIsGroupByValueSelectorOpen(true);
                 }}
-                className="w-full text-left transition-colors flex flex-col gap-1"
+                className="w-full text-left hover-fast flex flex-col gap-1"
                 style={{
                   paddingLeft: '16px',
                   paddingRight: '16px',
@@ -1517,7 +1517,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                         setGroupBySearchQuery('');
                         setTimeout(() => setIsGroupByValueSelectorOpen(true), 100);
                       }}
-                      className="w-full text-left transition-colors flex flex-col gap-1"
+                      className="w-full text-left hover-fast flex flex-col gap-1"
                       style={{
                         paddingLeft: '16px',
                         paddingRight: '16px',
@@ -1570,7 +1570,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                         setGroupBySearchQuery('');
                         setTimeout(() => setIsGroupByValueSelectorOpen(true), 100);
                       }}
-                      className="w-full text-left transition-colors flex flex-col gap-1"
+                      className="w-full text-left hover-fast flex flex-col gap-1"
                       style={{
                         paddingLeft: '16px',
                         paddingRight: '16px',
@@ -1659,7 +1659,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
       <div className="flex flex-wrap items-center mt-10" style={{ gap: '8px' }}>
         {/* Date Range Control */}
         <div className="relative inline-flex items-center">
-          <div className="flex items-center gap-1 px-1" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '50px', height: '32px' }}>
+          <div className="flex items-center gap-1 px-1" style={{ borderRadius: '50px', height: '32px', backgroundColor: 'var(--bg-surface)' }}>
         {/* Range presets - use activePresets order */}
           {activePresets.map((presetLabel) => {
             const preset = rangePresets.find(p => p.label === presetLabel) ||
@@ -1676,7 +1676,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                 onClick={() => {
                   dispatch(actions.setRange(range.start, range.end));
                 }}
-                  className="text-sm font-medium transition-colors focus:outline-none flex items-center"
+                  className="text-sm font-medium hover-fast focus:outline-none flex items-center"
                   style={{
                     backgroundColor: isSelected ? 'var(--bg-active)' : 'transparent',
                     borderRadius: '50px',
@@ -1711,7 +1711,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
             <button
               ref={dateRangeButtonRef}
               onClick={() => setIsDateRangePopoverOpen(!isDateRangePopoverOpen)}
-              className="flex items-center justify-center border-none focus:outline-none cursor-pointer transition-colors"
+              className="flex items-center justify-center border-none focus:outline-none cursor-pointer hover-fast"
               style={{
                 backgroundColor: isDateRangePopoverOpen ? 'var(--bg-active)' : 'transparent',
                 borderRadius: '50px',
@@ -1760,7 +1760,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                 {isEditingPresets ? (
                   <button
                     onClick={() => setIsEditingPresets(false)}
-                    className="text-sm font-semibold transition-colors"
+                    className="text-sm font-semibold hover-fast"
                     style={{ color: 'var(--text-link)', fontWeight: 600 }}
                   >
                     Done
@@ -1768,7 +1768,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                 ) : (
                   <button
                     onClick={() => setIsEditingPresets(true)}
-                    className="flex items-center justify-center transition-colors"
+                    className="flex items-center justify-center hover-fast"
                     style={{ padding: '4px' }}
                     aria-label="Edit presets"
                   >
@@ -1795,7 +1795,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                         dispatch(actions.setGranularity(option));
                         setShowGranularityOptions(false);
                       }}
-                      className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                      className="w-full text-left py-2 text-sm hover-fast flex items-center justify-between"
                       style={{
                         paddingLeft: '16px',
                         paddingRight: '16px',
@@ -1830,7 +1830,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                     {/* Current granularity - clickable to toggle view */}
                     <button
                       onClick={() => setShowGranularityOptions(true)}
-                      className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                      className="w-full text-left py-2 text-sm hover-fast flex items-center justify-between"
                       style={{
                         paddingLeft: '16px',
                         paddingRight: '16px',
@@ -1942,7 +1942,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                             {/* Minus button */}
                             <button
                               onClick={() => handleRemovePreset(presetLabel)}
-                              className="flex items-center justify-center transition-colors"
+                              className="flex items-center justify-center hover-fast"
                               style={{ padding: '4px' }}
                               aria-label={`Remove ${displayName}`}
                             >
@@ -1982,7 +1982,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                           dispatch(actions.setRange(range.start, range.end));
                           setIsDateRangePopoverOpen(false);
                         }}
-                        className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                        className="w-full text-left py-2 text-sm hover-fast flex items-center justify-between"
                         style={{
                           paddingLeft: '16px',
                           paddingRight: '16px',
@@ -2078,7 +2078,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                             {/* Plus button */}
                             <button
                               onClick={() => handleAddPreset(presetLabel)}
-                              className="flex items-center justify-center transition-colors"
+                              className="flex items-center justify-center hover-fast"
                               style={{ padding: '4px' }}
                               aria-label={`Add ${displayName}`}
                             >
@@ -2105,7 +2105,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                           dispatch(actions.setRange(range.start, range.end));
                           setIsDateRangePopoverOpen(false);
                         }}
-                        className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                        className="w-full text-left py-2 text-sm hover-fast flex items-center justify-between"
                         style={{
                           paddingLeft: '16px',
                           paddingRight: '16px',
@@ -2148,7 +2148,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                   {/* Custom option - only show when not editing */}
                   {!isEditingPresets && (
                   <button
-                    className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                    className="w-full text-left py-2 text-sm hover-fast flex items-center justify-between"
                     style={{
                       paddingLeft: '16px',
                       paddingRight: '16px',
@@ -2180,7 +2180,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
           <button
             ref={comparisonButtonRef}
             onClick={() => setIsComparisonPopoverOpen(!isComparisonPopoverOpen)}
-            className="text-sm border-none focus:outline-none cursor-pointer flex items-center transition-colors"
+            className="text-sm border-none focus:outline-none cursor-pointer flex items-center hover-fast"
             style={{
               backgroundColor: 'var(--bg-surface)',
               color: isComparisonSelected ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -2243,7 +2243,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                     dispatch(actions.setComparison(option.value as any));
                     setIsComparisonPopoverOpen(false);
                   }}
-                  className="w-full text-left py-2 text-sm transition-colors flex items-center gap-4"
+                  className="w-full text-left py-2 text-sm hover-fast flex items-center gap-4"
                   style={{
                     paddingLeft: '16px',
                     paddingRight: '16px',
@@ -2308,7 +2308,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
               }}
-              className="text-sm border-none focus:outline-none cursor-pointer flex items-center justify-center transition-colors gap-2"
+              className="text-sm border-none focus:outline-none cursor-pointer flex items-center justify-center hover-fast gap-2"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 color: 'var(--text-primary)',
@@ -2362,7 +2362,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
             }}
-            className="flex items-center justify-center transition-colors"
+            className="flex items-center justify-center hover-fast"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderRadius: '50px',
@@ -2414,7 +2414,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                       setActiveFilterField(enabledFields[0].key);
                     }
                   }}
-                  className="flex-1 text-sm font-medium transition-colors"
+                  className="flex-1 text-sm font-medium hover-fast"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -2449,7 +2449,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
                     setActiveFilterField(null);
                     setIsGroupByValueSelectorOpen(false);
                   }}
-                  className="flex-1 text-sm font-medium transition-colors"
+                  className="flex-1 text-sm font-medium hover-fast"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -2536,7 +2536,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
         )}
 
       {/* Chart and Table Container */}
-      <div className="mt-3 p-2" style={{ backgroundColor: 'var(--bg-surface)', borderRadius: '8px' }}>
+      <div className="mt-3 p-2" style={{ borderRadius: '12px', backgroundColor: 'var(--bg-surface)' }}>
         {metricResult.series === null || (useFormula ? !state.metricFormula.blocks.some(b => b.source) : !state.metric.source) ? (
           <div className="flex flex-col items-center justify-center" style={{ height: '280px' }}>
             <div className="text-gray-400 dark:text-gray-500 text-center">
@@ -2549,8 +2549,9 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
           </div>
         ) : (
           <>
-            {/* Chart */}
-            <div className="focus:outline-none" style={{ height: '280px', backgroundColor: 'var(--bg-elevated)', borderRadius: '8px', paddingTop: '8px', paddingLeft: '8px' }}>
+            {/* Chart - hidden when display type is 'table' */}
+            {state.chart.type !== 'table' && (
+            <div className="focus:outline-none" style={{ height: '280px', borderRadius: '8px', paddingTop: '8px', paddingLeft: '8px', backgroundColor: 'var(--bg-primary)' }}>
           <ResponsiveContainer width="100%" height="100%">
           {state.chart.type === 'line' && (
             <LineChart data={chartData} onMouseMove={(data: any) => {
@@ -3114,9 +3115,10 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
           )}
         </ResponsiveContainer>
             </div>
+            )}
 
             {/* Summary Table - Integrated ValueTable with full functionality */}
-            <div className="mt-2 px-3" style={{ backgroundColor: 'var(--bg-elevated)', borderRadius: '8px' }}>
+            <div className="px-3" style={{ borderRadius: '8px', marginTop: state.chart.type !== 'table' ? '8px' : '0', backgroundColor: 'var(--bg-primary)' }}>
               <ValueTable />
             </div>
           </>

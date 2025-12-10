@@ -1070,11 +1070,11 @@ export function DataList() {
         <div className="flex items-center mb-3" style={{ gap: '12px' }}>
           {/* All chip - selected when no bucket filter */}
           <button
-            className="inline-flex items-center transition-colors"
+            className="inline-flex items-center hover-fast"
             style={{
-              backgroundColor: 'transparent',
-              border: state.selectedBucket ? '1px solid #f5f6f8' : '2px solid #675DFF',
-              borderRadius: '50px',
+              backgroundColor: state.selectedBucket ? 'transparent' : 'var(--bg-chip-selected)',
+              border: state.selectedBucket ? '1px solid var(--border-default)' : 'none',
+              borderRadius: '10px',
               paddingLeft: '12px',
               paddingRight: '12px',
               paddingTop: '6px',
@@ -1082,21 +1082,21 @@ export function DataList() {
               height: '30px',
               fontSize: '14px',
               fontWeight: 600,
-              color: state.selectedBucket ? '#374151' : '#533AFD',
+              color: state.selectedBucket ? 'var(--text-secondary)' : 'var(--text-inverse)',
               gap: '6px',
             }}
           >
             <span>All</span>
-            <span style={{ fontWeight: 400, color: state.selectedBucket ? '#374151' : '#533AFD' }}>{sortedRows.length.toLocaleString()}</span>
+            <span style={{ fontWeight: 400 }}>{sortedRows.length.toLocaleString()}</span>
           </button>
 
           {/* Top spend chip */}
           <button
-            className="inline-flex items-center transition-colors hover:bg-gray-100"
+            className="inline-flex items-center hover-fast"
             style={{
               backgroundColor: 'transparent',
               border: '1px solid var(--border-default)',
-              borderRadius: '50px',
+              borderRadius: '10px',
               paddingLeft: '12px',
               paddingRight: '12px',
               paddingTop: '6px',
@@ -1104,9 +1104,11 @@ export function DataList() {
               height: '30px',
               fontSize: '14px',
               fontWeight: 600,
-              color: 'var(--text-primary)',
+              color: 'var(--text-secondary)',
               gap: '6px',
             }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--button-secondary-bg-hover)'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-default)'}
           >
             <span>Top spend</span>
             <span style={{ fontWeight: 400 }}>{Math.round(sortedRows.length * 0.15).toLocaleString()}</span>
@@ -1114,11 +1116,11 @@ export function DataList() {
 
           {/* First-time chip */}
           <button
-            className="inline-flex items-center transition-colors hover:bg-gray-100"
+            className="inline-flex items-center hover-fast"
             style={{
               backgroundColor: 'transparent',
               border: '1px solid var(--border-default)',
-              borderRadius: '50px',
+              borderRadius: '10px',
               paddingLeft: '12px',
               paddingRight: '12px',
               paddingTop: '6px',
@@ -1126,9 +1128,11 @@ export function DataList() {
               height: '30px',
               fontSize: '14px',
               fontWeight: 600,
-              color: 'var(--text-primary)',
+              color: 'var(--text-secondary)',
               gap: '6px',
             }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--button-secondary-bg-hover)'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-default)'}
           >
             <span>First-time</span>
             <span style={{ fontWeight: 400 }}>{Math.round(sortedRows.length * 0.10).toLocaleString()}</span>
@@ -1136,11 +1140,11 @@ export function DataList() {
 
           {/* Top markets chip */}
           <button
-            className="inline-flex items-center transition-colors hover:bg-gray-100"
+            className="inline-flex items-center hover-fast"
             style={{
               backgroundColor: 'transparent',
               border: '1px solid var(--border-default)',
-              borderRadius: '50px',
+              borderRadius: '10px',
               paddingLeft: '12px',
               paddingRight: '12px',
               paddingTop: '6px',
@@ -1148,9 +1152,11 @@ export function DataList() {
               height: '30px',
               fontSize: '14px',
               fontWeight: 600,
-              color: 'var(--text-primary)',
+              color: 'var(--text-secondary)',
               gap: '6px',
             }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--button-secondary-bg-hover)'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-default)'}
           >
             <span>Top markets</span>
             <span style={{ fontWeight: 400 }}>{Math.round(sortedRows.length * 0.05).toLocaleString()}</span>
@@ -1161,9 +1167,9 @@ export function DataList() {
             <div
               className="inline-flex items-center"
               style={{
-                backgroundColor: 'transparent',
-                border: '2px solid var(--border-focus)',
-                borderRadius: '50px',
+                backgroundColor: 'var(--bg-chip-selected)',
+                border: 'none',
+                borderRadius: '10px',
                 paddingLeft: '12px',
                 paddingRight: '12px',
                 paddingTop: '6px',
@@ -1171,12 +1177,12 @@ export function DataList() {
                 height: '30px',
                 fontSize: '14px',
                 fontWeight: 600,
-                color: 'var(--text-link)',
+                color: 'var(--text-inverse)',
                 gap: '6px',
               }}
             >
               <span>{formatBucketLabel(state.selectedBucket)}</span>
-              <span style={{ fontWeight: 400, color: 'var(--text-link)' }}>{dateFilteredRows.length.toLocaleString()}</span>
+              <span style={{ fontWeight: 400 }}>{dateFilteredRows.length.toLocaleString()}</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1195,15 +1201,17 @@ export function DataList() {
 
           {/* Plus button */}
           <button
-            className="inline-flex items-center justify-center transition-colors hover:bg-gray-100"
+            className="inline-flex items-center justify-center hover-fast"
             style={{
               backgroundColor: 'transparent',
               border: '1px solid var(--border-default)',
-              borderRadius: '50px',
+              borderRadius: '10px',
               width: '32px',
               height: '32px',
-              color: '#6b7280',
+              color: 'var(--text-secondary)',
             }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--button-secondary-bg-hover)'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-default)'}
             aria-label="Add filter"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1353,7 +1361,7 @@ export function DataList() {
                         setColumnDropdownOpen(columnDropdownOpen === column.key ? null : column.key);
                         setShowFilterOptions(false);
                       }}
-                      className="flex-1 text-left cursor-pointer transition-colors focus:outline-none px-2 py-1 -mx-2"
+                      className="flex-1 text-left cursor-pointer hover-fast focus:outline-none px-2 py-1 -mx-2"
                       style={{
                         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
                         minHeight: '36px',
@@ -1420,7 +1428,7 @@ export function DataList() {
                           asMenuItem={true}
                           trigger={
                             <div 
-                              className="transition-colors"
+                              className="hover-fast"
                               style={{ 
                                 backgroundColor: 'var(--bg-surface)', 
                                 padding: '6px', 
@@ -1477,7 +1485,7 @@ export function DataList() {
                           setColumnDropdownOpen(null);
                           setShowFilterOptions(false);
                         }}
-                        className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                        className="w-full text-left py-2 text-sm hover-fast flex items-center justify-between"
                         style={{
                           paddingLeft: '16px',
                           paddingRight: '16px',
@@ -1508,7 +1516,7 @@ export function DataList() {
                           setColumnDropdownOpen(null);
                           setShowFilterOptions(false);
                         }}
-                        className="w-full text-left py-2 text-sm transition-colors flex items-center justify-between"
+                        className="w-full text-left py-2 text-sm hover-fast flex items-center justify-between"
                         style={{
                           paddingLeft: '16px',
                           paddingRight: '16px',
@@ -1533,7 +1541,7 @@ export function DataList() {
                             e.stopPropagation();
                             setShowFilterOptions(true);
                           }}
-                          className="w-full text-left py-2 text-sm flex items-center justify-between transition-colors"
+                          className="w-full text-left py-2 text-sm flex items-center justify-between hover-fast"
                           style={{
                             paddingLeft: '16px',
                             paddingRight: '16px',
@@ -1565,7 +1573,7 @@ export function DataList() {
                           setColumnDropdownOpen(null);
                           setShowFilterOptions(false);
                         }}
-                        className="w-full text-left py-2 text-sm transition-colors"
+                        className="w-full text-left py-2 text-sm hover-fast"
                         style={{
                           paddingLeft: '16px',
                           paddingRight: '16px',
@@ -1616,13 +1624,13 @@ export function DataList() {
               return (
                 <tr
                   key={getRowKey(row)}
-                  className={`transition-colors ${
+                  className={`hover-fast ${
                     isRowSelected(actualRowIndex) ? '' : ''
                   }`}
                   style={{
                     borderBottom: '1px solid var(--border-default)',
                     height: '44px',
-                    backgroundColor: 'transparent'
+                    backgroundColor: 'var(--bg-primary)'
                   }}
                   data-row-index={pageRowIndex}
                   onMouseEnter={(e) => {
@@ -1632,7 +1640,7 @@ export function DataList() {
                   }}
                   onMouseLeave={(e) => {
                     if (!isRowSelected(actualRowIndex)) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
                     }
                   }}
                 >
@@ -1692,8 +1700,7 @@ export function DataList() {
                           fontWeight: isSorted ? 600 : 400,
                           paddingLeft: '32px',
                           paddingRight: '12px',
-                          color: 'var(--text-primary)',
-                          backgroundColor: 'transparent'
+                          color: 'var(--text-primary)'
                         }}
                         onMouseDown={(e) => handleCellMouseDown(e, actualRowIndex, column.key)}
                         onMouseEnter={() => handleCellMouseEnter(actualRowIndex, column.key)}
@@ -1737,7 +1744,7 @@ export function DataList() {
             <button
               onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
               disabled={currentPage === 0}
-              className="p-2 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed hover-fast"
               aria-label="Previous page"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1747,7 +1754,7 @@ export function DataList() {
             <button
               onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
               disabled={currentPage >= totalPages - 1}
-              className="p-2 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed hover-fast"
               aria-label="Next page"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

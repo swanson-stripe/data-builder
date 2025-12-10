@@ -3,15 +3,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter, notFound } from 'next/navigation';
 import { useApp, AppProvider, actions } from '@/state/app';
-import { ThemeProvider } from '@/state/theme';
+import { ThemeProvider, useTheme, Theme } from '@/state/theme';
 import { WarehouseProvider, useWarehouseStore } from '@/lib/useWarehouse';
 import { fromSlug, ReportInfo } from '@/lib/slugs';
 import { applyPreset, PRESET_CONFIGS, PresetKey } from '@/lib/presets';
 import { convertReportToPreset } from '@/lib/reportToPreset';
-import { SidebarTabs } from '@/components/SidebarTabs';
 import { DataTab } from '@/components/DataTab';
-import { ChartTab } from '@/components/ChartTab';
-import { MetricTab } from '@/components/MetricTab';
 import { SQLTab } from '@/components/SQLTab';
 import { ReportViewer } from '@/components/ReportViewer';
 import { DevToolsMenu } from '@/components/DevToolsMenu';
@@ -28,6 +25,7 @@ import { useReportHeuristics } from '@/hooks/useReportHeuristics';
 function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
   const { state, dispatch } = useApp();
   const { store: warehouse } = useWarehouseStore();
+  const { theme, setTheme } = useTheme();
   const router = useRouter();
   
   const [sidebarWidth, setSidebarWidth] = useState(360);
@@ -37,6 +35,8 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
   const [showSavePopover, setShowSavePopover] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [hasAppliedPreset, setHasAppliedPreset] = useState(false);
+  const [activePanel, setActivePanel] = useState<'config' | 'sql'>('config');
+  const [previousTheme, setPreviousTheme] = useState<Theme | null>(null);
   
   const sidebarRef = useRef<HTMLElement>(null);
   const saveButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -64,6 +64,27 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
       return () => clearTimeout(timeout);
     }
   }, [isLoading, loadingProgress]);
+
+  // Handle theme and width changes when switching between config and SQL panels
+  useEffect(() => {
+    if (activePanel === 'sql') {
+      // Save current theme and switch to dark
+      if (theme !== 'dark') {
+        setPreviousTheme(theme);
+        setTheme('dark');
+      }
+      // Widen sidebar to 600px
+      setSidebarWidth(600);
+    } else {
+      // Restore previous theme when switching back to config
+      if (previousTheme && previousTheme !== 'dark') {
+        setTheme(previousTheme);
+        setPreviousTheme(null);
+      }
+      // Restore default width
+      setSidebarWidth(360);
+    }
+  }, [activePanel]);
 
   // Apply the preset/template when warehouse data is loaded
   useEffect(() => {
@@ -124,7 +145,7 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
   const buttonText = isPreset ? 'Duplicate' : 'Save';
 
   return (
-    <div className="h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
+    <div className="h-screen flex flex-col dot-grid-bg">
       {/* Header */}
       <header 
         className="flex items-center justify-between relative" 
@@ -186,25 +207,98 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
       )}
 
       {/* Main content with sidebar */}
-      <main className="flex flex-1 overflow-hidden gap-10" role="main">
+      <main className="flex flex-1 overflow-hidden" role="main">
         <aside 
           ref={sidebarRef}
           className="flex flex-col relative"
-          style={{ width: `${sidebarWidth}px`, flexShrink: 0, borderRight: '1px solid var(--border-subtle)' }}
+          style={{ 
+            width: `${sidebarWidth}px`, 
+            flexShrink: 0,
+            padding: '20px',
+            gap: '20px',
+            transition: 'width 400ms ease-in-out',
+          }}
           role="complementary" 
           aria-label="Configuration sidebar"
         >
-          <SidebarTabs />
+          {/* Config Panel Section */}
+          {activePanel === 'config' ? (
+            /* Expanded config panel */
+            <div 
+              className="flex flex-col overflow-hidden"
+              style={{
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '12px',
+                backgroundColor: 'var(--bg-primary)',
+              }}
+            >
+              <div className="overflow-y-auto overflow-x-hidden relative hide-scrollbar">
+                <DataTab />
+              </div>
 
-          <div className="flex-1 overflow-auto custom-scrollbar relative" style={{ padding: state.activeTab === 'sql' ? '0' : '0 20px 0 20px' }}>
-            {state.activeTab === 'data' && <DataTab />}
-            {state.activeTab === 'chart' && <ChartTab />}
-            {state.activeTab === 'metric' && <MetricTab />}
-            {state.activeTab === 'sql' && <SQLTab />}
-          </div>
+              {/* Template Reopen Button */}
+              <TemplateReopenButton />
+            </div>
+          ) : (
+            /* Collapsed config panel - clickable row */
+            <button
+              onClick={() => setActivePanel('config')}
+              className="flex items-center justify-center gap-2 text-sm font-medium transition-colors cursor-pointer"
+              style={{
+                padding: '16px 20px',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '12px',
+                color: 'var(--text-primary)',
+                backgroundColor: 'var(--bg-primary)',
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+              }}
+            >
+              Open config panel
+            </button>
+          )}
 
-          {/* Template Reopen Button */}
-          <TemplateReopenButton />
+          {/* SQL Panel Section */}
+          {activePanel === 'sql' ? (
+            /* Expanded SQL panel */
+            <div 
+              className="flex flex-col flex-1 overflow-hidden relative"
+              style={{
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '12px',
+                backgroundColor: 'var(--bg-primary)',
+              }}
+            >
+              <SQLTab />
+            </div>
+          ) : (
+            /* Collapsed SQL panel - clickable row */
+            <button
+              onClick={() => setActivePanel('sql')}
+              className="flex items-center justify-center gap-2 text-sm font-medium transition-colors cursor-pointer"
+              style={{
+                padding: '16px 20px',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '12px',
+                color: 'var(--text-primary)',
+                backgroundColor: 'var(--bg-primary)',
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+              }}
+            >
+              Open with SQL editor
+            </button>
+          )}
 
           {/* Resize Handle */}
           <div
@@ -220,7 +314,7 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
           />
         </aside>
 
-        <ReportViewer showDataList={true} padding="32px" />
+        <ReportViewer showDataList={true} padding="32px" paddingLeft="20px" />
       </main>
 
       {/* Floating Dev Tools */}

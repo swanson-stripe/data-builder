@@ -47,7 +47,7 @@ export function SQLTab() {
   };
 
   return (
-    <div className="absolute inset-0 flex" style={{ backgroundColor: 'var(--bg-elevated)' }}>
+    <div className="absolute inset-0 flex" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Line numbers - scrollable but scrollbar hidden */}
       <div 
         ref={lineNumbersRef}

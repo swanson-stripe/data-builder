@@ -14,8 +14,10 @@ export type Breadcrumb = {
 type Props = {
   /** Whether to show the data list below the chart */
   showDataList?: boolean;
-  /** Custom padding for the container */
+  /** Custom padding for the container (right side) */
   padding?: string;
+  /** Custom left padding for the container */
+  paddingLeft?: string;
   /** Optional action buttons to display inline with the metric header */
   actionButtons?: ReactNode;
   /** Optional breadcrumbs to display above the metric */
@@ -27,13 +29,13 @@ type Props = {
  * Renders the chart panel and optionally the data list.
  * Used by both detail pages and the editor.
  */
-export function ReportViewer({ showDataList = true, padding = '32px', actionButtons, breadcrumbs }: Props) {
+export function ReportViewer({ showDataList = true, padding = '32px', paddingLeft = '0px', actionButtons, breadcrumbs }: Props) {
   const { state } = useApp();
 
   return (
     <section 
       className="flex-1 py-6 overflow-y-auto custom-scrollbar h-full" 
-      style={{ paddingRight: padding, backgroundColor: 'var(--bg-primary)' }} 
+      style={{ paddingRight: padding, paddingLeft }} 
       role="region" 
       aria-label="Report visualizations"
     >
@@ -72,7 +74,6 @@ export function ReportViewer({ showDataList = true, padding = '32px', actionButt
           {/* Chart Panel - includes integrated summary table when comparison is enabled */}
           <div 
             className="flex flex-col" 
-            style={{ backgroundColor: 'var(--bg-primary)' }} 
             role="region" 
             aria-label="Time series chart"
           >
@@ -85,13 +86,17 @@ export function ReportViewer({ showDataList = true, padding = '32px', actionButt
       {showDataList && (
         <div 
           style={{ 
-            marginTop: state.selectedFields.length > 0 ? '40px' : '0', 
-            backgroundColor: 'var(--bg-primary)' 
+            marginTop: state.selectedFields.length > 0 ? '40px' : '0',
+            borderRadius: '12px',
+            padding: '8px',
+            backgroundColor: 'var(--bg-surface)'
           }} 
           role="region" 
           aria-label="Data preview"
         >
-          <DataList />
+          <div style={{ borderRadius: '8px', backgroundColor: 'var(--bg-primary)', padding: '16px' }}>
+            <DataList />
+          </div>
         </div>
       )}
     </section>

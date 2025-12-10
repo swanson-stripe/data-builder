@@ -501,7 +501,7 @@ export function ValueTable() {
                   position: 'sticky',
                   left: 0,
                   zIndex: 20,
-                  backgroundColor: 'var(--bg-elevated)'
+                  backgroundColor: 'var(--bg-primary)'
                 }}
               >
                 Current period
@@ -510,7 +510,7 @@ export function ValueTable() {
                 <th
                   key={idx}
                   className="pt-2 pb-0 pl-3 pr-3 font-normal text-xs text-gray-500 whitespace-nowrap"
-                  style={{ textAlign: 'right', minWidth: '100px', backgroundColor: 'var(--bg-elevated)' }}
+                  style={{ textAlign: 'right', minWidth: '100px', backgroundColor: 'var(--bg-primary)' }}
                 >
                   {formatColumnHeader(point.date)}
                 </th>
@@ -540,14 +540,14 @@ export function ValueTable() {
                   const groupPoints = groupResult.series || [];
                   
                   return (
-                    <tr key={groupKey} className="transition-colors">
+                    <tr key={groupKey} className="hover-fast">
                       <td 
                         className="py-2 pl-2 pr-6 whitespace-nowrap"
                         style={{ 
                           position: 'sticky',
                           left: 0,
                           zIndex: 10,
-                          backgroundColor: 'var(--bg-elevated)'
+                          backgroundColor: 'var(--bg-primary)'
                         }}
                       >
                         <div className="flex items-center gap-2">
@@ -570,12 +570,12 @@ export function ValueTable() {
                         return (
                           <td
                             key={idx}
-                            className="py-2 pl-3 pr-3 transition-colors cursor-pointer"
+                            className="py-2 pl-3 pr-3 hover-fast cursor-pointer"
                             style={{
                               textAlign: 'right',
                               fontVariantNumeric: 'tabular-nums',
                               minWidth: '100px',
-                              backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : 'var(--bg-elevated)'
+                              backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : 'var(--bg-primary)'
                             }}
                             tabIndex={0}
                             onClick={() => {
@@ -628,14 +628,14 @@ export function ValueTable() {
                 })}
                 
                 {/* Total row */}
-                <tr className="transition-colors" style={{ borderTop: '1px solid var(--border-default)' }}>
+                <tr className="hover-fast" style={{ borderTop: '1px solid var(--border-default)' }}>
                   <td 
                     className="py-2 pl-2 pr-6 whitespace-nowrap"
                     style={{ 
                       position: 'sticky',
                       left: 0,
                       zIndex: 10,
-                      backgroundColor: 'var(--bg-elevated)'
+                      backgroundColor: 'var(--bg-primary)'
                     }}
                   >
                     <div className="flex items-center gap-2">
@@ -660,12 +660,12 @@ export function ValueTable() {
                     return (
                       <td
                         key={idx}
-                        className="py-2 pl-3 pr-3 transition-colors cursor-pointer"
+                        className="py-2 pl-3 pr-3 hover-fast cursor-pointer"
                         style={{
                           textAlign: 'right',
                           fontVariantNumeric: 'tabular-nums',
                           minWidth: '100px',
-                          backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : 'var(--bg-elevated)'
+                          backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : 'var(--bg-primary)'
                         }}
                         tabIndex={0}
                         onClick={() => handleBucketClick(point.date)}
@@ -690,14 +690,14 @@ export function ValueTable() {
               </>
             ) : (
               // Regular single row when no grouping
-              <tr className="transition-colors" style={{ borderBottom: comparisonSeries ? '1px solid var(--border-default)' : 'none' }}>
+              <tr className="hover-fast" style={{ borderBottom: comparisonSeries ? '1px solid var(--border-default)' : 'none' }}>
                 <td 
                   className="py-2 pl-2 pr-6 whitespace-nowrap"
                   style={{ 
                     position: 'sticky',
                     left: 0,
                     zIndex: 10,
-                    backgroundColor: 'var(--bg-elevated)'
+                    backgroundColor: 'var(--bg-primary)'
                   }}
                 >
                   <div className="flex items-center gap-2">
@@ -724,12 +724,12 @@ export function ValueTable() {
                   return (
                     <td
                       key={idx}
-                      className="py-2 pl-3 pr-3 transition-colors cursor-pointer"
+                      className="py-2 pl-3 pr-3 hover-fast cursor-pointer"
                       style={{
                         textAlign: 'right',
                         fontVariantNumeric: 'tabular-nums',
                         minWidth: '100px',
-                        backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : 'var(--bg-elevated)'
+                        backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : 'var(--bg-primary)'
                       }}
                       tabIndex={0}
                       onClick={() => handleBucketClick(point.date)}
@@ -763,7 +763,7 @@ export function ValueTable() {
                       position: 'sticky',
                       left: 0,
                       zIndex: 20,
-                      backgroundColor: 'var(--bg-elevated)'
+                      backgroundColor: 'var(--bg-primary)'
                     }}
                   >
                     Previous period
@@ -772,7 +772,7 @@ export function ValueTable() {
                     <th
                       key={idx}
                       className="pt-2 pb-0 pl-3 pr-3 font-normal text-xs text-gray-500 whitespace-nowrap"
-                      style={{ textAlign: 'right', minWidth: '100px', backgroundColor: 'var(--bg-elevated)' }}
+                      style={{ textAlign: 'right', minWidth: '100px', backgroundColor: 'var(--bg-primary)' }}
                     >
                       {formatColumnHeader(point.date)}
                     </th>
@@ -785,7 +785,7 @@ export function ValueTable() {
                       position: 'sticky',
                       left: 0,
                       zIndex: 10,
-                      backgroundColor: 'var(--bg-elevated)'
+                      backgroundColor: 'var(--bg-primary)'
                     }}
                   >
                     <div className="flex items-center gap-2">
@@ -827,7 +827,7 @@ export function ValueTable() {
                         textAlign: 'right',
                         fontVariantNumeric: 'tabular-nums',
                         minWidth: '100px',
-                        backgroundColor: 'var(--bg-elevated)'
+                        backgroundColor: 'var(--bg-primary)'
                       }}
                     >
                       <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>

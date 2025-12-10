@@ -5,7 +5,7 @@ import { ReportKey, MetricDef, MetricOp, MetricType, MetricFormula, MetricBlock,
 
 // Chart types
 export type Comparison = 'none' | 'period_start' | 'previous_period' | 'previous_year' | 'benchmarks';
-export type ChartType = 'line' | 'area' | 'bar';
+export type ChartType = 'table' | 'line' | 'area' | 'bar';
 export type XSourceMode = 'time' | 'field';
 export type YSourceMode = 'metric' | 'field';
 
