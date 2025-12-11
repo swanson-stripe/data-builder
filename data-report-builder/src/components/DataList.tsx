@@ -1016,10 +1016,13 @@ export function DataList() {
 
   // Empty state
   if (state.selectedFields.length === 0) {
+    const emptyMessage = state.activePackage 
+      ? 'Select a field to begin building your report'
+      : 'Select a category of data to begin building your report';
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Select a field to begin building your report
+          {emptyMessage}
         </p>
       </div>
     );

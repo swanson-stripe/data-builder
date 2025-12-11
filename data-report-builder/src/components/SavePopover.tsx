@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useApp } from '@/state/app';
+import { useApp, actions } from '@/state/app';
 import { useWarehouseStore } from '@/lib/useWarehouse';
 import { computeMetric } from '@/lib/metrics';
 import { computeFormula } from '@/lib/formulaMetrics';
@@ -32,7 +32,7 @@ type SavePopoverProps = {
 };
 
 export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverProps) {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const warehouse = useWarehouseStore();
   
   const [view, setView] = useState<View>('main');
@@ -345,7 +345,16 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
                   ref={nameInputRef}
                   type="text"
                   value={metricName}
-                  onChange={(e) => setMetricName(e.target.value)}
+                  onChange={(e) => {
+                    const newName = e.target.value;
+                    setMetricName(newName);
+                    // Update global state so MetricHeader reflects the change
+                    dispatch(actions.setMetricFormulaName(newName));
+                    // Also update the first block's name (MetricHeader prioritizes this for single-block formulas)
+                    if (state.metricFormula.blocks.length > 0) {
+                      dispatch(actions.updateMetricBlock(state.metricFormula.blocks[0].id, { name: newName }));
+                    }
+                  }}
                   onBlur={() => setIsEditingName(false)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {

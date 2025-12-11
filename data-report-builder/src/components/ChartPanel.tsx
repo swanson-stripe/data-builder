@@ -122,9 +122,11 @@ const granularityOptions: Granularity[] = ['day', 'week', 'month', 'quarter', 'y
 type ChartPanelProps = {
   /** Optional action buttons to display inline with the metric header */
   actionButtons?: React.ReactNode;
+  /** Whether this is shown in the editor (hides version history in MetricHeader) */
+  isEditor?: boolean;
 };
 
-export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
+export function ChartPanel({ actionButtons, isEditor = false }: ChartPanelProps = {}) {
   const { state, dispatch } = useApp();
   const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
 
@@ -1653,7 +1655,7 @@ export function ChartPanel({ actionButtons }: ChartPanelProps = {}) {
   return (
     <div className="flex flex-col h-full">
       {/* Metric Header */}
-      <MetricHeader actionButtons={actionButtons} />
+      <MetricHeader actionButtons={actionButtons} isEditor={isEditor} />
 
       {/* Controls */}
       <div className="flex flex-wrap items-center mt-10" style={{ gap: '8px' }}>

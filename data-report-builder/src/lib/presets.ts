@@ -31,6 +31,8 @@ type PresetConfig = {
   label: string;
   // Report ID from template taxonomy for category filtering
   reportId?: string;
+  // Dataset package ID for organizing tables/fields
+  packageId?: string;
   // Objects to auto-select in the Data tab
   objects: string[];
   // Qualified fields to auto-select in the Data List
@@ -87,6 +89,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     key: 'mrr',
     label: 'MRR',
     reportId: 'mrr_by_plan',
+    packageId: 'subscriptions',
     objects: ['subscription', 'customer', 'subscription_item', 'price'],
     fields: [
       { object: 'subscription', field: 'id' },
@@ -126,6 +129,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     key: 'gross_volume',
     label: 'Gross Volume',
     reportId: 'payments_volume_over_time',
+    packageId: 'payments',
     objects: ['charge', 'customer'],
     fields: [
       { object: 'charge', field: 'id' },
@@ -154,6 +158,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     key: 'net_volume',
     label: 'Net Volume',
     reportId: 'payments_net_revenue_over_time',
+    packageId: 'balances',
     objects: ['balance_transaction'],
     fields: [
       { object: 'balance_transaction', field: 'id' },
@@ -188,6 +193,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     key: 'active_subscribers',
     label: 'Active Subscribers',
     reportId: 'mrr_by_plan',
+    packageId: 'subscriptions',
     objects: ['subscription', 'customer', 'invoice'],
     fields: [
       { object: 'subscription', field: 'id' },
@@ -226,6 +232,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     key: 'refund_count',
     label: 'Refund Count',
     reportId: 'refund_rate_over_time',
+    packageId: 'refunds_disputes',
     objects: ['refund', 'payment', 'charge', 'customer'],
     fields: [
       { object: 'refund', field: 'id' },
@@ -259,6 +266,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     key: 'subscriber_ltv',
     label: 'ARPU',
     reportId: 'customer_lifetime_value_to_date',
+    packageId: 'subscriptions',
     objects: ['subscription', 'customer', 'invoice'], // Start with subscription to only include customers who subscribe
     fields: [
       { object: 'customer', field: 'id' },
@@ -289,6 +297,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     key: 'customer_acquisition',
     label: 'Customer Acquisition',
     reportId: 'new_customers_over_time',
+    packageId: 'customers',
     objects: ['customer', 'charge'],
     fields: [
       { object: 'customer', field: 'id' },
@@ -318,6 +327,7 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     key: 'payment_success_rate',
     label: 'Payment Success Rate',
     reportId: 'payments_acceptance_overview',
+    packageId: 'payments',
     objects: ['charge'],
     fields: [
       { object: 'charge', field: 'id' },
@@ -399,6 +409,11 @@ export function applyPreset(
 
   // Set the report key first so the dropdown stays in sync
   dispatch({ type: 'SET_REPORT', payload: reportKey });
+
+  // Set the active package from the preset
+  if (p.packageId) {
+    dispatch({ type: 'SET_PACKAGE', payload: p.packageId });
+  }
 
   // Reset selections and clear any active bucket filter
   dispatch({ type: 'RESET_SELECTIONS' });

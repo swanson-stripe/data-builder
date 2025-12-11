@@ -16,7 +16,7 @@ export default function TemplateSelector({ onSelectTemplate }: Props) {
   const [filterPath, setFilterPath] = useState<FilterPath>({});
 
   const handleExploreOwn = () => {
-    // Reset to blank state and hide template selector
+    // Go directly to blank builder - package selection will be in config panel
     dispatch({ type: 'RESET_ALL' });
     dispatch({ type: 'HIDE_TEMPLATE_SELECTOR' });
     dispatch({ type: 'SET_USER_MADE_CHANGES', payload: false });
