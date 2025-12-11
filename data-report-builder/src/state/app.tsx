@@ -56,6 +56,7 @@ export type AppState = {
   hasUserMadeChanges: boolean; // Track if user has modified blank state
   loadingComponents: Set<string>; // Track which components are currently loading
   showSearch: boolean; // Whether to show the search input in data tab
+  activePackage: string | null; // Dataset package ID (set from preset, cannot be changed)
 };
 
 // Action types
@@ -300,6 +301,11 @@ type ToggleSearchAction = {
   type: 'TOGGLE_SEARCH';
 };
 
+type SetPackageAction = {
+  type: 'SET_PACKAGE';
+  payload: string | null; // package ID
+};
+
 export type AppAction =
   | SetTabAction
   | ToggleObjectAction
@@ -349,7 +355,8 @@ export type AppAction =
   | ApplyAIConfigAction
   | StartComponentLoadingAction
   | FinishComponentLoadingAction
-  | ToggleSearchAction;
+  | ToggleSearchAction
+  | SetPackageAction;
 
 // Helper function to determine metric configuration based on field type
 function getAutoMetricConfig(fieldType: string): { op: MetricOp; type: MetricType; unit?: UnitType } {
@@ -415,6 +422,7 @@ function buildInitialState(): AppState {
     hasUserMadeChanges: false,
     loadingComponents: new Set<string>(),
     showSearch: false, // Search input hidden by default
+    activePackage: null, // Dataset package ID (set from preset)
   };
 
   // Apply MRR preset synchronously to initial state
@@ -464,6 +472,7 @@ function buildInitialState(): AppState {
         column: preset.defaultSort.column,
         direction: preset.defaultSort.direction,
       } : undefined,
+      activePackage: preset.packageId || null,
     };
   }
   
@@ -1030,7 +1039,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       // Initialize with a default block
       const resetBlock: MetricBlock = {
         id: 'block_1',
-        name: 'Block 1',
+        name: 'New report',
         source: undefined,
         op: 'sum',
         type: 'sum_over_period',
@@ -1055,13 +1064,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
           ySourceMode: 'metric',
         },
         metric: {
-          name: 'Metric',
+          name: 'New report',
           op: 'sum',
           type: 'sum_over_period',
           source: undefined,
         },
         metricFormula: {
-          name: 'Metric',
+          name: 'New report',
           blocks: [resetBlock],
           calculation: undefined,
           exposeBlocks: [],
@@ -1074,6 +1083,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         hasUserMadeChanges: false,
         loadingComponents: new Set<string>(),
         showSearch: false, // Hide search on reset
+        activePackage: null, // Clear package selection on reset
       };
     }
 
@@ -1231,6 +1241,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         showSearch: !state.showSearch,
+      };
+    }
+
+    case 'SET_PACKAGE': {
+      return {
+        ...state,
+        activePackage: action.payload,
       };
     }
 
@@ -1491,5 +1508,10 @@ export const actions = {
 
   toggleSearch: (): ToggleSearchAction => ({
     type: 'TOGGLE_SEARCH',
+  }),
+
+  setPackage: (packageId: string | null): SetPackageAction => ({
+    type: 'SET_PACKAGE',
+    payload: packageId,
   }),
 };

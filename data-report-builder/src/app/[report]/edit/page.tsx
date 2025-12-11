@@ -281,15 +281,23 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
                 color: 'var(--text-primary)',
                 backgroundColor: 'var(--bg-primary)',
                 flexShrink: 0,
+                transition: 'background-color 100ms ease, border-color 100ms ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                e.currentTarget.style.borderColor = '#857AFE';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+                e.currentTarget.style.borderColor = 'var(--border-subtle)';
               }}
             >
-              Open config panel
+              {/* Visual editor icon */}
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" clipRule="evenodd" d="M0 2C0 0.89543 0.895431 0 2 0H5C6.10457 0 7 0.895431 7 2V5C7 6.10457 6.10457 7 5 7H2C0.89543 7 0 6.10457 0 5V2ZM2 1.5H5C5.27614 1.5 5.5 1.72386 5.5 2V5C5.5 5.27614 5.27614 5.5 5 5.5H2C1.72386 5.5 1.5 5.27614 1.5 5V2C1.5 1.72386 1.72386 1.5 2 1.5Z" fill="#857AFE"/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M0 11C0 9.89543 0.895431 9 2 9H5C6.10457 9 7 9.89543 7 11V14C7 15.1046 6.10457 16 5 16H2C0.89543 16 0 15.1046 0 14V11ZM2 10.5H5C5.27614 10.5 5.5 10.7239 5.5 11V14C5.5 14.2761 5.27614 14.5 5 14.5H2C1.72386 14.5 1.5 14.2761 1.5 14V11C1.5 10.7239 1.72386 10.5 2 10.5Z" fill="#857AFE"/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M11 0C9.89543 0 9 0.89543 9 2V5C9 6.10457 9.89543 7 11 7H14C15.1046 7 16 6.10457 16 5V2C16 0.895431 15.1046 0 14 0H11ZM14 1.5H11C10.7239 1.5 10.5 1.72386 10.5 2V5C10.5 5.27614 10.7239 5.5 11 5.5H14C14.2761 5.5 14.5 5.27614 14.5 5V2C14.5 1.72386 14.2761 1.5 14 1.5Z" fill="#857AFE"/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M9 11C9 9.89543 9.89543 9 11 9H14C15.1046 9 16 9.89543 16 11V14C16 15.1046 15.1046 16 14 16H11C9.89543 16 9 15.1046 9 14V11ZM11 10.5H14C14.2761 10.5 14.5 10.7239 14.5 11V14C14.5 14.2761 14.2761 14.5 14 14.5H11C10.7239 14.5 10.5 14.2761 10.5 14V11C10.5 10.7239 10.7239 10.5 11 10.5Z" fill="#857AFE"/>
+              </svg>
+              Open visual editor
             </button>
           )}
 
@@ -319,15 +327,22 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
                 color: 'var(--text-primary)',
                 backgroundColor: 'var(--bg-primary)',
                 flexShrink: 0,
+                transition: 'background-color 100ms ease, border-color 100ms ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                e.currentTarget.style.borderColor = '#3DA00B';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+                e.currentTarget.style.borderColor = 'var(--border-subtle)';
               }}
             >
-              Open with SQL editor
+              {/* SQL editor icon */}
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" clipRule="evenodd" d="M13 2.5H3C2.17157 2.5 1.5 3.17157 1.5 4V12C1.5 12.8284 2.17157 13.5 3 13.5H13C13.8284 13.5 14.5 12.8284 14.5 12V4C14.5 3.17157 13.8284 2.5 13 2.5ZM3 1C1.34315 1 0 2.34315 0 4V12C0 13.6569 1.34315 15 3 15H13C14.6569 15 16 13.6569 16 12V4C16 2.34315 14.6569 1 13 1H3Z" fill="#3DA00B"/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M3.43056 4.51191C3.70012 4.19741 4.1736 4.16099 4.48809 4.43056L7.98809 7.43056C8.15433 7.57304 8.25 7.78106 8.25 8C8.25 8.21894 8.15433 8.42696 7.98809 8.56944L4.48809 11.5694C4.1736 11.839 3.70012 11.8026 3.43056 11.4881C3.16099 11.1736 3.19741 10.7001 3.51191 10.4306L6.34756 8L3.51191 5.56944C3.19741 5.29988 3.16099 4.8264 3.43056 4.51191Z" fill="#3DA00B"/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M8 10.75C8 10.3358 8.33579 10 8.75 10H12.25C12.6642 10 13 10.3358 13 10.75C13 11.1642 12.6642 11.5 12.25 11.5H8.75C8.33579 11.5 8 11.1642 8 10.75Z" fill="#3DA00B"/>
+              </svg>
+              Open SQL editor
             </button>
           )}
 
@@ -345,7 +360,7 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
           />
         </aside>
 
-        <ReportViewer showDataList={true} padding="32px" paddingLeft="20px" />
+        <ReportViewer showDataList={true} padding="32px" paddingLeft="20px" isEditor={true} />
       </main>
 
       {/* Floating Dev Tools */}

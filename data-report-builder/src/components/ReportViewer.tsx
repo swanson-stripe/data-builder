@@ -22,6 +22,8 @@ type Props = {
   actionButtons?: ReactNode;
   /** Optional breadcrumbs to display above the metric */
   breadcrumbs?: Breadcrumb[];
+  /** Whether this is shown in the editor (hides version history) */
+  isEditor?: boolean;
 };
 
 /**
@@ -29,7 +31,7 @@ type Props = {
  * Renders the chart panel and optionally the data list.
  * Used by both detail pages and the editor.
  */
-export function ReportViewer({ showDataList = true, padding = '32px', paddingLeft = '0px', actionButtons, breadcrumbs }: Props) {
+export function ReportViewer({ showDataList = true, padding = '32px', paddingLeft = '0px', actionButtons, breadcrumbs, isEditor = false }: Props) {
   const { state } = useApp();
 
   return (
@@ -77,7 +79,7 @@ export function ReportViewer({ showDataList = true, padding = '32px', paddingLef
             role="region" 
             aria-label="Time series chart"
           >
-            <ChartPanel actionButtons={actionButtons} />
+            <ChartPanel actionButtons={actionButtons} isEditor={isEditor} />
           </div>
         </>
       )}

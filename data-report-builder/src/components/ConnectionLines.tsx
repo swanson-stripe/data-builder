@@ -9,6 +9,7 @@ interface ConnectionLinesProps {
   expandedFilters: Record<string, boolean>; // Track which filters are expanded
   showAllFieldsMap?: Record<string, boolean>; // Track which tables show all fields
   searchQuery?: string; // Track search query to trigger recalculation
+  packageId?: string | null; // Track active package for package mode
 }
 
 interface ElementPosition {
@@ -26,7 +27,7 @@ interface Connection {
   fieldPositions?: Array<{ field: string; pos: ElementPosition }>; // For table-fields type
 }
 
-export function ConnectionLines({ containerRef, expandedTables, expandedFields, expandedFilters, showAllFieldsMap = {}, searchQuery = '' }: ConnectionLinesProps) {
+export function ConnectionLines({ containerRef, expandedTables, expandedFields, expandedFilters, showAllFieldsMap = {}, searchQuery = '', packageId = null }: ConnectionLinesProps) {
   const { state } = useApp();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [svgDimensions, setSvgDimensions] = useState({ width: 0, height: 0 });
@@ -37,9 +38,14 @@ export function ConnectionLines({ containerRef, expandedTables, expandedFields, 
     const fieldSelectors = new Map<string, string>();
     const filterSelectors = new Map<string, string>();
     
-    state.selectedObjects.forEach(objectName => {
-      tableSelectors.set(objectName, `[data-connection-id="table-${objectName}"]`);
-    });
+    // In package mode, use package selector; otherwise use table selectors
+    if (packageId) {
+      tableSelectors.set('__package__', `[data-connection-id="package-${packageId}"]`);
+    } else {
+      state.selectedObjects.forEach(objectName => {
+        tableSelectors.set(objectName, `[data-connection-id="table-${objectName}"]`);
+      });
+    }
     
     state.selectedFields.forEach(field => {
       const fieldId = `${field.object}.${field.field}`;
@@ -48,7 +54,7 @@ export function ConnectionLines({ containerRef, expandedTables, expandedFields, 
     });
     
     return { tableSelectors, fieldSelectors, filterSelectors };
-  }, [state.selectedObjects, state.selectedFields]);
+  }, [state.selectedObjects, state.selectedFields, packageId]);
 
   const calculateConnections = useCallback(() => {
     if (!containerRef.current) return;
@@ -71,52 +77,95 @@ export function ConnectionLines({ containerRef, expandedTables, expandedFields, 
       };
     };
 
-    // Table-to-fields connections (vertical line with horizontal branches)
-    state.selectedObjects.forEach((objectName) => {
-      const selectedFieldsForObject = state.selectedFields.filter(
-        (f) => f.object === objectName
-      );
+    // Package-to-fields or Table-to-fields connections (vertical line with horizontal branches)
+    if (packageId) {
+      // Package mode: all selected fields connect from the single package card
+      if (state.selectedFields.length === 0) return;
       
-      if (selectedFieldsForObject.length === 0) return;
+      const packageSelector = selectors.tableSelectors.get('__package__');
+      if (!packageSelector) return;
+      const packageChipEl = container.querySelector(packageSelector);
+      if (!packageChipEl) return;
       
-      // Get table chip position using memoized selector
-      const tableSelector = selectors.tableSelectors.get(objectName);
-      if (!tableSelector) return;
-      const tableChipEl = container.querySelector(tableSelector);
-      if (!tableChipEl) return;
+      const packageChipPos = getElementPosition(packageChipEl);
+      if (!packageChipPos) return;
       
-      const tableChipPos = getElementPosition(tableChipEl);
-      if (!tableChipPos) return;
-      
-      // Get all field element positions using memoized selectors
+      // Get all field element positions
       const fieldPositions: Array<{ field: string; pos: ElementPosition }> = [];
-      selectedFieldsForObject.forEach((field) => {
-        const fieldId = `${objectName}.${field.field}`;
+      state.selectedFields.forEach((field) => {
+        const fieldId = `${field.object}.${field.field}`;
         const fieldSelector = selectors.fieldSelectors.get(fieldId);
         if (!fieldSelector) return;
         const fieldEl = container.querySelector(fieldSelector);
         if (fieldEl) {
           const pos = getElementPosition(fieldEl);
           if (pos) {
-            fieldPositions.push({ field: field.field, pos });
+            fieldPositions.push({ field: fieldId, pos });
           }
         }
       });
       
-      if (fieldPositions.length === 0) return;
-      
-      // Sort by vertical position
-      fieldPositions.sort((a, b) => a.pos.y - b.pos.y);
-      
-      // Create connections for this table's fields
-      newConnections.push({
-        id: `table-fields-${objectName}`,
-        from: tableChipPos, // Store table chip position
-        to: { x: 0, y: 0, width: 0, height: 0 }, // Not used for this type
-        type: 'table-fields',
-        fieldPositions, // Store positions for rendering
+      if (fieldPositions.length > 0) {
+        // Sort by vertical position
+        fieldPositions.sort((a, b) => a.pos.y - b.pos.y);
+        
+        // Create connections for all fields from package
+        newConnections.push({
+          id: `package-fields-${packageId}`,
+          from: packageChipPos,
+          to: { x: 0, y: 0, width: 0, height: 0 },
+          type: 'table-fields',
+          fieldPositions,
+        });
+      }
+    } else {
+      // Table mode: group fields by their table
+      state.selectedObjects.forEach((objectName) => {
+        const selectedFieldsForObject = state.selectedFields.filter(
+          (f) => f.object === objectName
+        );
+        
+        if (selectedFieldsForObject.length === 0) return;
+        
+        // Get table chip position using memoized selector
+        const tableSelector = selectors.tableSelectors.get(objectName);
+        if (!tableSelector) return;
+        const tableChipEl = container.querySelector(tableSelector);
+        if (!tableChipEl) return;
+        
+        const tableChipPos = getElementPosition(tableChipEl);
+        if (!tableChipPos) return;
+        
+        // Get all field element positions using memoized selectors
+        const fieldPositions: Array<{ field: string; pos: ElementPosition }> = [];
+        selectedFieldsForObject.forEach((field) => {
+          const fieldId = `${objectName}.${field.field}`;
+          const fieldSelector = selectors.fieldSelectors.get(fieldId);
+          if (!fieldSelector) return;
+          const fieldEl = container.querySelector(fieldSelector);
+          if (fieldEl) {
+            const pos = getElementPosition(fieldEl);
+            if (pos) {
+              fieldPositions.push({ field: field.field, pos });
+            }
+          }
+        });
+        
+        if (fieldPositions.length === 0) return;
+        
+        // Sort by vertical position
+        fieldPositions.sort((a, b) => a.pos.y - b.pos.y);
+        
+        // Create connections for this table's fields
+        newConnections.push({
+          id: `table-fields-${objectName}`,
+          from: tableChipPos, // Store table chip position
+          to: { x: 0, y: 0, width: 0, height: 0 }, // Not used for this type
+          type: 'table-fields',
+          fieldPositions, // Store positions for rendering
+        });
       });
-    });
+    }
 
     // Find all field-to-filter connections (including expanded fields with no filter yet)
     // First, add connections for fields with actual filters
@@ -198,7 +247,7 @@ export function ConnectionLines({ containerRef, expandedTables, expandedFields, 
       width: container.scrollWidth,
       height: container.scrollHeight,
     });
-  }, [containerRef, state.selectedObjects, state.selectedFields, state.filters.conditions, expandedTables, expandedFields, expandedFilters, showAllFieldsMap, searchQuery, selectors]);
+  }, [containerRef, state.selectedObjects, state.selectedFields, state.filters.conditions, expandedTables, expandedFields, expandedFilters, showAllFieldsMap, searchQuery, selectors, packageId]);
 
   useEffect(() => {
     const container = containerRef.current;

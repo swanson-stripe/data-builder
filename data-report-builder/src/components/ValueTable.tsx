@@ -459,11 +459,14 @@ export function ValueTable() {
     : state.metric.source;
     
   if (metricResult.series === null || !hasConfig) {
+    const emptyMessage = state.activePackage 
+      ? 'Select a field to begin building your report'
+      : 'Select a category of data to begin building your report';
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <div className="text-gray-400 dark:text-gray-500 text-center">
           <p className="text-sm">
-            Select a field to begin building your report
+            {emptyMessage}
           </p>
         </div>
       </div>

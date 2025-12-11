@@ -1,9 +1,18 @@
 'use client';
 
+import { useApp } from '@/state/app';
+
 /**
  * EmptyState component - displayed when no fields are selected
  */
 export function EmptyState() {
+  const { state } = useApp();
+  
+  // Show different message based on whether a package is selected
+  const message = state.activePackage 
+    ? 'Select a field to begin building your report'
+    : 'Select a category of data to begin building your report';
+
   return (
     <div 
       className="flex items-center justify-center" 
@@ -25,7 +34,7 @@ export function EmptyState() {
             fontWeight: 400,
           }}
         >
-          Select a field to begin building your report
+          {message}
         </p>
       </div>
     </div>

@@ -44,9 +44,11 @@ const REPORT_LABELS: Record<ReportKey, string> = {
 type MetricHeaderProps = {
   /** Optional action buttons to display inline with the metric value */
   actionButtons?: React.ReactNode;
+  /** Whether this is shown in the editor (hides version history) */
+  isEditor?: boolean;
 };
 
-export function MetricHeader({ actionButtons }: MetricHeaderProps = {}) {
+export function MetricHeader({ actionButtons, isEditor = false }: MetricHeaderProps = {}) {
   const { state } = useApp();
   const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
 
@@ -384,11 +386,15 @@ export function MetricHeader({ actionButtons }: MetricHeaderProps = {}) {
 
         {/* Metadata */}
         <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          <span>Private to you</span>
-          <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--border-subtle)' }} />
-          <button className="underline" style={{ fontWeight: 400, color: 'var(--text-primary)' }}>
-            Show version history
-          </button>
+          <span>Created by Stripe</span>
+          {!isEditor && (
+            <>
+              <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--border-subtle)' }} />
+              <button className="underline" style={{ fontWeight: 400, color: 'var(--text-primary)' }}>
+                Show version history
+              </button>
+            </>
+          )}
         </div>
       </div>
 

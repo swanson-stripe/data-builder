@@ -15,10 +15,12 @@ import { FormulaBuilder } from './FormulaBuilder';
 import { computeFormula } from '@/lib/formulaMetrics';
 import { getAvailableGroupFields, getGroupValues } from '@/lib/grouping';
 import GroupBySelector from './GroupBySelector';
+import { getPackage, getAllPackages, isCuratedField, isTableInPackage } from '@/lib/dataPackages';
 
   const ObjectCard = forwardRef<HTMLDivElement, { 
     object: SchemaObject; 
     searchQuery: string;
+    activePackage: string | null;
     expandedTables: Record<string, boolean>;
     onExpandChange: (objectName: string, isExpanded: boolean) => void;
     expandedFields: Record<string, boolean>;
@@ -29,7 +31,7 @@ import GroupBySelector from './GroupBySelector';
     onShowAllFieldsChange: (objectName: string, showAll: boolean) => void;
     onOpenDefinition: (tableName: string, fieldName?: string) => void;
   }>(
-  ({ object, searchQuery, expandedTables, onExpandChange, expandedFields, onFieldExpandChange, expandedFilters, onFilterExpandChange, showAllFieldsMap, onShowAllFieldsChange, onOpenDefinition }, ref) => {
+  ({ object, searchQuery, activePackage, expandedTables, onExpandChange, expandedFields, onFieldExpandChange, expandedFilters, onFilterExpandChange, showAllFieldsMap, onShowAllFieldsChange, onOpenDefinition }, ref) => {
     const { state, dispatch } = useApp();
     const { store: warehouse, version } = useWarehouseStore();
     
@@ -67,7 +69,7 @@ import GroupBySelector from './GroupBySelector';
         )
       : object.fields;
     
-    // Sort fields: enabled fields first, then the rest
+    // Sort fields: selected fields first, then curated fields (if package), then the rest
     const sortedFields = [...filteredFields].sort((a, b) => {
       const aSelected = state.selectedFields.some(
         (f) => f.object === object.name && f.field === a.name
@@ -79,6 +81,14 @@ import GroupBySelector from './GroupBySelector';
       // Selected fields come first
       if (aSelected && !bSelected) return -1;
       if (!aSelected && bSelected) return 1;
+      
+      // If there's an active package, curated fields come next
+      if (activePackage) {
+        const aCurated = isCuratedField(activePackage, object.name, a.name);
+        const bCurated = isCuratedField(activePackage, object.name, b.name);
+        if (aCurated && !bCurated) return -1;
+        if (!aCurated && bCurated) return 1;
+      }
       
       // Within same selection state, maintain original order
       return 0;
@@ -92,12 +102,31 @@ import GroupBySelector from './GroupBySelector';
       !state.selectedFields.some(f => f.object === object.name && f.field === field.name)
     );
     
+    // When there's an active package, also split curated vs non-curated among unselected
+    const curatedUnselectedFields = activePackage 
+      ? unselectedFields.filter(f => isCuratedField(activePackage, object.name, f.name))
+      : unselectedFields;
+    const nonCuratedFields = activePackage
+      ? unselectedFields.filter(f => !isCuratedField(activePackage, object.name, f.name))
+      : [];
+    
     // Determine if we should show "Show X more fields" button
-    // Show it when: table is expanded by default (has selected fields), not searching, and haven't clicked "Show all"
-    const shouldShowMoreButton = selectedFieldCount > 0 && !searchQuery && !showAllFields && unselectedFields.length > 0;
+    // When package is active: show button if there are non-curated fields hidden
+    // Otherwise: show button when table has selected fields and there are unselected fields
+    const hasHiddenFields = activePackage 
+      ? (nonCuratedFields.length > 0 && !showAllFields)
+      : (selectedFieldCount > 0 && !searchQuery && !showAllFields && unselectedFields.length > 0);
+    const shouldShowMoreButton = hasHiddenFields;
     
     // Fields to actually render
-    const fieldsToRender = shouldShowMoreButton ? selectedFields : sortedFields;
+    // When package: show selected + curated unselected, optionally + non-curated if showAll
+    // Otherwise: show selected only if shouldShowMoreButton, else all
+    const fieldsToRender = activePackage
+      ? [...selectedFields, ...curatedUnselectedFields, ...(showAllFields ? nonCuratedFields : [])]
+      : (shouldShowMoreButton ? selectedFields : sortedFields);
+    
+    // Count of hidden fields for the "show more" button
+    const hiddenFieldCount = activePackage ? nonCuratedFields.length : unselectedFields.length;
     
     // Auto-expand if there's a search query and matching fields
     const hasMatchingFields = searchQuery && filteredFields.length > 0;
@@ -258,8 +287,8 @@ import GroupBySelector from './GroupBySelector';
               <path d="M4.99994 3.99999C4.99994 3.44858 5.44854 2.99999 5.99994 2.99999C6.55134 2.99999 6.99994 3.44858 6.99994 3.99999C6.99994 4.55139 6.55134 4.99999 5.99994 4.99999C5.44854 4.99999 4.99994 4.55139 4.99994 3.99999Z" fill={isObjectSelected ? 'white' : 'var(--text-icon)'}/>
             </svg>
             
-            {/* Counter badge */}
-            {isObjectSelected && selectedFieldCount > 0 && (
+            {/* Counter badge - hidden for now, may bring back later */}
+            {false && isObjectSelected && selectedFieldCount > 0 && (
               <span
                 style={{
                   backgroundColor: 'white',
@@ -538,8 +567,8 @@ import GroupBySelector from './GroupBySelector';
                           <path d="M4.99994 3.99999C4.99994 3.44858 5.44854 2.99999 5.99994 2.99999C6.55134 2.99999 6.99994 3.44858 6.99994 3.99999C6.99994 4.55139 6.55134 4.99999 5.99994 4.99999C5.44854 4.99999 4.99994 4.55139 4.99994 3.99999Z" fill={isFieldSelected ? 'white' : 'var(--text-icon)'}/>
                         </svg>
                         
-                        {/* Counter badge */}
-                        {isFieldSelected && fieldFilters.length > 0 && (
+                        {/* Counter badge - hidden for now, may bring back later */}
+                        {false && isFieldSelected && fieldFilters.length > 0 && (
                           <span
                             style={{
                               backgroundColor: 'white',
@@ -772,7 +801,7 @@ import GroupBySelector from './GroupBySelector';
                     fontWeight: 300,
                     lineHeight: '20px'
                   }}>
-                    Show {unselectedFields.length} more field{unselectedFields.length !== 1 ? 's' : ''}
+                    Show {hiddenFieldCount} more field{hiddenFieldCount !== 1 ? 's' : ''}
                   </span>
                 </div>
               )}
@@ -783,6 +812,586 @@ import GroupBySelector from './GroupBySelector';
 });
 
 ObjectCard.displayName = 'ObjectCard';
+
+// PackageCard - A single card that shows all package fields flattened
+const PackageCard = forwardRef<HTMLDivElement, {
+  packageId: string;
+  searchQuery: string;
+  expandedFields: Record<string, boolean>;
+  onFieldExpandChange: (fieldId: string, isExpanded: boolean) => void;
+  expandedFilters: Record<string, boolean>;
+  onFilterExpandChange: (filterId: string, isExpanded: boolean) => void;
+  showAllFields: boolean;
+  onShowAllFieldsChange: (showAll: boolean) => void;
+  onOpenDefinition: (tableName: string, fieldName?: string) => void;
+}>(
+({ packageId, searchQuery, expandedFields, onFieldExpandChange, expandedFilters, onFilterExpandChange, showAllFields, onShowAllFieldsChange, onOpenDefinition }, ref) => {
+  const { state, dispatch } = useApp();
+  const { store: warehouse, version } = useWarehouseStore();
+  const pkg = getPackage(packageId);
+  
+  const [hoveredFieldChips, setHoveredFieldChips] = useState<Record<string, boolean>>({});
+  const [hoveredFieldRows, setHoveredFieldRows] = useState<Record<string, boolean>>({});
+  
+  if (!pkg) return null;
+  
+  // Helper to convert to sentence case, preserving "ID" as uppercase
+  const toSentenceCase = (str: string) => {
+    if (!str) return str;
+    const sentenceCase = str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    // Preserve "ID" as uppercase
+    return sentenceCase.replace(/\bid\b/gi, 'ID');
+  };
+
+  // Helper to build field metadata
+  const buildFieldMeta = (objectName: string, fieldName: string, isCurated: boolean) => {
+    const schemaObj = schema.objects.find(o => o.name === objectName);
+    const schemaField = schemaObj?.fields.find(f => f.name === fieldName);
+    if (!schemaObj || !schemaField) return null;
+    
+    const fullLabel = `${schemaObj.label} ${schemaField.label}`;
+    const displayLabel = toSentenceCase(fullLabel);
+    return {
+      object: objectName,
+      field: fieldName,
+      objectLabel: schemaObj.label,
+      fieldLabel: schemaField.label,
+      displayLabel,
+      fieldType: schemaField.type,
+      fieldEnum: schemaField.enum,
+      isCurated,
+    };
+  };
+
+  // Build curated fields list (only these show in the main UI)
+  const curatedPackageFields = useMemo(() => {
+    return pkg.curatedFields
+      .map(cf => buildFieldMeta(cf.object, cf.field, true))
+      .filter((f): f is NonNullable<typeof f> => f !== null);
+  }, [pkg]);
+
+  // Build all schema fields list (for search)
+  const allSchemaFields = useMemo(() => {
+    const fields: Array<ReturnType<typeof buildFieldMeta> & {}> = [];
+    
+    pkg.tables.forEach(tableName => {
+      const schemaObj = schema.objects.find(o => o.name === tableName);
+      if (schemaObj) {
+        schemaObj.fields.forEach(field => {
+          const isCurated = pkg.curatedFields.some(
+            cf => cf.object === tableName && cf.field === field.name
+          );
+          const meta = buildFieldMeta(tableName, field.name, isCurated);
+          if (meta) fields.push(meta);
+        });
+      }
+    });
+    
+    return fields;
+  }, [pkg]);
+  
+  // Filter fields based on search query
+  // When searching: search all schema fields
+  // When not searching: only show curated fields
+  const filteredFields = searchQuery
+    ? allSchemaFields.filter(f => 
+        f.displayLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.fieldLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.objectLabel.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : curatedPackageFields;
+  
+  // Sort: selected fields first, then curated, then rest
+  const sortedFields = [...filteredFields].sort((a, b) => {
+    const aSelected = state.selectedFields.some(f => f.object === a.object && f.field === a.field);
+    const bSelected = state.selectedFields.some(f => f.object === b.object && f.field === b.field);
+    
+    if (aSelected && !bSelected) return -1;
+    if (!aSelected && bSelected) return 1;
+    
+    if (a.isCurated && !b.isCurated) return -1;
+    if (!a.isCurated && b.isCurated) return 1;
+    
+    return 0;
+  });
+  
+  // Split into selected and unselected
+  const selectedFields = sortedFields.filter(f => 
+    state.selectedFields.some(sf => sf.object === f.object && sf.field === f.field)
+  );
+  const unselectedFields = sortedFields.filter(f => 
+    !state.selectedFields.some(sf => sf.object === f.object && sf.field === f.field)
+  );
+  
+  // Count total selected fields
+  const selectedFieldCount = selectedFields.length;
+  
+  // Show first 8 curated fields by default (exposed but not enabled)
+  // When showAllFields is true, show all curated fields
+  const DEFAULT_EXPOSED_COUNT = 8;
+  const exposedUnselectedFields = showAllFields 
+    ? unselectedFields 
+    : unselectedFields.slice(0, Math.max(0, DEFAULT_EXPOSED_COUNT - selectedFieldCount));
+  
+  // Fields to render - selected fields + exposed unselected fields
+  const fieldsToRender = [...selectedFields, ...exposedUnselectedFields];
+  
+  const hiddenFieldCount = unselectedFields.length - exposedUnselectedFields.length;
+  const shouldShowMoreButton = !showAllFields && hiddenFieldCount > 0 && !searchQuery;
+  
+  // Compute distinct values cache for enum fields (use all schema fields for complete coverage)
+  const distinctValuesCache = useMemo(() => {
+    const cache: Record<string, string[]> = {};
+    
+    allSchemaFields.forEach(pf => {
+      if (pf.fieldEnum && pf.fieldType === 'string') {
+        const dataArray = warehouse[pf.object as keyof typeof warehouse];
+        if (dataArray && Array.isArray(dataArray) && dataArray.length > 0) {
+          const distinctSet = new Set<string>();
+          dataArray.forEach((item: any) => {
+            const value = item[pf.field];
+            if (value && typeof value === 'string') {
+              distinctSet.add(value);
+            }
+          });
+          const distinctValues = Array.from(distinctSet).sort();
+          if (distinctValues.length > 0) {
+            cache[`${pf.object}.${pf.field}`] = distinctValues;
+          }
+        }
+      }
+    });
+    
+    return cache;
+  }, [allSchemaFields, warehouse, version]);
+  
+  return (
+    <div 
+      ref={ref} 
+      className="transition-colors relative" 
+      style={{ zIndex: 2, marginBottom: '16px' }}
+    >
+      {/* Package header - always visible, no collapse/expand */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0">
+          <div 
+            style={{ 
+              display: 'inline-flex',
+              alignItems: 'center',
+              height: '32px',
+              paddingLeft: '0px',
+              paddingRight: '12px',
+            }}
+          >
+            <span 
+              className="truncate" 
+              style={{ 
+                color: 'var(--text-primary)',
+                fontSize: '14px',
+                fontWeight: 600,
+                lineHeight: '20px'
+              }}
+            >
+              {pkg.label}
+            </span>
+            
+            {/* Counter badge - hidden for now, may bring back later */}
+            {false && selectedFieldCount > 0 && (
+              <span
+                style={{
+                  backgroundColor: 'white',
+                  color: 'var(--data-chip-table-bg)',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  height: '16px',
+                  minWidth: '16px',
+                  borderRadius: '16px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 4px',
+                  marginLeft: '8px'
+                }}
+              >
+                {selectedFieldCount}
+              </span>
+            )}
+          </div>
+          {/* Package description - connector line starts from here */}
+          <p 
+            data-connection-id={`package-${packageId}`}
+            style={{ 
+              color: 'var(--text-muted)', 
+              fontSize: '13px', 
+              marginTop: '4px',
+              lineHeight: '1.4',
+            }}
+          >
+            {pkg.description}
+          </p>
+        </div>
+      </div>
+
+      {/* Field list - always visible */}
+      {true && (
+        <div style={{ marginLeft: '36px', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }} role="group" aria-label={`${pkg.label} fields`}>
+          {fieldsToRender.map((pf) => {
+            const isFieldSelected = state.selectedFields.some(
+              (f) => f.object === pf.object && f.field === pf.field
+            );
+            const fieldId = `${pf.object}.${pf.field}`;
+            const filterId = fieldId;
+            
+            // Get all filters for this field
+            const fieldFilters = state.filters.conditions.filter(
+              c => c.field.object === pf.object && c.field.field === pf.field
+            );
+            const activeFilter = fieldFilters[0] || null;
+            
+            const isFieldExpanded = expandedFields[fieldId] ?? (fieldFilters.length > 0);
+            const isFilterExpanded = expandedFilters[filterId] || false;
+            
+            // Get schema field for filter component
+            const schemaObj = schema.objects.find(o => o.name === pf.object);
+            const schemaField = schemaObj?.fields.find(f => f.name === pf.field);
+            
+            const handleFilterChange = (condition: FilterCondition | null) => {
+              if (condition) {
+                const existingIndex = state.filters.conditions.findIndex(
+                  c => c.field.object === pf.object && c.field.field === pf.field
+                );
+                
+                if (existingIndex >= 0) {
+                  dispatch(actions.updateFilter(existingIndex, condition));
+                } else {
+                  dispatch(actions.addFilter(condition));
+                }
+              } else {
+                const existingIndex = state.filters.conditions.findIndex(
+                  c => c.field.object === pf.object && c.field.field === pf.field
+                );
+                if (existingIndex >= 0) {
+                  dispatch(actions.removeFilter(existingIndex));
+                }
+              }
+            };
+            
+            const handleFieldToggle = () => {
+              // Auto-select the object if not selected
+              if (!state.selectedObjects.includes(pf.object)) {
+                dispatch(actions.toggleObject(pf.object));
+              }
+              dispatch(actions.toggleField(pf.object, pf.field));
+            };
+
+            const handleChipClick = () => {
+              if (isFieldSelected) {
+                onFieldExpandChange(fieldId, !isFieldExpanded);
+              } else {
+                handleFieldToggle();
+              }
+            };
+            
+            // Generate filter description
+            const getFilterDescription = () => {
+              if (!activeFilter) return 'Filter';
+              const { operator, value } = activeFilter;
+              
+              if (value === '' || value === null || value === undefined || 
+                  (Array.isArray(value) && value.length === 0)) {
+                return 'Filter for blank';
+              }
+              
+              if (pf.fieldType === 'boolean') {
+                return value === true ? 'Filter for true' : 'Filter for false';
+              }
+              
+              if (Array.isArray(value)) {
+                if (value.length === 1) return `Filter for ${value[0]}`;
+                return `Filter for ${value.length} values`;
+              }
+              
+              if (typeof value === 'string') {
+                const displayValue = value.length > 20 ? `${value.substring(0, 20)}...` : value;
+                return `Filter for ${displayValue}`;
+              }
+              
+              return 'Filter';
+            };
+            
+            return (
+              <div key={fieldId}>
+                <div 
+                  className="text-xs group transition-colors relative"
+                  data-connection-id={isFieldSelected ? `field-${fieldId}` : undefined}
+                  onMouseEnter={() => setHoveredFieldRows(prev => ({ ...prev, [fieldId]: true }))}
+                  onMouseLeave={() => setHoveredFieldRows(prev => ({ ...prev, [fieldId]: false }))}
+                  style={{ position: 'relative', paddingRight: isFieldSelected ? '28px' : '0' }}
+                >
+                  {/* Field chip */}
+                  <div 
+                    onClick={handleChipClick}
+                    onMouseEnter={(e) => {
+                      setHoveredFieldChips(prev => ({ ...prev, [fieldId]: true }));
+                      e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                    }}
+                    onMouseLeave={(e) => {
+                      setHoveredFieldChips(prev => ({ ...prev, [fieldId]: false }));
+                      e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                    }}
+                    className="cursor-pointer"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderRadius: '10px',
+                      minHeight: '32px',
+                      paddingLeft: '6px',
+                      paddingRight: '12px',
+                      paddingTop: '6px',
+                      paddingBottom: '6px',
+                      display: 'inline-flex',
+                      alignItems: 'flex-start',
+                      gap: '4px',
+                      transition: 'background-color 100ms ease',
+                    }}
+                  >
+                    {/* Icon - chevron for selected, circle+plus for unselected */}
+                    <div 
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        color: 'var(--text-icon)',
+                        marginTop: '2px',
+                      }}
+                    >
+                      {isFieldSelected ? (
+                        <svg
+                          width="12" 
+                          height="12" 
+                          viewBox="0 0 12 12" 
+                          fill="none"
+                          style={{
+                            transform: isFieldExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.15s ease',
+                          }}
+                        >
+                          <path
+                            d="M4.5 2.5L8 6L4.5 9.5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <circle cx="6" cy="6" r="5.25" stroke="currentColor" strokeWidth="1.5"/>
+                          <path d="M6 3.5V8.5M3.5 6H8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    
+                    {/* Field label with source */}
+                    <div style={{
+                      color: 'var(--text-primary)',
+                      fontWeight: 400,
+                      fontSize: '14px',
+                      lineHeight: '20px',
+                    }}>
+                      {pf.displayLabel}
+                    </div>
+                    
+                    {/* Filter count badge - hidden for now, may bring back later */}
+                    {false && isFieldSelected && fieldFilters.length > 0 && (
+                      <span
+                        style={{
+                          backgroundColor: 'white',
+                          color: 'var(--data-chip-field-bg)',
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          height: '16px',
+                          minWidth: '16px',
+                          borderRadius: '16px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0 4px',
+                          marginLeft: '4px'
+                        }}
+                      >
+                        {fieldFilters.length}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Remove button on hover */}
+                  {isFieldSelected && hoveredFieldRows[fieldId] && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dispatch(actions.toggleField(pf.object, pf.field));
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '-8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--bg-surface)',
+                        border: '1px solid var(--border-default)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: 'var(--text-muted)',
+                        padding: 0,
+                      }}
+                      title="Remove field"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                
+                {/* Filter section - shown when field is expanded */}
+                {isFieldSelected && isFieldExpanded && schemaField && (
+                  <div style={{ marginLeft: '36px', marginTop: '12px' }}>
+                    {/* Filter chip row */}
+                    <div className="flex items-center gap-2">
+                      <div 
+                        onClick={() => onFilterExpandChange(filterId, !isFilterExpanded)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                        }}
+                        className="cursor-pointer"
+                        style={{
+                          backgroundColor: 'var(--bg-surface)',
+                          borderRadius: '10px',
+                          height: '32px',
+                          paddingLeft: '6px',
+                          paddingRight: '12px',
+                          paddingTop: '6px',
+                          paddingBottom: '6px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          transition: 'background-color 100ms ease',
+                          width: 'fit-content'
+                        }}
+                        data-connection-id={activeFilter ? `filter-${fieldId}` : undefined}
+                      >
+                        {/* Filter icon */}
+                        <div style={{
+                          width: '16px',
+                          height: '16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          color: 'var(--text-icon)'
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M1.5 2.5H10.5M3 6H9M4.5 9.5H7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                        
+                        <span style={{
+                          color: 'var(--text-primary)',
+                          fontWeight: 400,
+                          fontSize: '14px',
+                          lineHeight: '20px'
+                        }}>
+                          {getFilterDescription()}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Expanded filter UI */}
+                    {isFilterExpanded && schemaField && (
+                      <div style={{ marginTop: '12px' }}>
+                        <FieldFilter
+                          field={schemaField}
+                          objectName={pf.object}
+                          currentFilter={activeFilter || undefined}
+                          onFilterChange={handleFilterChange}
+                          onCancel={() => onFilterExpandChange(filterId, false)}
+                          distinctValues={distinctValuesCache[fieldId]}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          
+          {/* "Show X more fields" button */}
+          {shouldShowMoreButton && (
+            <div
+              onClick={() => onShowAllFieldsChange(true)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+              style={{
+                backgroundColor: 'transparent',
+                borderRadius: '10px',
+                height: '32px',
+                paddingLeft: '8px',
+                paddingRight: '12px',
+                paddingTop: '6px',
+                paddingBottom: '6px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                width: 'fit-content',
+                transition: 'background-color 0.15s ease'
+              }}
+            >
+              <div style={{
+                width: '16px',
+                height: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                color: 'var(--text-icon)'
+              }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="7.5" stroke="currentColor" strokeWidth="1.5"/>
+                  <path d="M8 4v8M4 8h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <span style={{
+                color: 'var(--text-secondary)',
+                fontSize: '14px',
+                fontWeight: 300,
+                lineHeight: '20px'
+              }}>
+                Show {hiddenFieldCount} more field{hiddenFieldCount !== 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+});
+
+PackageCard.displayName = 'PackageCard';
 
 export function DataTab() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -815,10 +1424,10 @@ export function DataTab() {
   
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Section expansion state (all expanded by default)
+  // Section expansion state
   const [isDisplayExpanded, setIsDisplayExpanded] = useState(true);
   const [isDataExpanded, setIsDataExpanded] = useState(true);
-  const [isMetricExpanded, setIsMetricExpanded] = useState(true);
+  const [isMetricExpanded, setIsMetricExpanded] = useState(false); // Collapsed by default
 
   // ===== Metric Tab State =====
   const { store: warehouse, version } = useWarehouseStore();
@@ -1204,8 +1813,16 @@ export function DataTab() {
     }
   }, [state.report, state.selectedFields.length]);
 
-  // Filter objects based on search
+  // Get the active package (if any)
+  const activePackageConfig = state.activePackage ? getPackage(state.activePackage) : null;
+
+  // Filter objects based on search AND active package
   const filteredObjects = schema.objects.filter((obj) => {
+    // If there's an active package, only show objects in that package
+    if (activePackageConfig && !activePackageConfig.tables.includes(obj.name)) {
+      return false;
+    }
+    
     const query = searchQuery.toLowerCase();
     return (
       obj.name.toLowerCase().includes(query) ||
@@ -1444,6 +2061,52 @@ export function DataTab() {
 
   return (
     <div className="flex flex-col" style={{ padding: '16px' }}>
+      {/* Package Selection - shown when no package is selected */}
+      {!state.activePackage && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+              Choose a dataset
+            </h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+              Select a dataset to start exploring your data
+            </p>
+          </div>
+          {getAllPackages().map((pkg) => (
+            <button
+              key={pkg.id}
+              onClick={() => dispatch(actions.setPackage(pkg.id))}
+              className="text-left cursor-pointer"
+              style={{
+                padding: '12px',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '10px',
+                backgroundColor: 'var(--bg-primary)',
+                transition: 'border-color 100ms ease, background-color 100ms ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-default)';
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+              }}
+            >
+              <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>
+                {pkg.label}
+              </div>
+              <div style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                {pkg.description}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Main config panel content - only shown when a package is selected */}
+      {state.activePackage && (
+        <>
       {/* Chart Configuration Section */}
       <div style={{ borderBottom: '1px solid var(--border-subtle)', marginLeft: '-16px', marginRight: '-16px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '16px' }}>
         {/* Display Section Header */}
@@ -1787,15 +2450,16 @@ export function DataTab() {
       {/* Data Section */}
       <div className="flex flex-col pt-4">
         {/* Data Header with Search Icon */}
-        <div className="flex items-center justify-between" style={{ marginBottom: isDataExpanded ? '12px' : '0px' }}>
-          <button
-            onClick={() => setIsDataExpanded(!isDataExpanded)}
-            className="flex items-center text-left cursor-pointer"
-            style={{ background: 'none', border: 'none', padding: 0, gap: '4px' }}
-          >
-            <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
-              Data
-            </span>
+        <div style={{ marginBottom: isDataExpanded ? '12px' : '0px' }}>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setIsDataExpanded(!isDataExpanded)}
+              className="flex items-center text-left cursor-pointer"
+              style={{ background: 'none', border: 'none', padding: 0, gap: '4px' }}
+            >
+              <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
+                Data
+              </span>
             <svg
               width="12"
               height="12"
@@ -1861,6 +2525,21 @@ export function DataTab() {
               </svg>
             </button>
           )}
+          </div>
+          {/* Package description - only show when collapsed (since it appears with the package when expanded) */}
+          {!isDataExpanded && (
+            <p style={{ 
+              color: 'var(--text-muted)', 
+              fontSize: '13px', 
+              marginTop: '4px',
+              lineHeight: '1.4',
+            }}>
+              {state.activePackage 
+                ? getPackage(state.activePackage)?.description || ''
+                : 'Choose a dataset to start exploring'
+              }
+            </p>
+          )}
         </div>
 
         <div
@@ -1913,29 +2592,60 @@ export function DataTab() {
       )}
 
 
-      {/* Results count */}
-      {searchQuery && (
-        <div id="search-results-count" className="text-xs text-gray-500 dark:text-gray-400 mb-2 ml-3 pr-[11px]" role="status" aria-live="polite">
-          {filteredObjects.length} results
+      {/* Package view - when there's an active package and no search */}
+      {state.activePackage && !searchQuery ? (
+        <div ref={containerRef} className="relative" role="list" aria-label="Package fields">
+          {/* Connection lines overlay */}
+          <ConnectionLines containerRef={containerRef} expandedTables={expandedTables} expandedFields={expandedFields} expandedFilters={expandedFilters} showAllFieldsMap={showAllFieldsMap} searchQuery={searchQuery} packageId={state.activePackage} />
+          
+          <PackageCard
+            packageId={state.activePackage}
+            searchQuery={searchQuery}
+            expandedFields={expandedFields}
+            onFieldExpandChange={(fieldId, isExpanded) => {
+              setExpandedFields(prev => ({ ...prev, [fieldId]: isExpanded }));
+            }}
+            expandedFilters={expandedFilters}
+            onFilterExpandChange={(filterId, isExpanded) => {
+              setExpandedFilters(prev => ({ ...prev, [filterId]: isExpanded }));
+            }}
+            showAllFields={showAllFieldsMap['__package__'] ?? false}
+            onShowAllFieldsChange={(showAll) => {
+              setShowAllFieldsMap(prev => ({ ...prev, '__package__': showAll }));
+            }}
+            onOpenDefinition={(tableName, fieldName) => {
+              setSelectedDefinition({
+                type: fieldName ? 'field' : 'table',
+                tableName,
+                fieldName
+              });
+              setIsDefinitionModalOpen(true);
+            }}
+            ref={(el) => { cardRefs.current['__package__'] = el; }}
+          />
         </div>
-      )}
-
-      {/* Object list with connection lines overlay */}
-      <div ref={containerRef} className="relative" role="list" aria-label="Data objects">
-        {/* Connection lines overlay */}
-        <ConnectionLines containerRef={containerRef} expandedTables={expandedTables} expandedFields={expandedFields} expandedFilters={expandedFilters} showAllFieldsMap={showAllFieldsMap} searchQuery={searchQuery} />
-        
-        {sortedObjects.length > 0 ? (
-          <>
-            {displayedObjects.map((obj) => (
-            <ObjectCard 
-              key={obj.name} 
-              object={obj}
-              searchQuery={searchQuery}
-                expandedTables={expandedTables}
-                onExpandChange={(objName, isExpanded) => {
-                  setExpandedTables(prev => ({ ...prev, [objName]: isExpanded }));
-                }}
+      ) : searchQuery ? (
+        /* Search view - show package matches + schema matches */
+        <div ref={containerRef} className="relative" role="list" aria-label="Search results">
+          {/* Connection lines overlay - use packageId for package section connections */}
+          <ConnectionLines containerRef={containerRef} expandedTables={expandedTables} expandedFields={expandedFields} expandedFilters={expandedFilters} showAllFieldsMap={showAllFieldsMap} searchQuery={searchQuery} packageId={state.activePackage} />
+          
+          {/* Package section - if there's an active package */}
+          {state.activePackage && (
+            <>
+              <div style={{ 
+                fontSize: '12px', 
+                fontWeight: 500, 
+                color: 'var(--text-muted)', 
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                In {getPackage(state.activePackage)?.label}
+              </div>
+              <PackageCard
+                packageId={state.activePackage}
+                searchQuery={searchQuery}
                 expandedFields={expandedFields}
                 onFieldExpandChange={(fieldId, isExpanded) => {
                   setExpandedFields(prev => ({ ...prev, [fieldId]: isExpanded }));
@@ -1944,10 +2654,8 @@ export function DataTab() {
                 onFilterExpandChange={(filterId, isExpanded) => {
                   setExpandedFilters(prev => ({ ...prev, [filterId]: isExpanded }));
                 }}
-                showAllFieldsMap={showAllFieldsMap}
-                onShowAllFieldsChange={(objName, showAll) => {
-                  setShowAllFieldsMap(prev => ({ ...prev, [objName]: showAll }));
-                }}
+                showAllFields={true}
+                onShowAllFieldsChange={() => {}}
                 onOpenDefinition={(tableName, fieldName) => {
                   setSelectedDefinition({
                     type: fieldName ? 'field' : 'table',
@@ -1956,80 +2664,116 @@ export function DataTab() {
                   });
                   setIsDefinitionModalOpen(true);
                 }}
-              ref={(el) => { cardRefs.current[obj.name] = el; }}
-            />
-            ))}
-            
-            {/* "Explore more fields" chip - shown when there are tables without enabled fields and they're hidden */}
-            {!showTablesWithNoFields && !searchQuery && objectsWithoutEnabledFields.length > 0 && (
-              <div
-                onClick={() => setShowTablesWithNoFields(true)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-                className="cursor-pointer"
-                style={{
-                  backgroundColor: 'transparent',
-                  borderRadius: '10px',
-                  height: '32px',
-                  paddingLeft: '8px',
-                  paddingRight: '12px',
-                  paddingTop: '6px',
-                  paddingBottom: '6px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'background-color 0.15s ease'
-                }}
-              >
-                {/* Icon */}
-                <div 
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    color: 'var(--text-icon)'
-                  }}
-                >
-                  <svg
-                    className="transition-transform -rotate-90"
-                    width="16" 
-                    height="16" 
-                    viewBox="0 0 16 16" 
-                    fill="none" 
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path fillRule="evenodd" clipRule="evenodd" d="M3.71967 6.21967C4.01256 5.92678 4.48744 5.92678 4.78033 6.21967L8 9.43934L11.2197 6.21967C11.5126 5.92678 11.9874 5.92678 12.2803 6.21967C12.5732 6.51256 12.5732 6.98744 12.2803 7.28033L8.53033 11.0303C8.23744 11.3232 7.76256 11.3232 7.46967 11.0303L3.71967 7.28033C3.42678 6.98744 3.42678 6.51256 3.71967 6.21967Z" fill="currentColor"/>
-                    <path fillRule="evenodd" clipRule="evenodd" d="M8 14.5C11.5903 14.5 14.5 11.5903 14.5 7.99999C14.5 4.40834 11.6 1.5 8 1.5C4.4097 1.5 1.5 4.40969 1.5 7.99999C1.5 11.5903 4.4097 14.5 8 14.5ZM8 16C12.4187 16 16 12.4187 16 7.99999C16 3.58126 12.4297 0 8 0C3.58127 0 0 3.58126 0 7.99999C0 12.4187 3.58127 16 8 16Z" fill="currentColor"/>
-                  </svg>
-                </div>
-                
-                {/* Text */}
-                <span 
-                  style={{ 
-                    color: 'var(--text-secondary)',
-                    fontSize: '14px',
-                    fontWeight: 300,
-                    lineHeight: '20px'
-                  }}
-                >
-                  Explore more fields
-                </span>
+                ref={(el) => { cardRefs.current['__package__'] = el; }}
+              />
+              
+              {/* All schema section header */}
+              <div style={{ 
+                fontSize: '12px', 
+                fontWeight: 500, 
+                color: 'var(--text-muted)', 
+                marginTop: '24px',
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                All Schema
               </div>
-            )}
-          </>
-        ) : (
-          <div className="text-sm text-gray-400 dark:text-gray-500 text-center py-8" role="status">
-            No objects found matching "{searchQuery}"
-          </div>
-        )}
-      </div>
+            </>
+          )}
+          
+          {/* Schema results */}
+          {sortedObjects.length > 0 ? (
+            <>
+              {displayedObjects.map((obj) => (
+                <ObjectCard 
+                  key={obj.name} 
+                  object={obj}
+                  searchQuery={searchQuery}
+                  activePackage={null}
+                  expandedTables={expandedTables}
+                  onExpandChange={(objName, isExpanded) => {
+                    setExpandedTables(prev => ({ ...prev, [objName]: isExpanded }));
+                  }}
+                  expandedFields={expandedFields}
+                  onFieldExpandChange={(fieldId, isExpanded) => {
+                    setExpandedFields(prev => ({ ...prev, [fieldId]: isExpanded }));
+                  }}
+                  expandedFilters={expandedFilters}
+                  onFilterExpandChange={(filterId, isExpanded) => {
+                    setExpandedFilters(prev => ({ ...prev, [filterId]: isExpanded }));
+                  }}
+                  showAllFieldsMap={showAllFieldsMap}
+                  onShowAllFieldsChange={(objName, showAll) => {
+                    setShowAllFieldsMap(prev => ({ ...prev, [objName]: showAll }));
+                  }}
+                  onOpenDefinition={(tableName, fieldName) => {
+                    setSelectedDefinition({
+                      type: fieldName ? 'field' : 'table',
+                      tableName,
+                      fieldName
+                    });
+                    setIsDefinitionModalOpen(true);
+                  }}
+                  ref={(el) => { cardRefs.current[obj.name] = el; }}
+                />
+              ))}
+            </>
+          ) : (
+            <div className="text-sm text-gray-400 dark:text-gray-500 text-center py-8" role="status">
+              No objects found matching "{searchQuery}"
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Default view - no package, no search - show all tables */
+        <div ref={containerRef} className="relative" role="list" aria-label="Data objects">
+          {/* Connection lines overlay */}
+          <ConnectionLines containerRef={containerRef} expandedTables={expandedTables} expandedFields={expandedFields} expandedFilters={expandedFilters} showAllFieldsMap={showAllFieldsMap} searchQuery={searchQuery} />
+          
+          {sortedObjects.length > 0 ? (
+            <>
+              {displayedObjects.map((obj) => (
+                <ObjectCard 
+                  key={obj.name} 
+                  object={obj}
+                  searchQuery={searchQuery}
+                  activePackage={null}
+                  expandedTables={expandedTables}
+                  onExpandChange={(objName, isExpanded) => {
+                    setExpandedTables(prev => ({ ...prev, [objName]: isExpanded }));
+                  }}
+                  expandedFields={expandedFields}
+                  onFieldExpandChange={(fieldId, isExpanded) => {
+                    setExpandedFields(prev => ({ ...prev, [fieldId]: isExpanded }));
+                  }}
+                  expandedFilters={expandedFilters}
+                  onFilterExpandChange={(filterId, isExpanded) => {
+                    setExpandedFilters(prev => ({ ...prev, [filterId]: isExpanded }));
+                  }}
+                  showAllFieldsMap={showAllFieldsMap}
+                  onShowAllFieldsChange={(objName, showAll) => {
+                    setShowAllFieldsMap(prev => ({ ...prev, [objName]: showAll }));
+                  }}
+                  onOpenDefinition={(tableName, fieldName) => {
+                    setSelectedDefinition({
+                      type: fieldName ? 'field' : 'table',
+                      tableName,
+                      fieldName
+                    });
+                    setIsDefinitionModalOpen(true);
+                  }}
+                  ref={(el) => { cardRefs.current[obj.name] = el; }}
+                />
+              ))}
+            </>
+          ) : (
+            <div className="text-sm text-gray-400 dark:text-gray-500 text-center py-8" role="status">
+              No data objects available
+            </div>
+          )}
+        </div>
+      )}
       
       {/* Schema Definition Modal */}
       <SchemaDefinitionModal
@@ -2185,6 +2929,8 @@ export function DataTab() {
           )}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }
