@@ -94,8 +94,6 @@ export const PRESET_CONFIGS: Record<PresetKey, PresetConfig> = {
     fields: [
       { object: 'subscription', field: 'id' },
       { object: 'subscription', field: 'status' },
-      { object: 'subscription', field: 'current_period_start' },
-      { object: 'subscription', field: 'current_period_end' },
       { object: 'customer', field: 'id' },
       { object: 'customer', field: 'email' },
       { object: 'subscription_item', field: 'id' },
