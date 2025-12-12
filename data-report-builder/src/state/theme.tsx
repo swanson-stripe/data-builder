@@ -78,14 +78,6 @@ export function ThemeProvider({
         }
         return;
       }
-
-      // Back-compat: old key was `theme`
-      const legacyTheme = localStorage.getItem('theme') as Theme | null;
-      if (legacyTheme === 'light' || legacyTheme === 'dark') {
-        setModeState(legacyTheme);
-        setThemeState(legacyTheme);
-        return;
-      }
     }
 
     // Default: Adaptive, light UI by default
