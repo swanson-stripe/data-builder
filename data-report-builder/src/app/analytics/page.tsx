@@ -11,7 +11,7 @@ import { AnalyticsPageContent, ANALYTICS_ENTITIES } from '@/components/Analytics
  */
 export default function AnalyticsPage() {
   return (
-    <ThemeProvider>
+    <ThemeProvider forceTheme="light" persist={false}>
       <AppProvider>
         <WarehouseProvider initial={ANALYTICS_ENTITIES}>
           <AnalyticsPageContent />

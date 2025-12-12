@@ -11,7 +11,7 @@ import { HomePageContent, HOME_ENTITIES } from '@/components/HomePageContent';
  */
 export default function HomePage() {
   return (
-    <ThemeProvider>
+    <ThemeProvider forceTheme="light" persist={false}>
       <AppProvider>
         <WarehouseProvider initial={HOME_ENTITIES}>
           <HomePageContent />

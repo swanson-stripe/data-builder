@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp, AppProvider, actions } from '@/state/app';
-import { ThemeProvider, useTheme, Theme } from '@/state/theme';
+import { ThemeProvider, useTheme } from '@/state/theme';
 import { WarehouseProvider, useWarehouseStore } from '@/lib/useWarehouse';
 import { applyPreset, PresetKey } from '@/lib/presets';
 import { DataTab } from '@/components/DataTab';
@@ -26,7 +26,7 @@ import { TEMPLATE_TAXONOMY } from '@/data/templateTaxonomy';
 function NewPageContent() {
   const { state, dispatch } = useApp();
   const { store: warehouse } = useWarehouseStore();
-  const { theme, setTheme } = useTheme();
+  const { mode, setTheme } = useTheme();
   const router = useRouter();
   
   const [sidebarWidth, setSidebarWidth] = useState(360);
@@ -36,7 +36,6 @@ function NewPageContent() {
   const [showSavePopover, setShowSavePopover] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [activePanel, setActivePanel] = useState<'config' | 'sql'>('config');
-  const [previousTheme, setPreviousTheme] = useState<Theme | null>(null);
   
   const sidebarRef = useRef<HTMLElement>(null);
   const saveButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -96,24 +95,14 @@ function NewPageContent() {
 
   // Handle theme and width changes when switching between config and SQL panels
   useEffect(() => {
-    if (activePanel === 'sql') {
-      // Save current theme and switch to dark
-      if (theme !== 'dark') {
-        setPreviousTheme(theme);
-        setTheme('dark');
-      }
-      // Widen sidebar to 600px
-      setSidebarWidth(600);
-    } else {
-      // Restore previous theme when switching back to config
-      if (previousTheme && previousTheme !== 'dark') {
-        setTheme(previousTheme);
-        setPreviousTheme(null);
-      }
-      // Restore default width
-      setSidebarWidth(360);
+    // Widen sidebar when SQL is open
+    setSidebarWidth(activePanel === 'sql' ? 600 : 360);
+
+    // Only auto-switch theme in Adaptive mode
+    if (mode === 'adaptive') {
+      setTheme(activePanel === 'sql' ? 'dark' : 'light');
     }
-  }, [activePanel]);
+  }, [activePanel, mode, setTheme]);
 
   const handleSave = () => {
     setShowToast(true);

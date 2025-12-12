@@ -9,11 +9,15 @@ import React, {
 } from 'react';
 
 export type Theme = 'light' | 'dark';
+export type ThemeMode = 'adaptive' | 'light' | 'dark';
 
 type ThemeContextValue = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   toggle: () => void;
+  mode: ThemeMode;
+  setMode: (mode: ThemeMode) => void;
+  cycleMode: () => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
@@ -28,26 +32,65 @@ export function useTheme() {
 
 type ThemeProviderProps = {
   children: ReactNode;
+  /** Force a specific theme (used for pages that must remain light). */
+  forceTheme?: Theme;
+  /**
+   * Whether to persist user choice in localStorage.
+   * For light-only pages, we disable persistence to avoid overwriting editor preference.
+   */
+  persist?: boolean;
+  /** localStorage key for persisted theme mode */
+  storageKey?: string;
 };
 
-export function ThemeProvider({ children }: ThemeProviderProps) {
+export function ThemeProvider({
+  children,
+  forceTheme,
+  persist = true,
+  storageKey = 'editorThemeMode',
+}: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>('light');
+  const [mode, setModeState] = useState<ThemeMode>('adaptive');
   const [mounted, setMounted] = useState(false);
 
   // Initialize theme on mount
   useEffect(() => {
     setMounted(true);
 
-    // Check localStorage first
-    const storedTheme = localStorage.getItem('theme') as Theme | null;
-    if (storedTheme === 'light' || storedTheme === 'dark') {
-      setThemeState(storedTheme);
+    // Forced theme (e.g. home/analytics/detail must be light)
+    if (forceTheme) {
+      setThemeState(forceTheme);
+      setModeState(forceTheme);
       return;
     }
 
-    // Fall back to system preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setThemeState(prefersDark ? 'dark' : 'light');
+    if (persist) {
+      // Prefer mode key
+      const storedMode = localStorage.getItem(storageKey) as ThemeMode | null;
+      if (storedMode === 'adaptive' || storedMode === 'light' || storedMode === 'dark') {
+        setModeState(storedMode);
+        // In fixed modes, theme is deterministic
+        if (storedMode === 'light' || storedMode === 'dark') {
+          setThemeState(storedMode);
+        } else {
+          // Adaptive defaults to light; page can temporarily override (e.g. SQL panel)
+          setThemeState('light');
+        }
+        return;
+      }
+
+      // Back-compat: old key was `theme`
+      const legacyTheme = localStorage.getItem('theme') as Theme | null;
+      if (legacyTheme === 'light' || legacyTheme === 'dark') {
+        setModeState(legacyTheme);
+        setThemeState(legacyTheme);
+        return;
+      }
+    }
+
+    // Default: Adaptive, light UI by default
+    setModeState('adaptive');
+    setThemeState('light');
   }, []);
 
   // Apply theme class to document root
@@ -59,21 +102,67 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       root.classList.remove('dark');
     }
 
-    if (mounted) {
-      localStorage.setItem('theme', theme);
+    if (mounted && persist && !forceTheme) {
+      // Persist fixed mode via storageKey. For adaptive, we only persist the mode,
+      // not transient theme flips (e.g. SQL panel).
+      localStorage.setItem(storageKey, mode);
+      if (mode === 'light' || mode === 'dark') {
+        localStorage.setItem('theme', mode);
+      }
     }
-  }, [theme, mounted]);
+  }, [theme, mounted, persist, forceTheme, mode, storageKey]);
 
   const setTheme = (newTheme: Theme) => {
+    if (forceTheme) return;
+    // In adaptive mode, pages may temporarily override theme (e.g. SQL editor).
+    // In fixed modes, changing theme implies switching the mode.
+    if (mode === 'adaptive') {
+      setThemeState(newTheme);
+      return;
+    }
+    setModeState(newTheme);
     setThemeState(newTheme);
   };
 
   const toggle = () => {
-    setThemeState((prev) => (prev === 'light' ? 'dark' : 'light'));
+    if (forceTheme) return;
+    if (mode === 'adaptive') {
+      setThemeState((prev) => (prev === 'light' ? 'dark' : 'light'));
+      return;
+    }
+    setThemeState((prev) => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      setModeState(next);
+      return next;
+    });
+  };
+
+  const setMode = (newMode: ThemeMode) => {
+    if (forceTheme) return;
+    setModeState(newMode);
+    if (newMode === 'light' || newMode === 'dark') {
+      setThemeState(newMode);
+    } else {
+      // Adaptive defaults to light; page can temporarily override
+      setThemeState('light');
+    }
+  };
+
+  const cycleMode = () => {
+    if (forceTheme) return;
+    setModeState((prev) => {
+      const next: ThemeMode = prev === 'adaptive' ? 'light' : prev === 'light' ? 'dark' : 'adaptive';
+      if (next === 'light' || next === 'dark') {
+        setThemeState(next);
+      } else {
+        setThemeState('light');
+      }
+      return next;
+    });
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggle }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggle, mode, setMode, cycleMode }}>
       {children}
     </ThemeContext.Provider>
   );

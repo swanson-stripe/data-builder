@@ -4,7 +4,6 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useApp, actions } from '@/state/app';
 import { useWarehouseStore } from '@/lib/useWarehouse';
-import { DevToolsMenu } from '@/components/DevToolsMenu';
 import { ReportWidget } from '@/components/ReportWidget';
 import { PRESET_CONFIGS, PresetKey } from '@/lib/presets';
 import { currency } from '@/lib/format';
@@ -677,8 +676,6 @@ export function HomePageContent() {
         </main>
       </div>
 
-      {/* Floating Dev Tools */}
-      <DevToolsMenu loadingProgress={loadingProgress} showNewButton={true} />
     </div>
   );
 }

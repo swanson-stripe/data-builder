@@ -9,7 +9,6 @@ import { WarehouseProvider, useWarehouseStore } from '@/lib/useWarehouse';
 import { fromSlug, ReportInfo } from '@/lib/slugs';
 import { applyPreset, PRESET_CONFIGS, PresetKey } from '@/lib/presets';
 import { ReportViewer, Breadcrumb } from '@/components/ReportViewer';
-import { DevToolsMenu } from '@/components/DevToolsMenu';
 import { useReportHeuristics } from '@/hooks/useReportHeuristics';
 // getGroupValues import removed - users now manually select group values
 import { convertReportToPreset } from '@/lib/reportToPreset';
@@ -729,8 +728,6 @@ function DetailPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
         </main>
       </div>
 
-      {/* Floating Dev Tools */}
-      <DevToolsMenu loadingProgress={loadingProgress} showNewButton={true} />
     </div>
   );
 }
@@ -760,7 +757,7 @@ function DetailPageWrapper() {
 
 export default function DetailPage() {
   return (
-    <ThemeProvider>
+    <ThemeProvider forceTheme="light" persist={false}>
       <AppProvider>
         <DetailPageWrapper />
       </AppProvider>

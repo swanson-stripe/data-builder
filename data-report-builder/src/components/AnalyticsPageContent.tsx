@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useApp, actions } from '@/state/app';
 import { useWarehouseStore } from '@/lib/useWarehouse';
-import { DevToolsMenu } from '@/components/DevToolsMenu';
 import { ReportWidget } from '@/components/ReportWidget';
 import { PRESET_CONFIGS, PresetKey } from '@/lib/presets';
 import { computeFormula } from '@/lib/formulaMetrics';
@@ -2549,9 +2548,6 @@ export function AnalyticsPageContent() {
           </section>
         </main>
       </div>
-
-      {/* Floating Dev Tools */}
-      <DevToolsMenu loadingProgress={loadingProgress} showNewButton={true} />
 
       {/* Create Group Modal */}
       <CreateGroupModal
