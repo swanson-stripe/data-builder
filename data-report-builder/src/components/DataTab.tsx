@@ -2108,7 +2108,17 @@ export function DataTab() {
       {state.activePackage && (
         <>
       {/* Chart Configuration Section */}
-      <div style={{ borderBottom: '1px solid var(--border-subtle)', marginLeft: '-16px', marginRight: '-16px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '16px' }}>
+      <div
+        data-tour="config-display-section"
+        style={{
+          borderBottom: '1px solid var(--border-subtle)',
+          marginLeft: '-16px',
+          marginRight: '-16px',
+          paddingLeft: '16px',
+          paddingRight: '16px',
+          paddingBottom: '16px',
+        }}
+      >
         {/* Display Section Header */}
         <div style={{ marginBottom: isDisplayExpanded ? '12px' : '0px' }}>
           <button
@@ -2448,7 +2458,7 @@ export function DataTab() {
       </div>
 
       {/* Data Section */}
-      <div className="flex flex-col pt-4">
+      <div data-tour="config-data-section" className="flex flex-col pt-4">
         {/* Data Header with Search Icon */}
         <div style={{ marginBottom: isDataExpanded ? '12px' : '0px' }}>
           <div className="flex items-center justify-between">

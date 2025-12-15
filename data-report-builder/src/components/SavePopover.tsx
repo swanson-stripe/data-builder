@@ -214,6 +214,7 @@ export function SavePopover({ isOpen, onClose, buttonRef, onSave }: SavePopoverP
 
   return (
     <div
+      data-tour="save-popover"
       ref={popoverRef}
       className="absolute z-50 animate-fadeIn"
       style={{

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, notFound } from 'next/navigation';
 import { useApp, AppProvider, actions } from '@/state/app';
 import { ThemeProvider, useTheme } from '@/state/theme';
@@ -15,6 +15,7 @@ import { DevToolsMenu } from '@/components/DevToolsMenu';
 import { SavePopover } from '@/components/SavePopover';
 import { Toast } from '@/components/Toast';
 import TemplateReopenButton from '@/components/TemplateReopenButton';
+import { GuidedTourOverlay, type TourStep } from '@/components/GuidedTourOverlay';
 import { useReportHeuristics } from '@/hooks/useReportHeuristics';
 // getGroupValues import removed - users now manually select group values
 
@@ -36,9 +37,87 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
   const [showToast, setShowToast] = useState(false);
   const [hasAppliedPreset, setHasAppliedPreset] = useState(false);
   const [activePanel, setActivePanel] = useState<'config' | 'sql'>('config');
+  const [isTourOpen, setIsTourOpen] = useState(false);
+  const [tourStepIndex, setTourStepIndex] = useState(0);
   
   const sidebarRef = useRef<HTMLElement>(null);
   const saveButtonRef = useRef<HTMLButtonElement | null>(null);
+  const reportPaneRef = useRef<HTMLDivElement | null>(null);
+
+  const tourSteps: TourStep[] = useMemo(
+    () => [
+      {
+        id: 'report',
+        title: 'Report',
+        description:
+          'This is what everyone will see when viewing the report. It will always have a data list, and can optionally include a chart and metric.',
+      },
+      {
+        id: 'configure',
+        title: 'Configure',
+        description: 'Build or edit your reports using the visual or SQL editor.',
+      },
+      {
+        id: 'display',
+        title: 'Display',
+        description:
+          'Modify your visualization, or just use a table to see the summary of data. Include comparisons to past periods or break down data by products, payment methods, and more.',
+      },
+      {
+        id: 'data',
+        title: 'Data',
+        description:
+          'Add, move, or remove columns of data to your report. You can also add filters here to apply to columns, like filtering payments by \"succeeded\".',
+      },
+      {
+        id: 'save',
+        title: 'Save and share',
+        description:
+          'When you are ready, you can duplicate or save a report, set its visibility, and put into your custom groups.',
+      },
+    ],
+    []
+  );
+
+  useEffect(() => {
+    if (!isTourOpen) return;
+    if (tourStepIndex === 4) setShowSavePopover(true);
+  }, [isTourOpen, tourStepIndex]);
+
+  const getTourRect = useMemo(() => {
+    return (step: TourStep): DOMRect | null => {
+      if (step.id === 'report') {
+        return reportPaneRef.current?.getBoundingClientRect() ?? null;
+      }
+      if (step.id === 'configure') {
+        return sidebarRef.current?.getBoundingClientRect() ?? null;
+      }
+      if (step.id === 'display') {
+        const el = document.querySelector('[data-tour=\"config-display-section\"]') as HTMLElement | null;
+        return el?.getBoundingClientRect() ?? null;
+      }
+      if (step.id === 'data') {
+        const el = document.querySelector('[data-tour=\"config-data-section\"]') as HTMLElement | null;
+        return el?.getBoundingClientRect() ?? null;
+      }
+      if (step.id === 'save') {
+        const btn = saveButtonRef.current?.getBoundingClientRect() ?? null;
+        const pop =
+          (document.querySelector('[data-tour=\"save-popover\"]') as HTMLElement | null)?.getBoundingClientRect() ?? null;
+
+        if (btn && pop) {
+          const left = Math.min(btn.left, pop.left);
+          const top = Math.min(btn.top, pop.top);
+          const right = Math.max(btn.right, pop.right);
+          const bottom = Math.max(btn.bottom, pop.bottom);
+          return new DOMRect(left, top, right - left, bottom - top);
+        }
+
+        return btn ?? pop ?? null;
+      }
+      return null;
+    };
+  }, []);
 
   // Enable automatic report switching based on object selection
   useReportHeuristics();
@@ -189,6 +268,7 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
         <div className="relative">
           <button
             ref={saveButtonRef}
+            data-tour="save-button"
             onClick={() => setShowSavePopover(!showSavePopover)}
             className="flex items-center gap-2 text-sm font-semibold px-2 py-1 border transition-colors"
             style={{ 
@@ -225,6 +305,7 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
       <main className="flex flex-1 overflow-hidden" role="main">
         <aside 
           ref={sidebarRef}
+          data-tour="config-panel"
           className="flex flex-col relative"
           style={{ 
             width: `${sidebarWidth}px`, 
@@ -349,11 +430,37 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
           />
         </aside>
 
-        <ReportViewer showDataList={true} padding="32px" paddingLeft="20px" isEditor={true} />
+        <div ref={reportPaneRef} data-tour="report-pane" className="flex-1 min-w-0 overflow-hidden">
+          <ReportViewer showDataList={true} padding="32px" paddingLeft="20px" isEditor={true} />
+        </div>
       </main>
 
       {/* Floating Dev Tools */}
-      <DevToolsMenu loadingProgress={loadingProgress} showNewButton={true} />
+      <DevToolsMenu
+        loadingProgress={loadingProgress}
+        showNewButton={true}
+        onStartGuidedTour={() => {
+          setIsTourOpen(true);
+          setTourStepIndex(0);
+        }}
+      />
+
+      <GuidedTourOverlay
+        isOpen={isTourOpen}
+        stepIndex={tourStepIndex}
+        steps={tourSteps}
+        getHighlightRect={getTourRect}
+        onClose={() => setIsTourOpen(false)}
+        onBack={() => setTourStepIndex((s) => Math.max(0, s - 1))}
+        onNext={() => {
+          if (tourStepIndex >= tourSteps.length - 1) {
+            setIsTourOpen(false);
+            setShowSavePopover(false);
+            return;
+          }
+          setTourStepIndex((s) => Math.min(tourSteps.length - 1, s + 1));
+        }}
+      />
     </div>
   );
 }

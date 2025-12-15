@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/state/theme';
+import { Toast } from './Toast';
 
 type Props = {
   /** Progress value 0-100, or 0 when idle */
@@ -10,12 +11,14 @@ type Props = {
   showNewButton?: boolean;
   /** Callback when preset is selected (optional, for custom handling) */
   onPresetSelect?: (presetKey: string) => void;
+  /** Optional guided tour trigger (builder only) */
+  onStartGuidedTour?: () => void;
 };
 
 /**
  * Floating helper menu (editor-only).
  */
-export function DevToolsMenu({ loadingProgress }: Props) {
+export function DevToolsMenu({ loadingProgress, onStartGuidedTour }: Props) {
   const { theme, mode, cycleMode } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPopoverMounted, setIsPopoverMounted] = useState(false);
@@ -25,6 +28,14 @@ export function DevToolsMenu({ loadingProgress }: Props) {
   const [isDismissingUpdates, setIsDismissingUpdates] = useState(false);
   const [shouldAnimateMovedImprovement, setShouldAnimateMovedImprovement] = useState(false);
   const [hoveredImprovementTitle, setHoveredImprovementTitle] = useState<string | null>(null);
+  const [helperView, setHelperView] = useState<'default' | 'feedback' | 'shortcuts' | 'guides' | 'improvement'>('default');
+  const [isSwitchingView, setIsSwitchingView] = useState(false);
+  const [pendingView, setPendingView] = useState<'default' | 'feedback' | 'shortcuts' | 'guides' | 'improvement' | null>(null);
+  const [feedbackText, setFeedbackText] = useState('');
+  const feedbackRef = useRef<HTMLTextAreaElement>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [selectedImprovementTitle, setSelectedImprovementTitle] = useState<string | null>(null);
+  const [hoveredGuideTitle, setHoveredGuideTitle] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click when expanded
@@ -40,8 +51,8 @@ export function DevToolsMenu({ loadingProgress }: Props) {
     return () => document.removeEventListener('mousedown', onDocMouseDown);
   }, [isExpanded]);
 
-  const modeLabel = mode === 'adaptive' ? 'Adaptive' : mode === 'light' ? 'Light' : 'Dark';
-  const themeRowLabel = mode === 'adaptive' ? 'Adaptive theme' : mode === 'light' ? 'Light theme' : 'Dark theme';
+  const modeLabel = mode === 'adaptive' ? 'adaptive' : mode === 'light' ? 'light' : 'dark';
+  const themeRowLabel = `Using ${modeLabel} theme`;
 
   const POPOVER_ANIM_MS = 600;
 
@@ -61,8 +72,106 @@ export function DevToolsMenu({ loadingProgress }: Props) {
     window.setTimeout(() => {
       setIsPopoverMounted(false);
       setIsPopoverAnimatingOut(false);
+      setHelperView('default');
+      setIsSwitchingView(false);
+      setPendingView(null);
     }, POPOVER_ANIM_MS);
   };
+
+  const requestSwitchView = (next: 'default' | 'feedback' | 'shortcuts' | 'guides' | 'improvement') => {
+    if (helperView === next) return;
+    if (isSwitchingView) return;
+    setIsSwitchingView(true);
+    setPendingView(next);
+    window.setTimeout(() => {
+      setHelperView(next);
+      setIsSwitchingView(false);
+      setPendingView(null);
+    }, 220);
+  };
+
+  const QUICKSTART_GUIDES: Array<{ title: string; minutes: number }> = [
+    { title: 'Build your first report in the visual editor', minutes: 2 },
+    { title: 'Add comparisons and spot changes over time', minutes: 3 },
+    { title: 'Create a reusable metric and share it with your team', minutes: 4 },
+    { title: 'Understand packages vs schema fields (and when to use each)', minutes: 5 },
+    { title: 'Switch to SQL editor for advanced queries', minutes: 3 },
+  ];
+
+  const IMPROVEMENTS: Array<{
+    title: string;
+    dateLabel: string;
+    versionLabel?: string;
+    detailImage: string;
+    body: {
+      paragraphs: string[];
+      bullets?: string[];
+    };
+  }> = [
+    {
+      title: 'Build reports without code',
+      dateLabel: 'November 17, 2025',
+      versionLabel: '3.1',
+      detailImage: '/nocode.png',
+      body: {
+        paragraphs: [
+          'The visual editor is now your fastest path from question to dashboard-ready report—no SQL required.',
+          'Pick a dataset, choose the metric you care about, and we’ll assemble the chart, comparison, and breakdowns with sensible defaults you can refine.',
+          'The editor stays lightweight and predictable: you can always open the SQL editor when you want to go deeper.',
+        ],
+        bullets: [
+          'Start from curated data packages instead of raw tables',
+          'One-click switch between visual editor and SQL editor',
+          'Cleaner defaults for time ranges and chart types',
+        ],
+      },
+    },
+    {
+      title: 'Expanded visibility and sharing controls',
+      dateLabel: 'November 19, 2025',
+      versionLabel: '3.1',
+      detailImage: '/share.png',
+      body: {
+        paragraphs: [
+          'Sharing is now clearer and more flexible, with visibility controls that match how teams actually work.',
+          'You can move faster without losing track of ownership: we’ve made “private” vs “shared” states easier to understand at a glance.',
+        ],
+        bullets: [
+          'More granular visibility options in menus and modals',
+          'Improved copy for private vs shared reports',
+          'Smoother sharing flows with fewer dead-ends',
+        ],
+      },
+    },
+    {
+      title: 'Faster Assistant responses',
+      dateLabel: 'October 28, 2025',
+      versionLabel: '3.0',
+      detailImage: '/faster.png',
+      body: {
+        paragraphs: [
+          'Assistant is now quicker to respond and clearer about what it’s changing.',
+          'You’ll see more consistent “Updating…” feedback and better fallbacks for common requests so you can stay in flow.',
+        ],
+        bullets: [
+          'Reduced time to first response for common prompts',
+          'More reliable handling of popular queries',
+          'Cleaner progress feedback while updates apply',
+        ],
+      },
+    },
+  ];
+
+  const selectedImprovement = IMPROVEMENTS.find((x) => x.title === selectedImprovementTitle) ?? null;
+
+  useEffect(() => {
+    if (!isExpanded) return;
+    if (helperView !== 'feedback') return;
+    const id = window.setTimeout(() => {
+      feedbackRef.current?.focus();
+    }, 260);
+    return () => window.clearTimeout(id);
+  }, [helperView, isExpanded]);
 
   const requestDismissUpdates = () => {
     if (updatesDismissed || isDismissingUpdates) return;
@@ -197,53 +306,506 @@ export function DevToolsMenu({ loadingProgress }: Props) {
           role="dialog"
           aria-label="Helper"
         >
-          {/* Header */}
-          <div
-            style={{
-              padding: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderBottom: '1px solid var(--border-subtle)',
-            }}
-          >
-            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>Helper</div>
-            <div className="flex items-center gap-2">
-              {/* Pane icon */}
-              <button
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                }}
-                aria-label="Secondary action"
-              >
-                <PaneIcon />
-              </button>
-              {/* Collapse */}
-              <button
-                onClick={requestClosePopover}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                }}
-                aria-label="Close helper"
-              >
-                <NegativeIcon />
-              </button>
+          {/* Header (hidden in shortcuts/feedback/improvement views) */}
+          {(pendingView ?? helperView) !== 'shortcuts' &&
+            (pendingView ?? helperView) !== 'feedback' &&
+            (pendingView ?? helperView) !== 'guides' &&
+            (pendingView ?? helperView) !== 'improvement' && (
+            <div
+              style={{
+                padding: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: '1px solid var(--border-subtle)',
+              }}
+            >
+              <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>Helper</div>
+              <div className="flex items-center gap-2">
+                {/* Pane icon */}
+                <button
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                  }}
+                  aria-label="Secondary action"
+                >
+                  <PaneIcon />
+                </button>
+                {/* Collapse */}
+                <button
+                  onClick={requestClosePopover}
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                  }}
+                  aria-label="Close helper"
+                >
+                  <NegativeIcon />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ padding: '16px' }}>
+            {/* Crossfade/slide between default content and feedback form */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                animation: isSwitchingView
+                  ? 'helperContentOut 220ms cubic-bezier(0.16, 1, 0.3, 1) both'
+                  : 'helperContentIn 240ms cubic-bezier(0.16, 1, 0.3, 1) both',
+              }}
+              key={pendingView ?? helperView}
+            >
+              {(pendingView ?? helperView) === 'feedback' ? (
+                <div>
+                  {/* Header row (mirrors shortcuts header structure) */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => requestSwitchView('default')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        padding: 0,
+                        cursor: 'pointer',
+                        color: 'var(--text-primary)',
+                      }}
+                      aria-label="Back"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Share feedback
+                      </div>
+                    </button>
+                    <div style={{ width: '1px', height: '1px' }} />
+                  </div>
+
+                  <div style={{ height: '1px', backgroundColor: 'var(--border-subtle)', marginLeft: '-16px', marginRight: '-16px' }} />
+
+                  <textarea
+                    ref={feedbackRef}
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    placeholder="Share what’s working, what’s missing, or what feels off…"
+                    style={{
+                      width: '100%',
+                      marginTop: '12px',
+                      height: '96px',
+                      resize: 'none',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: 'var(--bg-surface)',
+                      padding: '10px 12px',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      lineHeight: 1.4,
+                      outline: 'none',
+                      transition: 'border-color 100ms ease, box-shadow 100ms ease',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--button-primary-bg)';
+                      e.currentTarget.style.boxShadow = '0 0 0 1px var(--button-primary-bg)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+
+                  <div style={{ height: '12px' }} />
+
+                  <button
+                    disabled={!feedbackText.trim()}
+                    onClick={() => {
+                      // Simulate send (no-op), then return + toast
+                      setFeedbackText('');
+                      requestSwitchView('default');
+                      setToastMessage('Sent to team');
+                    }}
+                    style={{
+                      width: '100%',
+                      height: '36px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: 'transparent',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: feedbackText.trim() ? 'pointer' : 'not-allowed',
+                      opacity: feedbackText.trim() ? 1 : 0.5,
+                      transition: 'background-color 100ms ease, opacity 100ms ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!feedbackText.trim()) return;
+                      e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                    }}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    Send to team
+                  </button>
+                </div>
+              ) : (pendingView ?? helperView) === 'shortcuts' ? (
+                <div>
+                  {/* Header row */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => requestSwitchView('default')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        padding: 0,
+                        cursor: 'pointer',
+                        color: 'var(--text-primary)',
+                      }}
+                      aria-label="Back"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Keyboard shortcuts
+                      </div>
+                    </button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 600 }}>
+                      <img src="/%EF%A3%BF.svg" alt="" style={{ display: 'block' }} />
+                      Mac
+                    </div>
+                  </div>
+
+                  <div style={{ height: '1px', backgroundColor: 'var(--border-subtle)', marginLeft: '-16px', marginRight: '-16px' }} />
+
+                  <div style={{ paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {[
+                      { label: 'Open visual editor', keys: ['option', '+', 'v'] },
+                      { label: 'Open SQL editor', keys: ['option', '+', 's'] },
+                      { label: 'Open helper', keys: ['option', '+', 'h'] },
+                      { label: 'Focus Assistant', keys: ['option', '+', 'a'] },
+                    ].map((row) => (
+                      <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>
+                          {row.label}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {row.keys.map((k, i) =>
+                            k === '+' ? (
+                              <div key={`${row.label}-plus-${i}`} style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600, padding: '0 2px' }}>
+                                +
+                              </div>
+                            ) : (
+                              (() => {
+                                const isSingleChar = String(k).length === 1;
+                                return (
+                              <div
+                                key={`${row.label}-${k}-${i}`}
+                                style={{
+                                  height: '20px',
+                                  width: isSingleChar ? '20px' : 'auto',
+                                  minWidth: isSingleChar ? '20px' : '44px',
+                                  paddingLeft: isSingleChar ? '0px' : '6px',
+                                  paddingRight: isSingleChar ? '0px' : '6px',
+                                  borderRadius: '8px',
+                                  backgroundColor: 'color-mix(in srgb, var(--bg-surface) 70%, transparent)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'var(--text-secondary)',
+                                  fontSize: '12px',
+                                  fontWeight: 400,
+                                  lineHeight: '12px',
+                                }}
+                              >
+                                {k}
+                              </div>
+                                );
+                              })()
+                            )
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginTop: '2px' }}>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>Run query</div>
+                        <div style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)', marginTop: '4px' }}>
+                          When SQL editor is open
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {['cmd', '+', 'enter'].map((k, i) =>
+                          k === '+' ? (
+                            <div key={`run-plus-${i}`} style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600, padding: '0 2px' }}>
+                              +
+                            </div>
+                          ) : (
+                            (() => {
+                              const isEnter = k === 'enter';
+                              const isSingleChar = String(k).length === 1;
+                              return (
+                            <div
+                              key={`run-${k}-${i}`}
+                              style={{
+                                height: '20px',
+                                width: isSingleChar ? '20px' : 'auto',
+                                minWidth: isEnter ? '44px' : isSingleChar ? '20px' : '44px',
+                                paddingLeft: isSingleChar ? '0px' : '6px',
+                                paddingRight: isSingleChar ? '0px' : '6px',
+                                borderRadius: '8px',
+                                backgroundColor: 'color-mix(in srgb, var(--bg-surface) 70%, transparent)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'var(--text-secondary)',
+                                fontSize: '12px',
+                                fontWeight: 400,
+                                lineHeight: '12px',
+                              }}
+                            >
+                              {k}
+                            </div>
+                              );
+                            })()
+                          )
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '12px', fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)' }}>
+                      Create a new shortcut
+                    </div>
+                  </div>
+                </div>
+              ) : (pendingView ?? helperView) === 'guides' ? (
+                <div>
+                  {/* Header row (mirrors shortcuts/feedback header structure) */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => requestSwitchView('default')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        padding: 0,
+                        cursor: 'pointer',
+                        color: 'var(--text-primary)',
+                      }}
+                      aria-label="Back"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Quickstart guides
+                      </div>
+                    </button>
+                    <div style={{ width: '1px', height: '1px' }} />
+                  </div>
+
+                  <div style={{ height: '1px', backgroundColor: 'var(--border-subtle)', marginLeft: '-16px', marginRight: '-16px' }} />
+
+                  <div style={{ paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {QUICKSTART_GUIDES.map((g) => (
+                      <button
+                        key={g.title}
+                        type="button"
+                        className="hover-fast"
+                        style={{
+                          width: '100%',
+                          border: 'none',
+                          backgroundColor: 'transparent',
+                          padding: '8px 0',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '10px',
+                        }}
+                        onMouseEnter={() => setHoveredGuideTitle(g.title)}
+                        onMouseLeave={() => setHoveredGuideTitle(null)}
+                      >
+                        <div
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '6px',
+                            backgroundColor: 'var(--bg-surface)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--text-muted)',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <img src="/document.svg" width={16} height={16} alt="" style={{ display: 'block' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                            {g.title}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '12px',
+                              fontWeight: 400,
+                              color: hoveredGuideTitle === g.title ? 'var(--text-primary)' : 'var(--text-muted)',
+                              marginTop: '4px',
+                              transition: 'color 100ms ease',
+                            }}
+                          >
+                            {g.minutes} min read · docs.stripe.com
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (pendingView ?? helperView) === 'improvement' ? (
+                <div>
+                  {/* Header row */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => requestSwitchView('default')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        padding: 0,
+                        cursor: 'pointer',
+                        color: 'var(--text-primary)',
+                      }}
+                      aria-label="Back"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Update
+                      </div>
+                    </button>
+                    <div style={{ width: '1px', height: '1px' }} />
+                  </div>
+
+                  <div style={{ height: '1px', backgroundColor: 'var(--border-subtle)', marginLeft: '-16px', marginRight: '-16px' }} />
+
+                  {selectedImprovement ? (
+                    <div style={{ paddingTop: '14px' }}>
+                      <img
+                        src={selectedImprovement.detailImage}
+                        alt=""
+                        style={{
+                          width: '100%',
+                          height: 'auto',
+                          objectFit: 'contain',
+                          borderRadius: '12px',
+                          display: 'block',
+                          backgroundColor: 'var(--bg-surface)',
+                        }}
+                      />
+
+                      <div style={{ marginTop: '14px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                          {selectedImprovement.title}
+                        </div>
+
+                        {/* Timestamp + version below title */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', marginBottom: '12px' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)' }}>
+                            {selectedImprovement.dateLabel}
+                          </div>
+                          {selectedImprovement.versionLabel ? (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                height: '20px',
+                                paddingLeft: '8px',
+                                paddingRight: '8px',
+                                borderRadius: '999px',
+                                border: '1px solid var(--border-subtle)',
+                                color: 'var(--text-primary)',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {selectedImprovement.versionLabel}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {selectedImprovement.body.paragraphs.map((p) => (
+                          <div key={p} style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: '12px' }}>
+                            {p}
+                          </div>
+                        ))}
+
+                        {selectedImprovement.body.bullets && selectedImprovement.body.bullets.length > 0 && (
+                          <ul
+                            style={{
+                              margin: 0,
+                              paddingLeft: '18px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '8px',
+                              listStyleType: 'disc',
+                              listStylePosition: 'outside',
+                            }}
+                          >
+                            {selectedImprovement.body.bullets.map((b) => (
+                              <li
+                                key={b}
+                                style={{
+                                  display: 'list-item',
+                                  fontSize: '14px',
+                                  fontWeight: 400,
+                                  color: 'var(--text-primary)',
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                {b}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ paddingTop: '14px', fontSize: '14px', color: 'var(--text-muted)' }}>
+                      Select an update to view details.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
             {/* Updates pill row */}
             {!updatesDismissed && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -287,7 +849,26 @@ export function DevToolsMenu({ loadingProgress }: Props) {
             {!updatesDismissed && (
               <>
                 <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setSelectedImprovementTitle('Build reports without code');
+                    requestSwitchView('improvement');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedImprovementTitle('Build reports without code');
+                      requestSwitchView('improvement');
+                    }
+                  }}
                   style={{
+                    width: '100%',
+                    background: 'transparent',
+                    padding: 0,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    outline: 'none',
                     animation: isDismissingUpdates ? `helperSlideOut ${POPOVER_ANIM_MS}ms cubic-bezier(0.16, 1, 0.3, 1)` : undefined,
                   }}
                 >
@@ -311,6 +892,13 @@ export function DevToolsMenu({ loadingProgress }: Props) {
                       Using the new visual editor, you can build data reports and metrics easily and without SQL. This is available to all dashboard users.
                     </div>
                     <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedImprovementTitle('Build reports without code');
+                        requestSwitchView('improvement');
+                      }}
                       style={{
                         width: '100%',
                         height: '36px',
@@ -353,6 +941,10 @@ export function DevToolsMenu({ loadingProgress }: Props) {
                 ].map((item) => (
                   <button
                     key={item.title}
+                    onClick={() => {
+                      setSelectedImprovementTitle(item.title);
+                      requestSwitchView('improvement');
+                    }}
                     style={{
                       position: 'relative',
                       display: 'flex',
@@ -420,10 +1012,10 @@ export function DevToolsMenu({ loadingProgress }: Props) {
             {/* Misc section */}
             <div>
               {[
-                { key: 'guided_tour', label: 'Guided tour', right: '' },
                 { key: 'adaptive', label: themeRowLabel, right: '' },
-                { key: 'shortcuts', label: 'Keyboard shortcuts', right: '' },
-                { key: 'guides', label: 'Guides', right: '' },
+                { key: 'guided_tour', label: 'Show guided tour', right: '' },
+                { key: 'shortcuts', label: 'View keyboard shortcuts', right: '' },
+                { key: 'guides', label: 'See quickstart guides', right: '' },
                 { key: 'feedback', label: 'Share feedback', right: '' },
               ].map((row) => {
                 const isThemeRow = row.key === 'adaptive';
@@ -432,6 +1024,16 @@ export function DevToolsMenu({ loadingProgress }: Props) {
                     key={row.key}
                     onClick={() => {
                       if (isThemeRow) cycleMode();
+                      if (row.key === 'guided_tour') {
+                        requestClosePopover();
+                        // Next tick so the popover animates out before the overlay appears
+                        window.setTimeout(() => {
+                          onStartGuidedTour?.();
+                        }, 0);
+                      }
+                      if (row.key === 'feedback') requestSwitchView('feedback');
+                      if (row.key === 'shortcuts') requestSwitchView('shortcuts');
+                      if (row.key === 'guides') requestSwitchView('guides');
                     }}
                     style={{
                       width: '100%',
@@ -504,6 +1106,9 @@ export function DevToolsMenu({ loadingProgress }: Props) {
                 );
               })}
             </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Hidden dev-only bits (kept for later) */}
@@ -552,7 +1157,38 @@ export function DevToolsMenu({ loadingProgress }: Props) {
             transform: translateY(0px);
           }
         }
+
+        @keyframes helperContentIn {
+          0% {
+            opacity: 0;
+            transform: translateY(6px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0px);
+          }
+        }
+
+        @keyframes helperContentOut {
+          0% {
+            opacity: 1;
+            transform: translateY(0px);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-6px);
+          }
+        }
       `}</style>
+
+      {/* Toast confirmation */}
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          duration={2000}
+          onClose={() => setToastMessage(null)}
+        />
+      )}
     </div>
   );
 }
