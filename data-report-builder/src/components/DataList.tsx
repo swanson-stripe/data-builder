@@ -1433,8 +1433,7 @@ export function DataList() {
                             <div 
                               className="hover-fast"
                               style={{ 
-                                backgroundColor: 'var(--bg-surface)', 
-                                padding: '6px', 
+                                backgroundColor: '#3F4652',
                                 borderRadius: '6px',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -1443,13 +1442,13 @@ export function DataList() {
                                 height: '28px',
                                 cursor: 'pointer'
                               }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3F4652'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3F4652'}
                             >
                               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="#474E5A"/>
-                                <rect x="3" y="7" width="10" height="1.5" rx="0.75" fill="#474E5A"/>
-                                <rect x="5" y="11" width="6" height="1.5" rx="0.75" fill="#474E5A"/>
+                                <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="#FFFFFF"/>
+                                <rect x="3" y="7" width="10" height="1.5" rx="0.75" fill="#FFFFFF"/>
+                                <rect x="5" y="11" width="6" height="1.5" rx="0.75" fill="#FFFFFF"/>
                               </svg>
                             </div>
                           }

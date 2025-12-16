@@ -1,13 +1,13 @@
 'use client';
-import { useState, useMemo, useRef, useEffect, forwardRef } from 'react';
+import { useState, useMemo, useRef, useEffect, forwardRef, type DragEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp, actions, ChartType, XSourceMode, YSourceMode, Comparison } from '@/state/app';
 import schema, { getRelated, getFieldLabel } from '@/data/schema';
 import { SchemaObject, MetricBlock, MetricFormula } from '@/types';
 import { FieldFilter } from './FieldFilter';
+import { FilterPopover } from './FilterPopover';
 import { FilterCondition } from '@/types';
 import { useWarehouseStore } from '@/lib/useWarehouse';
-import { ConnectionLines } from './ConnectionLines';
 import { SchemaDefinitionModal } from './SchemaDefinitionModal';
 import { CustomSelect } from './CustomSelect';
 import { MetricBlockCard } from './MetricBlockCard';
@@ -23,15 +23,11 @@ import { getPackage, getAllPackages, isCuratedField, isTableInPackage } from '@/
     activePackage: string | null;
     expandedTables: Record<string, boolean>;
     onExpandChange: (objectName: string, isExpanded: boolean) => void;
-    expandedFields: Record<string, boolean>;
-    onFieldExpandChange: (fieldId: string, isExpanded: boolean) => void;
-    expandedFilters: Record<string, boolean>;
-    onFilterExpandChange: (filterId: string, isExpanded: boolean) => void;
     showAllFieldsMap: Record<string, boolean>;
     onShowAllFieldsChange: (objectName: string, showAll: boolean) => void;
     onOpenDefinition: (tableName: string, fieldName?: string) => void;
   }>(
-  ({ object, searchQuery, activePackage, expandedTables, onExpandChange, expandedFields, onFieldExpandChange, expandedFilters, onFilterExpandChange, showAllFieldsMap, onShowAllFieldsChange, onOpenDefinition }, ref) => {
+  ({ object, searchQuery, activePackage, expandedTables, onExpandChange, showAllFieldsMap, onShowAllFieldsChange, onOpenDefinition }, ref) => {
     const { state, dispatch } = useApp();
     const { store: warehouse, version } = useWarehouseStore();
     
@@ -39,6 +35,106 @@ import { getPackage, getAllPackages, isCuratedField, isTableInPackage } from '@/
     const [hoveredTableChip, setHoveredTableChip] = useState(false);
     const [hoveredFieldChips, setHoveredFieldChips] = useState<Record<string, boolean>>({});
     const [hoveredFieldRows, setHoveredFieldRows] = useState<Record<string, boolean>>({});
+    const [hoveredInfoIcons, setHoveredInfoIcons] = useState<Record<string, boolean>>({});
+
+    // Drag-and-drop reorder for selected fields (vertical list)
+    const [draggedField, setDraggedField] = useState<string | null>(null);
+    const [dragOverField, setDragOverField] = useState<string | null>(null);
+
+    // Field options popover (DataList-style menu)
+    const [openFieldMenuId, setOpenFieldMenuId] = useState<string | null>(null);
+    const [showFilterOptions, setShowFilterOptions] = useState(false);
+    const fieldMenuRef = useRef<HTMLDivElement>(null);
+
+    const selectedQualifiedFields = useMemo(() => {
+      return state.selectedFields.map((f) => `${f.object}.${f.field}`);
+    }, [state.selectedFields]);
+
+    const getCurrentFieldOrder = useMemo(() => {
+      // Keep only selected fields in order, then append any selected fields missing from fieldOrder
+      const ordered = (state.fieldOrder.length > 0 ? state.fieldOrder : selectedQualifiedFields).filter((k) =>
+        selectedQualifiedFields.includes(k)
+      );
+      const missing = selectedQualifiedFields.filter((k) => !ordered.includes(k));
+      return [...ordered, ...missing];
+    }, [state.fieldOrder, selectedQualifiedFields]);
+
+    const fieldOrderIndex = useMemo(() => {
+      const map = new Map<string, number>();
+      getCurrentFieldOrder.forEach((k, idx) => map.set(k, idx));
+      return map;
+    }, [getCurrentFieldOrder]);
+
+    const handleFieldDragStart = (e: DragEvent, qualifiedName: string) => {
+      setDraggedField(qualifiedName);
+      e.dataTransfer.effectAllowed = 'move';
+      if (e.currentTarget instanceof HTMLElement) {
+        e.dataTransfer.setDragImage(e.currentTarget, 0, 0);
+      }
+    };
+
+    const handleFieldDragOver = (e: DragEvent, targetQualifiedName: string) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (draggedField && draggedField !== targetQualifiedName) {
+        setDragOverField(targetQualifiedName);
+      }
+    };
+
+    const handleFieldDragLeave = () => {
+      setDragOverField(null);
+    };
+
+    const handleFieldDrop = (e: DragEvent, targetQualifiedName: string) => {
+      e.preventDefault();
+      setDragOverField(null);
+
+      if (!draggedField || draggedField === targetQualifiedName) {
+        setDraggedField(null);
+        return;
+      }
+
+      const currentOrder = [...getCurrentFieldOrder];
+      const draggedIndex = currentOrder.indexOf(draggedField);
+      const targetIndex = currentOrder.indexOf(targetQualifiedName);
+      if (draggedIndex === -1 || targetIndex === -1) {
+        setDraggedField(null);
+        return;
+      }
+
+      const newOrder = [...currentOrder];
+      newOrder.splice(draggedIndex, 1);
+      newOrder.splice(targetIndex, 0, draggedField);
+      dispatch(actions.reorderFields(newOrder));
+      setDraggedField(null);
+    };
+
+    const handleFieldDragEnd = () => {
+      setDraggedField(null);
+      setDragOverField(null);
+    };
+
+  // Close dropdown when clicking outside
+    useEffect(() => {
+      if (!openFieldMenuId) return;
+
+      const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      
+      // Don't close if clicking on a field button
+      if (target.closest('button[data-field-menu]')) {
+        return;
+      }
+      
+      if (fieldMenuRef.current && !fieldMenuRef.current.contains(target)) {
+        setOpenFieldMenuId(null);
+        setShowFilterOptions(false);
+      }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [openFieldMenuId]);
     
     // Use the parent-managed state instead of local state
     const showAllFields = showAllFieldsMap[object.name] ?? false;
@@ -98,6 +194,14 @@ import { getPackage, getAllPackages, isCuratedField, isTableInPackage } from '@/
     const selectedFields = sortedFields.filter(field => 
       state.selectedFields.some(f => f.object === object.name && f.field === field.name)
     );
+    // Order selected fields by global fieldOrder (so drag reorder is reflected here)
+    const orderedSelectedFields = [...selectedFields].sort((a, b) => {
+      const aKey = `${object.name}.${a.name}`;
+      const bKey = `${object.name}.${b.name}`;
+      const aIdx = fieldOrderIndex.get(aKey) ?? Number.MAX_SAFE_INTEGER;
+      const bIdx = fieldOrderIndex.get(bKey) ?? Number.MAX_SAFE_INTEGER;
+      return aIdx - bIdx;
+    });
     const unselectedFields = sortedFields.filter(field => 
       !state.selectedFields.some(f => f.object === object.name && f.field === field.name)
     );
@@ -122,8 +226,8 @@ import { getPackage, getAllPackages, isCuratedField, isTableInPackage } from '@/
     // When package: show selected + curated unselected, optionally + non-curated if showAll
     // Otherwise: show selected only if shouldShowMoreButton, else all
     const fieldsToRender = activePackage
-      ? [...selectedFields, ...curatedUnselectedFields, ...(showAllFields ? nonCuratedFields : [])]
-      : (shouldShowMoreButton ? selectedFields : sortedFields);
+      ? [...orderedSelectedFields, ...curatedUnselectedFields, ...(showAllFields ? nonCuratedFields : [])]
+      : (shouldShowMoreButton ? orderedSelectedFields : sortedFields);
     
     // Count of hidden fields for the "show more" button
     const hiddenFieldCount = activePackage ? nonCuratedFields.length : unselectedFields.length;
@@ -214,7 +318,6 @@ import { getPackage, getAllPackages, isCuratedField, isTableInPackage } from '@/
               transition: 'padding-right 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               width: 'fit-content'
             }}
-            data-connection-id={isObjectSelected ? `table-${object.name}` : undefined}
           >
             {/* Icon inside chip (always visible) */}
             <div 
@@ -227,7 +330,6 @@ import { getPackage, getAllPackages, isCuratedField, isTableInPackage } from '@/
                 flexShrink: 0,
                 color: isObjectSelected ? 'var(--data-chip-table-icon)' : 'var(--text-icon)'
               }}
-              data-connection-id={isObjectSelected ? `chevron-${object.name}` : undefined}
         >
           <svg 
                 width="12" 
@@ -319,9 +421,8 @@ import { getPackage, getAllPackages, isCuratedField, isTableInPackage } from '@/
                 const isFieldSelected = state.selectedFields.some(
                   (f) => f.object === object.name && f.field === field.name
                 );
-                const qualifiedName = `${object.name}.${field.name}`;
                 const fieldId = `${object.name}.${field.name}`;
-                const filterId = `${object.name}.${field.name}`;
+                const qualifiedName = fieldId;
                 
                 // Get all filters for this field (support multiple filters per field)
                 const fieldFilters = state.filters.conditions.filter(
@@ -330,9 +431,6 @@ import { getPackage, getAllPackages, isCuratedField, isTableInPackage } from '@/
                 
                 // For backward compatibility, use first filter as "active" filter
                 const activeFilter = fieldFilters[0] || null;
-                
-                const isFieldExpanded = expandedFields[fieldId] ?? (fieldFilters.length > 0); // Default to true if any filters exist
-                const isFilterExpanded = expandedFilters[filterId] || false;
                 
                 const handleFilterChange = (condition: FilterCondition | null) => {
                   if (condition) {
@@ -367,379 +465,395 @@ import { getPackage, getAllPackages, isCuratedField, isTableInPackage } from '@/
                   // Then toggle the field
                   dispatch(actions.toggleField(object.name, field.name));
                 };
-
-                const handleChipClick = () => {
-                  if (isFieldSelected) {
-                    // Toggle field expansion (show/hide filter section like table expand/collapse)
-                    onFieldExpandChange(fieldId, !isFieldExpanded);
-                  } else {
-                    // If not selected, clicking selects the field
-                    handleFieldToggle();
-                  }
-                };
-                
-                // Generate filter description for collapsed state
-                const getFilterDescription = () => {
-                  if (!activeFilter) return 'Filter';
-                  
-                  const { operator, value } = activeFilter;
-                  
-                  // Check for blank/empty values
-                  if (value === '' || value === null || value === undefined || 
-                      (Array.isArray(value) && value.length === 0)) {
-                    return 'Filter for blank';
-                  }
-                  
-                  // Boolean filters
-                  if (field.type === 'boolean') {
-                    return value === true ? 'Filter for true' : 'Filter for false';
-                  }
-                  
-                  // Date filters
-                  if (field.type === 'date') {
-                    if (operator === 'between' && Array.isArray(value)) {
-                      return `Filter between dates`;
-                    }
-                    if (operator === 'less_than') return `Filter before ${value}`;
-                    if (operator === 'greater_than') return `Filter after ${value}`;
-                    return `Filter for ${value}`;
-                  }
-                  
-                  // Number filters
-                  if (field.type === 'number') {
-                    if (operator === 'between' && Array.isArray(value)) {
-                      return `Filter between ${value[0]} and ${value[1]}`;
-                    }
-                    if (operator === 'greater_than') return `Filter > ${value}`;
-                    if (operator === 'less_than') return `Filter < ${value}`;
-                    if (operator === 'not_equals') return `Filter ≠ ${value}`;
-                    return `Filter for ${value}`;
-                  }
-                  
-                  // String/ID/Enum filters
-                  if (Array.isArray(value)) {
-                    // Multiple values selected
-                    if (value.length === 1) {
-                      return `Filter for ${value[0]}`;
-                    }
-                    return `Filter for ${value.length} values`;
-                  }
-                  
-                  // Single value
-                  if (typeof value === 'string') {
-                    // Truncate long strings
-                    const displayValue = value.length > 20 ? `${value.substring(0, 20)}...` : value;
-                    return `Filter for ${displayValue}`;
-                  }
-                  
-                  return 'Filter';
-                };
                 
                 return (
                   <div key={field.name}>
                     <div 
                       className="flex items-center gap-2 text-xs group transition-colors relative"
-                      data-connection-id={isFieldSelected ? `field-${object.name}.${field.name}` : undefined}
                       onMouseEnter={() => setHoveredFieldRows(prev => ({ ...prev, [fieldId]: true }))}
                       onMouseLeave={() => setHoveredFieldRows(prev => ({ ...prev, [fieldId]: false }))}
-                      style={{ position: 'relative' }}
+                      onDragOver={isFieldSelected ? (e) => handleFieldDragOver(e, qualifiedName) : undefined}
+                      onDragLeave={isFieldSelected ? handleFieldDragLeave : undefined}
+                      onDrop={isFieldSelected ? (e) => handleFieldDrop(e, qualifiedName) : undefined}
+                      style={{ 
+                        position: 'relative',
+                        paddingTop: dragOverField === qualifiedName ? '6px' : undefined,
+                        borderTop: dragOverField === qualifiedName ? '2px solid #675DFF' : undefined
+                      }}
                     >
-                      {/* Field chip - now includes icon for unselected fields */}
-                      <div 
-                        onClick={handleChipClick}
-                        onMouseEnter={(e) => {
-                          setHoveredFieldChips(prev => ({ ...prev, [fieldId]: true }));
-                          if (!isFieldSelected) {
-                            e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                          }
-                          if (isFieldSelected) {
-                            e.currentTarget.style.border = '2px solid var(--data-chip-field-hover-stroke)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          setHoveredFieldChips(prev => ({ ...prev, [fieldId]: false }));
-                          if (!isFieldSelected) {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }
-                          if (isFieldSelected) {
-                            e.currentTarget.style.border = '2px solid transparent';
-                          }
-                        }}
-                        className="cursor-pointer"
-                        style={{
-                          backgroundColor: isFieldSelected ? 'var(--data-chip-field-bg)' : 'transparent',
-                          border: '2px solid transparent',
-                          borderRadius: '10px',
-                          height: '32px',
-                          paddingLeft: '6px',
-                          paddingRight: (isFieldSelected && fieldFilters.length > 0) ? '6px' : '12px',
-                          paddingTop: '6px',
-                          paddingBottom: '6px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          transition: 'padding-right 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                          width: 'fit-content'
-                        }}
-                      >
-                        {/* Icon inside chip - plus for unselected, chevron for selected */}
-                        <div 
+                      {/* Field chip - now full width with drag handle inside */}
+                      {isFieldSelected ? (
+                        <div style={{ position: 'relative', display: 'flex', flex: 1, alignItems: 'center', gap: '8px' }}>
+                          <button
+                            data-field-menu
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenFieldMenuId(openFieldMenuId === fieldId ? null : fieldId);
+                              setShowFilterOptions(false);
+                            }}
+                            onDragOver={(e) => handleFieldDragOver(e, qualifiedName)}
+                            onDragLeave={handleFieldDragLeave}
+                            onDrop={(e) => handleFieldDrop(e, qualifiedName)}
+                            onMouseEnter={() => setHoveredFieldChips(prev => ({ ...prev, [fieldId]: true }))}
+                            onMouseLeave={() => setHoveredFieldChips(prev => ({ ...prev, [fieldId]: false }))}
+                            className="cursor-pointer hover-fast"
+                            style={{
+                              backgroundColor: 'transparent',
+                              borderWidth: '1px',
+                              borderStyle: 'solid',
+                              borderColor: hoveredFieldChips[fieldId] ? 'var(--border-subtle)' : 'var(--border-default)',
+                              borderRadius: '8px',
+                              minHeight: '44px',
+                              paddingLeft: '8px',
+                              paddingRight: '8px',
+                              paddingTop: '6px',
+                              paddingBottom: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              transition: 'border-color 100ms ease, background-color 100ms ease',
+                              flex: 1,
+                            }}
+                          >
+                            {/* Drag handle - now inside and always visible */}
+                        <div
+                          draggable={true}
+                          onDragStart={(e) => {
+                            e.stopPropagation();
+                            handleFieldDragStart(e, qualifiedName);
+                          }}
+                          onDragEnd={handleFieldDragEnd}
+                              className="cursor-move"
                           style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                                width: '16px',
+                                height: '16px',
+                            flexShrink: 0,
+                                color: hoveredFieldChips[fieldId] ? 'var(--text-primary)' : 'var(--text-muted)',
+                                transition: 'color 100ms ease',
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Drag to reorder field"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 10.125C3 10.7463 3.50368 11.25 4.125 11.25C4.74632 11.25 5.25 10.7463 5.25 10.125C5.25 9.50368 4.74632 9 4.125 9C3.50368 9 3 9.50368 3 10.125Z" fill="currentColor"/>
+                                <path d="M6.75 10.125C6.75 10.7463 7.25368 11.25 7.875 11.25C8.49632 11.25 9 10.7463 9 10.125C9 9.50368 8.49632 9 7.875 9C7.25368 9 6.75 9.50368 6.75 10.125Z" fill="currentColor"/>
+                                <path d="M3 1.875C3 2.49632 3.50368 3 4.125 3C4.74632 3 5.25 2.49632 5.25 1.875C5.25 1.25368 4.74632 0.75 4.125 0.75C3.50368 0.75 3 1.25368 3 1.875Z" fill="currentColor"/>
+                                <path d="M6.75 1.875C6.75 2.49632 7.25368 3 7.875 3C8.49632 3 9 2.49632 9 1.875C9 1.25368 8.49632 0.75 7.875 0.75C7.25368 0.75 6.75 1.25368 6.75 1.875Z" fill="currentColor"/>
+                                <path d="M3 6C3 6.62132 3.50368 7.125 4.125 7.125C4.74632 7.125 5.25 6.62132 5.25 6C5.25 5.37868 4.74632 4.875 4.125 4.875C3.50368 4.875 3 5.37868 3 6Z" fill="currentColor"/>
+                                <path d="M6.75 6C6.75 6.62132 7.25368 7.125 7.875 7.125C8.49632 7.125 9 6.62132 9 6C9 5.37868 8.49632 4.875 7.875 4.875C7.25368 4.875 6.75 5.37868 6.75 6Z" fill="currentColor"/>
+                          </svg>
+                        </div>
+
+                            {/* Field label - data list style with name and path */}
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                              <div className="truncate" style={{
+                                color: 'var(--text-primary)',
+                                fontWeight: 400,
+                                fontSize: '14px',
+                                lineHeight: '20px',
+                                textAlign: 'left',
+                              }}>
+                                {getFieldLabel(object.name, field.name)}
+                              </div>
+                              <div className="truncate" style={{
+                                color: 'var(--text-muted)',
+                                fontWeight: 400,
+                                fontSize: '11px',
+                                lineHeight: '16px',
+                                textAlign: 'left',
+                                fontFamily: 'monospace',
+                              }}>
+                                {object.name}.{field.name}
+                              </div>
+                            </div>
+
+                            {/* Info icon on hover */}
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 12 12"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenDefinition(object.name, field.name);
+                              }}
+                              onMouseEnter={() => setHoveredInfoIcons(prev => ({ ...prev, [fieldId]: true }))}
+                              onMouseLeave={() => setHoveredInfoIcons(prev => ({ ...prev, [fieldId]: false }))}
+                              style={{
+                                flexShrink: 0,
+                                opacity: hoveredFieldRows[fieldId] ? 1 : 0,
+                                transition: 'opacity 100ms ease, color 100ms ease',
+                                cursor: 'pointer',
+                                color: hoveredInfoIcons[fieldId] ? 'var(--text-primary)' : 'var(--text-muted)',
+                              }}
+                            >
+                              <path fillRule="evenodd" clipRule="evenodd" d="M8.75 1.75H3.25C2.42157 1.75 1.75 2.42157 1.75 3.25V8.75C1.75 9.57843 2.42157 10.25 3.25 10.25H8.75C9.57843 10.25 10.25 9.57843 10.25 8.75V3.25C10.25 2.42157 9.57843 1.75 8.75 1.75ZM3.25 0.25C1.59315 0.25 0.25 1.59315 0.25 3.25V8.75C0.25 10.4069 1.59315 11.75 3.25 11.75H8.75C10.4069 11.75 11.75 10.4069 11.75 8.75V3.25C11.75 1.59315 10.4069 0.25 8.75 0.25H3.25Z" fill="currentColor"/>
+                              <path fillRule="evenodd" clipRule="evenodd" d="M4.48182 6.49998C4.48182 6.11338 4.79522 5.79998 5.18182 5.79998H6.27273C6.65933 5.79998 6.97273 6.11338 6.97273 6.49998V8.49998C6.97273 8.88658 6.65933 9.19998 6.27273 9.19998C5.88613 9.19998 5.57273 8.88658 5.57273 8.49998V7.19998H5.18182C4.79522 7.19998 4.48182 6.88658 4.48182 6.49998Z" fill="currentColor"/>
+                              <path d="M4.99994 3.99999C4.99994 3.44858 5.44854 2.99999 5.99994 2.99999C6.55134 2.99999 6.99994 3.44858 6.99994 3.99999C6.99994 4.55139 6.55134 4.99999 5.99994 4.99999C5.44854 4.99994 4.99994 4.55139 4.99994 3.99999Z" fill="currentColor"/>
+                            </svg>
+                          </button>
+
+                          {/* Filter button - outside the chip, show on hover or when active */}
+                          <FilterPopover
+                            field={field}
+                            objectName={object.name}
+                            currentFilter={activeFilter || undefined}
+                            onFilterChange={handleFilterChange}
+                            distinctValues={distinctValuesCache[field.name]}
+                            hasActiveFilter={fieldFilters.length > 0}
+                            unstyled={true}
+                          trigger={
+                            <div
+                                className="hover-fast"
+                                style={{ 
+                                  backgroundColor: fieldFilters.length > 0 ? '#3F4652' : 'transparent',
+                                  borderRadius: '6px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '28px',
+                                  height: '28px',
+                                  cursor: 'pointer',
+                                  flexShrink: 0,
+                                  opacity: fieldFilters.length > 0 || hoveredFieldRows[fieldId] ? 1 : 0,
+                                  transition: 'opacity 100ms ease, background-color 100ms ease',
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = fieldFilters.length > 0 ? '#3F4652' : 'var(--bg-surface)'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = fieldFilters.length > 0 ? '#3F4652' : 'transparent'}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill={fieldFilters.length > 0 ? '#FFFFFF' : '#474E5A'}/>
+                                  <rect x="3" y="7" width="10" height="1.5" rx="0.75" fill={fieldFilters.length > 0 ? '#FFFFFF' : '#474E5A'}/>
+                                  <rect x="5" y="11" width="6" height="1.5" rx="0.75" fill={fieldFilters.length > 0 ? '#FFFFFF' : '#474E5A'}/>
+                                </svg>
+                              </div>
+                            }
+                          />
+
+                          {/* Column dropdown menu - matching DataList style */}
+                          {openFieldMenuId === fieldId && (
+                            <div
+                              ref={fieldMenuRef}
+                              className="absolute py-1 z-50"
+                              style={{
+                                top: '36px',
+                                left: '0px',
+                                marginTop: 0,
+                                borderRadius: '16px',
+                                minWidth: showFilterOptions ? '280px' : '180px',
+                                boxShadow: '0 5px 15px rgba(0, 0, 0, 0.16)',
+                                backgroundColor: 'var(--bg-elevated)'
+                              }}
+                            >
+                              {!showFilterOptions ? (
+                                <>
+                                  {/* Sort Descending */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      dispatch(actions.setDataListSort(fieldId, 'desc'));
+                                      setOpenFieldMenuId(null);
+                                    }}
+                                    className="w-full text-left py-2 text-sm hover-fast flex items-center justify-between"
+                              style={{
+                                      paddingLeft: '16px',
+                                      paddingRight: '16px',
+                                      color: 'var(--text-primary)',
+                                      fontWeight: 400,
+                                height: '32px',
+                                      cursor: 'pointer',
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                  >
+                                    <span>Sort descending</span>
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <path d="M7 3V11M7 11L4 8M7 11L10 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  </button>
+
+                                  {/* Sort Ascending */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      dispatch(actions.setDataListSort(fieldId, 'asc'));
+                                      setOpenFieldMenuId(null);
+                                    }}
+                                    className="w-full text-left py-2 text-sm hover-fast flex items-center justify-between"
+                                    style={{
+                                      paddingLeft: '16px',
+                                      paddingRight: '16px',
+                                      color: 'var(--text-primary)',
+                                      fontWeight: 400,
+                                      height: '32px',
+                                      cursor: 'pointer',
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                  >
+                                    <span>Sort ascending</span>
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <path d="M7 11V3M7 3L4 6M7 3L10 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                  </button>
+
+                                  {/* Add filter */}
+                                  <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                      setShowFilterOptions(true);
+                                }}
+                                    className="w-full text-left py-2 text-sm flex items-center justify-between hover-fast"
+                                style={{
+                                      paddingLeft: '16px',
+                                      paddingRight: '16px',
+                                      color: 'var(--text-primary)',
+                                      fontWeight: 400,
+                                      height: '32px',
+                                      cursor: 'pointer',
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                  >
+                                    <span>Add filter</span>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="#474E5A"/>
+                                      <rect x="3" y="7" width="10" height="1.5" rx="0.75" fill="#474E5A"/>
+                                      <rect x="5" y="11" width="6" height="1.5" rx="0.75" fill="#474E5A"/>
+                              </svg>
+                                  </button>
+
+                                  {/* Divider */}
+                                  <div style={{ height: '1px', backgroundColor: 'var(--bg-surface)', margin: '4px 0' }} />
+
+                                  {/* Remove column */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      dispatch(actions.toggleField(object.name, field.name));
+                                      setOpenFieldMenuId(null);
+                                    }}
+                                    className="w-full text-left py-2 text-sm hover-fast"
+                                    style={{
+                                      paddingLeft: '16px',
+                                      paddingRight: '16px',
+                                      color: '#E61947',
+                                      fontWeight: 400,
+                                      height: '32px',
+                                      cursor: 'pointer',
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                  >
+                                    <span>Remove column</span>
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  {/* Filter Options View */}
+                                  <div style={{ padding: '12px' }}>
+                                    <FieldFilter
+                                      field={field}
+                                      objectName={object.name}
+                                      currentFilter={activeFilter || undefined}
+                                      onFilterChange={(condition) => {
+                                        handleFilterChange(condition);
+                                        setShowFilterOptions(false);
+                                        setOpenFieldMenuId(null);
+                                      }}
+                                      onCancel={() => setShowFilterOptions(false)}
+                                      distinctValues={distinctValuesCache[field.name]}
+                                    />
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          onClick={handleFieldToggle}
+                          className="cursor-pointer"
+                          style={{
+                            backgroundColor: 'transparent',
+                            border: '1px solid var(--border-default)',
+                            borderRadius: '8px',
+                            height: '36px',
+                            paddingLeft: '8px',
+                            paddingRight: '8px',
+                            paddingTop: '6px',
+                            paddingBottom: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flex: 1,
+                            transition: 'background-color 100ms ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          {/* Plus icon (unselected) */}
+                          <div style={{
                             width: '16px',
                             height: '16px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
-                            color: isFieldSelected ? 'var(--data-chip-field-icon)' : 'var(--text-icon)'
-                          }}
-                        >
-                          {isFieldSelected ? (
-                            <svg
-                              width="12" 
-                              height="12" 
-                              viewBox="0 0 12 12" 
-                              fill="none"
-                              style={{
-                                transform: isFieldExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                                transition: 'transform 0.15s ease',
-                              }}
-                            >
-                              <path
-                                d="M4.5 2.5L8 6L4.5 9.5"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
+                            color: 'var(--text-muted)',
+                          }}>
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                              <circle cx="6" cy="6" r="5.25" stroke="currentColor" strokeWidth="1.5"/>
+                              <path d="M6 3.5V8.5M3.5 6H8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                             </svg>
-                          ) : (
-                            <svg
-                              width="12" 
-                              height="12" 
-                              viewBox="0 0 12 12" 
-                              fill="none"
-                            >
-                              <path
-                                d="M4.5 2.5L8 6L4.5 9.5"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          )}
-                        </div>
-                        
-                        <div className="truncate transition-colors" style={{
-                          color: isFieldSelected ? 'var(--data-chip-field-text)' : 'var(--text-secondary)',
-                          fontWeight: isFieldSelected ? 400 : 300,
-                          fontSize: '14px',
-                          lineHeight: '20px'
-                        }}>
-                          {/* Show only label for both selected and unselected */}
-                          {getFieldLabel(object.name, field.name)}
-                        </div>
-                        
-                        {/* Info icon on hover - always rendered for smooth animation */}
-                        <svg 
-                          width="12" 
-                          height="12" 
-                          viewBox="0 0 12 12" 
-                          fill="none" 
-                          xmlns="http://www.w3.org/2000/svg"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenDefinition(object.name, field.name);
-                          }}
-                          style={{
-                            flexShrink: 0,
-                            opacity: hoveredFieldChips[fieldId] ? 1 : 0,
-                            width: hoveredFieldChips[fieldId] ? '12px' : '0px',
-                            marginLeft: hoveredFieldChips[fieldId] ? '4px' : '0px',
-                            transition: 'opacity 0.2s ease, width 0.2s ease, margin-left 0.2s ease',
-                            overflow: 'hidden',
-                            cursor: hoveredFieldChips[fieldId] ? 'pointer' : 'default'
-                          }}
-                        >
-                          <path fillRule="evenodd" clipRule="evenodd" d="M8.75 1.75H3.25C2.42157 1.75 1.75 2.42157 1.75 3.25V8.75C1.75 9.57843 2.42157 10.25 3.25 10.25H8.75C9.57843 10.25 10.25 9.57843 10.25 8.75V3.25C10.25 2.42157 9.57843 1.75 8.75 1.75ZM3.25 0.25C1.59315 0.25 0.25 1.59315 0.25 3.25V8.75C0.25 10.4069 1.59315 11.75 3.25 11.75H8.75C10.4069 11.75 11.75 10.4069 11.75 8.75V3.25C11.75 1.59315 10.4069 0.25 8.75 0.25H3.25Z" fill={isFieldSelected ? 'white' : 'var(--text-icon)'}/>
-                          <path fillRule="evenodd" clipRule="evenodd" d="M4.48182 6.49998C4.48182 6.11338 4.79522 5.79998 5.18182 5.79998H6.27273C6.65933 5.79998 6.97273 6.11338 6.97273 6.49998V8.49998C6.97273 8.88658 6.65933 9.19998 6.27273 9.19998C5.88613 9.19998 5.57273 8.88658 5.57273 8.49998V7.19998H5.18182C4.79522 7.19998 4.48182 6.88658 4.48182 6.49998Z" fill={isFieldSelected ? 'white' : 'var(--text-icon)'}/>
-                          <path d="M4.99994 3.99999C4.99994 3.44858 5.44854 2.99999 5.99994 2.99999C6.55134 2.99999 6.99994 3.44858 6.99994 3.99999C6.99994 4.55139 6.55134 4.99999 5.99994 4.99999C5.44854 4.99999 4.99994 4.55139 4.99994 3.99999Z" fill={isFieldSelected ? 'white' : 'var(--text-icon)'}/>
-                        </svg>
-                        
-                        {/* Counter badge - hidden for now, may bring back later */}
-                        {false && isFieldSelected && fieldFilters.length > 0 && (
-                          <span
+                          </div>
+                          <div className="truncate transition-colors" style={{
+                            color: 'var(--text-secondary)',
+                            fontWeight: 400,
+                            fontSize: '14px',
+                            lineHeight: '20px',
+                            flex: 1,
+                            textAlign: 'left',
+                          }}>
+                            {getFieldLabel(object.name, field.name)}
+                          </div>
+
+                          {/* Info icon on hover */}
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenDefinition(object.name, field.name);
+                            }}
                             style={{
-                              backgroundColor: 'white',
-                              color: 'var(--data-chip-field-bg)',
-                              fontSize: '12px',
-                              fontWeight: 500,
-                              height: '16px',
-                              minWidth: '16px',
-                              borderRadius: '16px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              padding: '0 4px',
-                              marginLeft: '8px'
+                              flexShrink: 0,
+                              opacity: hoveredFieldRows[fieldId] ? 1 : 0,
+                              transition: 'opacity 100ms ease',
+                              cursor: 'pointer',
+                              color: 'var(--text-muted)',
                             }}
                           >
-                            {fieldFilters.length}
-                          </span>
-                        )}
-                      </div>
-                      
-                      {/* Trash icon - only show for selected fields on row hover */}
-                      {isFieldSelected && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 12 12"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            dispatch(actions.toggleField(object.name, field.name));
-                          }}
-                          style={{
-                            position: 'absolute',
-                            right: 0,
-                            opacity: hoveredFieldRows[fieldId] ? 1 : 0,
-                            transition: 'opacity 100ms ease-in-out',
-                            cursor: hoveredFieldRows[fieldId] ? 'pointer' : 'default',
-                            pointerEvents: hoveredFieldRows[fieldId] ? 'auto' : 'none',
-                            fill: 'var(--text-icon)'
-                          }}
-                        >
-                          <path fillRule="evenodd" clipRule="evenodd" d="M8.99998 3V1.5C8.99998 0.671573 8.3284 0 7.49998 0H4.49998C3.67155 0 2.99998 0.671573 2.99998 1.5V3H0.75C0.335786 3 0 3.33579 0 3.75C0 4.16421 0.335786 4.5 0.75 4.5H1.49998V10C1.49998 11.1046 2.39541 12 3.49998 12H8.49998C9.60454 12 10.5 11.1046 10.5 10V4.5H11.25C11.6642 4.5 12 4.16421 12 3.75C12 3.33579 11.6642 3 11.25 3H8.99998ZM7.49998 1.4H4.49998C4.44475 1.4 4.39998 1.44477 4.39998 1.5V3H7.59998V1.5C7.59998 1.44477 7.5552 1.4 7.49998 1.4ZM9.09998 4.5V10C9.09998 10.3314 8.83135 10.6 8.49998 10.6H3.49998C3.1686 10.6 2.89998 10.3314 2.89998 10V4.5H9.09998Z" fill="#474E5A"/>
-                          <path fillRule="evenodd" clipRule="evenodd" d="M4.62498 5.5C4.97015 5.5 5.24998 5.77982 5.24998 6.125V8.875C5.24998 9.22018 4.97015 9.5 4.62498 9.5C4.2798 9.5 3.99998 9.22018 3.99998 8.875V6.125C3.99998 5.77982 4.2798 5.5 4.62498 5.5Z" fill="#474E5A"/>
-                          <path fillRule="evenodd" clipRule="evenodd" d="M7.37498 5.5C7.72015 5.5 7.99998 5.77982 7.99998 6.125V8.875C7.99998 9.22018 7.72015 9.5 7.37498 9.5C7.0298 9.5 6.74998 9.22018 6.74998 8.875V6.125C6.74998 5.77982 7.0298 5.5 7.37498 5.5Z" fill="#474E5A"/>
-                        </svg>
+                            <path fillRule="evenodd" clipRule="evenodd" d="M8.75 1.75H3.25C2.42157 1.75 1.75 2.42157 1.75 3.25V8.75C1.75 9.57843 2.42157 10.25 3.25 10.25H8.75C9.57843 10.25 10.25 9.57843 10.25 8.75V3.25C10.25 2.42157 9.57843 1.75 8.75 1.75ZM3.25 0.25C1.59315 0.25 0.25 1.59315 0.25 3.25V8.75C0.25 10.4069 1.59315 11.75 3.25 11.75H8.75C10.4069 11.75 11.75 10.4069 11.75 8.75V3.25C11.75 1.59315 10.4069 0.25 8.75 0.25H3.25Z" fill="currentColor"/>
+                            <path fillRule="evenodd" clipRule="evenodd" d="M4.48182 6.49998C4.48182 6.11338 4.79522 5.79998 5.18182 5.79998H6.27273C6.65933 5.79998 6.97273 6.11338 6.97273 6.49998V8.49998C6.97273 8.88658 6.65933 9.19998 6.27273 9.19998C5.88613 9.19998 5.57273 8.88658 5.57273 8.49998V7.19998H5.18182C4.79522 7.19998 4.48182 6.88658 4.48182 6.49998Z" fill="currentColor"/>
+                            <path d="M4.99994 3.99999C4.99994 3.44858 5.44854 2.99999 5.99994 2.99999C6.55134 2.99999 6.99994 3.44858 6.99994 3.99999C6.99994 4.55139 6.55134 4.99999 5.99994 4.99999C5.44854 4.99994 4.99994 4.55139 4.99994 3.99999Z" fill="currentColor"/>
+                          </svg>
+                        </div>
                       )}
                     </div>
-                    
-                    {/* Filter chip when field is expanded but filter block is not expanded */}
-                    {isFieldExpanded && !isFilterExpanded && (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onFilterExpandChange(filterId, true);
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.border = '2px solid var(--data-chip-filter-border)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.border = '2px solid transparent';
-                        }}
-                        className="cursor-pointer"
-                        style={{
-                          backgroundColor: 'var(--data-chip-filter-bg)',
-                          border: '2px solid transparent',
-                          borderRadius: '10px',
-                          height: '32px',
-                          paddingLeft: '6px',
-                          paddingRight: '12px',
-                          paddingTop: '6px',
-                          paddingBottom: '6px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          marginTop: '12px',
-                          marginLeft: '36px',
-                          width: 'fit-content',
-                          transition: 'border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                        }}
-                        data-connection-id={isFieldExpanded ? `filter-${object.name}.${field.name}` : undefined}
-                      >
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="var(--data-chip-filter-icon)"/>
-                          <rect x="3" y="7" width="10" height="1.5" rx="0.75" fill="var(--data-chip-filter-icon)"/>
-                          <rect x="5" y="11" width="6" height="1.5" rx="0.75" fill="var(--data-chip-filter-icon)"/>
-                        </svg>
-                        <span style={{
-                          color: 'var(--data-chip-filter-text)',
-                          fontSize: '14px',
-                          fontWeight: 400,
-                          lineHeight: '20px'
-                        }}>
-                          {activeFilter ? getFilterDescription() : 'Add a filter'}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* Filter controls when expanded */}
-                    {isFieldExpanded && isFilterExpanded && (
-                      <div 
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.border = '2px solid var(--data-chip-filter-border)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.border = '2px solid transparent';
-                        }}
-                        style={{
-                          backgroundColor: 'var(--data-chip-filter-bg)',
-                          border: '2px solid transparent',
-                          borderRadius: '16px',
-                          marginTop: '12px',
-                          marginLeft: '36px',
-                          transition: 'border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                        }}
-                        data-connection-id={isFieldExpanded ? `filter-${object.name}.${field.name}` : undefined}
-                      >
-                        {/* Filter header (like collapsed state) */}
-                        <div
-                          onClick={() => onFilterExpandChange(filterId, false)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '12px',
-                            cursor: 'pointer'
-                          }}
-                            >
-                              <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 16 16"
-                                fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="var(--data-chip-filter-icon)"/>
-                            <rect x="3" y="7" width="10" height="1.5" rx="0.75" fill="var(--data-chip-filter-icon)"/>
-                            <rect x="5" y="11" width="6" height="1.5" rx="0.75" fill="var(--data-chip-filter-icon)"/>
-                              </svg>
-                          <span style={{
-                            color: 'var(--data-chip-filter-text)',
-                            fontSize: '14px',
-                            fontWeight: 400,
-                            lineHeight: '20px',
-                            flex: 1
-                          }}>
-                            {activeFilter ? getFilterDescription() : 'Add a filter'}
-                          </span>
-                    </div>
-                    
-                        {/* Filter controls */}
-                        <div style={{ padding: '0 12px 12px 12px' }}>
-                      <FieldFilter
-                        field={field}
-                        objectName={object.name}
-                            currentFilter={activeFilter || undefined}
-                        onFilterChange={handleFilterChange}
-                            onCancel={() => onFilterExpandChange(filterId, false)}
-                        distinctValues={distinctValuesCache[field.name]}
-                      />
-                        </div>
-                      </div>
-                    )}
-                    
                   </div>
                 );
               })}
@@ -817,31 +931,118 @@ ObjectCard.displayName = 'ObjectCard';
 const PackageCard = forwardRef<HTMLDivElement, {
   packageId: string;
   searchQuery: string;
-  expandedFields: Record<string, boolean>;
-  onFieldExpandChange: (fieldId: string, isExpanded: boolean) => void;
-  expandedFilters: Record<string, boolean>;
-  onFilterExpandChange: (filterId: string, isExpanded: boolean) => void;
   showAllFields: boolean;
   onShowAllFieldsChange: (showAll: boolean) => void;
   onOpenDefinition: (tableName: string, fieldName?: string) => void;
 }>(
-({ packageId, searchQuery, expandedFields, onFieldExpandChange, expandedFilters, onFilterExpandChange, showAllFields, onShowAllFieldsChange, onOpenDefinition }, ref) => {
+({ packageId, searchQuery, showAllFields, onShowAllFieldsChange, onOpenDefinition }, ref) => {
   const { state, dispatch } = useApp();
   const { store: warehouse, version } = useWarehouseStore();
   const pkg = getPackage(packageId);
   
   const [hoveredFieldChips, setHoveredFieldChips] = useState<Record<string, boolean>>({});
   const [hoveredFieldRows, setHoveredFieldRows] = useState<Record<string, boolean>>({});
+  const [hoveredInfoIcons, setHoveredInfoIcons] = useState<Record<string, boolean>>({});
+
+  // Drag-and-drop reorder for selected fields (vertical list)
+  const [draggedField, setDraggedField] = useState<string | null>(null);
+  const [dragOverField, setDragOverField] = useState<string | null>(null);
+
+  // Field options popover (DataList-style menu)
+  const [openFieldMenuId, setOpenFieldMenuId] = useState<string | null>(null);
+  const [showFilterOptions, setShowFilterOptions] = useState(false);
+  const fieldMenuRef = useRef<HTMLDivElement>(null);
+
+  const selectedQualifiedFields = useMemo(() => {
+    return state.selectedFields.map((f) => `${f.object}.${f.field}`);
+  }, [state.selectedFields]);
+
+  const getCurrentFieldOrder = useMemo(() => {
+    const ordered = (state.fieldOrder.length > 0 ? state.fieldOrder : selectedQualifiedFields).filter((k) =>
+      selectedQualifiedFields.includes(k)
+    );
+    const missing = selectedQualifiedFields.filter((k) => !ordered.includes(k));
+    return [...ordered, ...missing];
+  }, [state.fieldOrder, selectedQualifiedFields]);
+
+  const fieldOrderIndex = useMemo(() => {
+    const map = new Map<string, number>();
+    getCurrentFieldOrder.forEach((k, idx) => map.set(k, idx));
+    return map;
+  }, [getCurrentFieldOrder]);
+
+  const handleFieldDragStart = (e: DragEvent, qualifiedName: string) => {
+    setDraggedField(qualifiedName);
+    e.dataTransfer.effectAllowed = 'move';
+    if (e.currentTarget instanceof HTMLElement) {
+      e.dataTransfer.setDragImage(e.currentTarget, 0, 0);
+    }
+  };
+
+  const handleFieldDragOver = (e: DragEvent, targetQualifiedName: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedField && draggedField !== targetQualifiedName) {
+      setDragOverField(targetQualifiedName);
+    }
+  };
+
+  const handleFieldDragLeave = () => {
+    setDragOverField(null);
+  };
+
+  const handleFieldDrop = (e: DragEvent, targetQualifiedName: string) => {
+    e.preventDefault();
+    setDragOverField(null);
+
+    if (!draggedField || draggedField === targetQualifiedName) {
+      setDraggedField(null);
+      return;
+    }
+
+    const currentOrder = [...getCurrentFieldOrder];
+    const draggedIndex = currentOrder.indexOf(draggedField);
+    const targetIndex = currentOrder.indexOf(targetQualifiedName);
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedField(null);
+      return;
+    }
+
+    const newOrder = [...currentOrder];
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(targetIndex, 0, draggedField);
+    dispatch(actions.reorderFields(newOrder));
+    setDraggedField(null);
+  };
+
+  const handleFieldDragEnd = () => {
+    setDraggedField(null);
+    setDragOverField(null);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!openFieldMenuId) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      
+      // Don't close if clicking on a field button
+      if (target.closest('button[data-field-menu]')) {
+        return;
+      }
+      
+      if (fieldMenuRef.current && !fieldMenuRef.current.contains(target)) {
+        setOpenFieldMenuId(null);
+        setShowFilterOptions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openFieldMenuId]);
   
   if (!pkg) return null;
-  
-  // Helper to convert to sentence case, preserving "ID" as uppercase
-  const toSentenceCase = (str: string) => {
-    if (!str) return str;
-    const sentenceCase = str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-    // Preserve "ID" as uppercase
-    return sentenceCase.replace(/\bid\b/gi, 'ID');
-  };
 
   // Helper to build field metadata
   const buildFieldMeta = (objectName: string, fieldName: string, isCurated: boolean) => {
@@ -849,8 +1050,8 @@ const PackageCard = forwardRef<HTMLDivElement, {
     const schemaField = schemaObj?.fields.find(f => f.name === fieldName);
     if (!schemaObj || !schemaField) return null;
     
-    const fullLabel = `${schemaObj.label} ${schemaField.label}`;
-    const displayLabel = toSentenceCase(fullLabel);
+    // Use just the field label to match DataList headers
+    const displayLabel = schemaField.label;
     return {
       object: objectName,
       field: fieldName,
@@ -919,6 +1120,13 @@ const PackageCard = forwardRef<HTMLDivElement, {
   const selectedFields = sortedFields.filter(f => 
     state.selectedFields.some(sf => sf.object === f.object && sf.field === f.field)
   );
+  const orderedSelectedFields = [...selectedFields].sort((a, b) => {
+    const aKey = `${a.object}.${a.field}`;
+    const bKey = `${b.object}.${b.field}`;
+    const aIdx = fieldOrderIndex.get(aKey) ?? Number.MAX_SAFE_INTEGER;
+    const bIdx = fieldOrderIndex.get(bKey) ?? Number.MAX_SAFE_INTEGER;
+    return aIdx - bIdx;
+  });
   const unselectedFields = sortedFields.filter(f => 
     !state.selectedFields.some(sf => sf.object === f.object && sf.field === f.field)
   );
@@ -934,7 +1142,7 @@ const PackageCard = forwardRef<HTMLDivElement, {
     : unselectedFields.slice(0, Math.max(0, DEFAULT_EXPOSED_COUNT - selectedFieldCount));
   
   // Fields to render - selected fields + exposed unselected fields
-  const fieldsToRender = [...selectedFields, ...exposedUnselectedFields];
+  const fieldsToRender = [...orderedSelectedFields, ...exposedUnselectedFields];
   
   const hiddenFieldCount = unselectedFields.length - exposedUnselectedFields.length;
   const shouldShowMoreButton = !showAllFields && hiddenFieldCount > 0 && !searchQuery;
@@ -971,85 +1179,24 @@ const PackageCard = forwardRef<HTMLDivElement, {
       className="transition-colors relative" 
       style={{ zIndex: 2, marginBottom: '16px' }}
     >
-      {/* Package header - always visible, no collapse/expand */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 min-w-0">
-          <div 
-            style={{ 
-              display: 'inline-flex',
-              alignItems: 'center',
-              height: '32px',
-              paddingLeft: '0px',
-              paddingRight: '12px',
-            }}
-          >
-            <span 
-              className="truncate" 
-              style={{ 
-                color: 'var(--text-primary)',
-                fontSize: '14px',
-                fontWeight: 600,
-                lineHeight: '20px'
-              }}
-            >
-              {pkg.label}
-            </span>
-            
-            {/* Counter badge - hidden for now, may bring back later */}
-            {false && selectedFieldCount > 0 && (
-              <span
-                style={{
-                  backgroundColor: 'white',
-                  color: 'var(--data-chip-table-bg)',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  height: '16px',
-                  minWidth: '16px',
-                  borderRadius: '16px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0 4px',
-                  marginLeft: '8px'
-                }}
-              >
-                {selectedFieldCount}
-              </span>
-            )}
-          </div>
-          {/* Package description - connector line starts from here */}
-          <p 
-            data-connection-id={`package-${packageId}`}
-            style={{ 
-              color: 'var(--text-muted)', 
-              fontSize: '13px', 
-              marginTop: '4px',
-              lineHeight: '1.4',
-            }}
-          >
-            {pkg.description}
-          </p>
-        </div>
-      </div>
-
       {/* Field list - always visible */}
       {true && (
-        <div style={{ marginLeft: '36px', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }} role="group" aria-label={`${pkg.label} fields`}>
+        <div
+          style={{ marginLeft: '0px', marginTop: '0px', display: 'flex', flexDirection: 'column', gap: '12px' }}
+          role="group"
+          aria-label="Package fields"
+        >
           {fieldsToRender.map((pf) => {
             const isFieldSelected = state.selectedFields.some(
               (f) => f.object === pf.object && f.field === pf.field
             );
             const fieldId = `${pf.object}.${pf.field}`;
-            const filterId = fieldId;
             
             // Get all filters for this field
             const fieldFilters = state.filters.conditions.filter(
               c => c.field.object === pf.object && c.field.field === pf.field
             );
             const activeFilter = fieldFilters[0] || null;
-            
-            const isFieldExpanded = expandedFields[fieldId] ?? (fieldFilters.length > 0);
-            const isFilterExpanded = expandedFilters[filterId] || false;
             
             // Get schema field for filter component
             const schemaObj = schema.objects.find(o => o.name === pf.object);
@@ -1083,254 +1230,394 @@ const PackageCard = forwardRef<HTMLDivElement, {
               }
               dispatch(actions.toggleField(pf.object, pf.field));
             };
-
-            const handleChipClick = () => {
-              if (isFieldSelected) {
-                onFieldExpandChange(fieldId, !isFieldExpanded);
-              } else {
-                handleFieldToggle();
-              }
-            };
-            
-            // Generate filter description
-            const getFilterDescription = () => {
-              if (!activeFilter) return 'Filter';
-              const { operator, value } = activeFilter;
-              
-              if (value === '' || value === null || value === undefined || 
-                  (Array.isArray(value) && value.length === 0)) {
-                return 'Filter for blank';
-              }
-              
-              if (pf.fieldType === 'boolean') {
-                return value === true ? 'Filter for true' : 'Filter for false';
-              }
-              
-              if (Array.isArray(value)) {
-                if (value.length === 1) return `Filter for ${value[0]}`;
-                return `Filter for ${value.length} values`;
-              }
-              
-              if (typeof value === 'string') {
-                const displayValue = value.length > 20 ? `${value.substring(0, 20)}...` : value;
-                return `Filter for ${displayValue}`;
-              }
-              
-              return 'Filter';
-            };
             
             return (
               <div key={fieldId}>
-                <div 
-                  className="text-xs group transition-colors relative"
-                  data-connection-id={isFieldSelected ? `field-${fieldId}` : undefined}
+                <div
+                  className="flex items-center gap-2 text-xs group transition-colors relative"
                   onMouseEnter={() => setHoveredFieldRows(prev => ({ ...prev, [fieldId]: true }))}
                   onMouseLeave={() => setHoveredFieldRows(prev => ({ ...prev, [fieldId]: false }))}
-                  style={{ position: 'relative', paddingRight: isFieldSelected ? '28px' : '0' }}
+                  onDragOver={isFieldSelected ? (e) => handleFieldDragOver(e, fieldId) : undefined}
+                  onDragLeave={isFieldSelected ? handleFieldDragLeave : undefined}
+                  onDrop={isFieldSelected ? (e) => handleFieldDrop(e, fieldId) : undefined}
+                  style={{
+                    position: 'relative',
+                    paddingTop: dragOverField === fieldId ? '6px' : undefined,
+                    borderTop: dragOverField === fieldId ? '2px solid #675DFF' : undefined,
+                  }}
                 >
-                  {/* Field chip */}
-                  <div 
-                    onClick={handleChipClick}
-                    onMouseEnter={(e) => {
-                      setHoveredFieldChips(prev => ({ ...prev, [fieldId]: true }));
-                      e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                    }}
-                    onMouseLeave={(e) => {
-                      setHoveredFieldChips(prev => ({ ...prev, [fieldId]: false }));
-                      e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                    }}
-                    className="cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderRadius: '10px',
-                      minHeight: '32px',
-                      paddingLeft: '6px',
-                      paddingRight: '12px',
-                      paddingTop: '6px',
-                      paddingBottom: '6px',
-                      display: 'inline-flex',
-                      alignItems: 'flex-start',
-                      gap: '4px',
-                      transition: 'background-color 100ms ease',
-                    }}
-                  >
-                    {/* Icon - chevron for selected, circle+plus for unselected */}
-                    <div 
+                  {/* Field chip - full width with drag handle inside */}
+                  {isFieldSelected && schemaField ? (
+                    <div style={{ position: 'relative', display: 'flex', flex: 1, alignItems: 'center', gap: '8px' }}>
+                      <button
+                        data-field-menu
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenFieldMenuId(openFieldMenuId === fieldId ? null : fieldId);
+                          setShowFilterOptions(false);
+                        }}
+                        onDragOver={(e) => handleFieldDragOver(e, fieldId)}
+                        onDragLeave={handleFieldDragLeave}
+                        onDrop={(e) => handleFieldDrop(e, fieldId)}
+                        onMouseEnter={() => setHoveredFieldChips(prev => ({ ...prev, [fieldId]: true }))}
+                        onMouseLeave={() => setHoveredFieldChips(prev => ({ ...prev, [fieldId]: false }))}
+                        className="cursor-pointer hover-fast"
+                        style={{
+                          backgroundColor: 'transparent',
+                          borderWidth: '1px',
+                          borderStyle: 'solid',
+                          borderColor: hoveredFieldChips[fieldId] ? 'var(--border-subtle)' : 'var(--border-default)',
+                          borderRadius: '8px',
+                          minHeight: '44px',
+                          paddingLeft: '8px',
+                          paddingRight: '8px',
+                          paddingTop: '6px',
+                          paddingBottom: '6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          transition: 'border-color 100ms ease, background-color 100ms ease',
+                          flex: 1,
+                        }}
+                      >
+                        {/* Drag handle - now inside and always visible */}
+                    <div
+                      draggable={true}
+                      onDragStart={(e) => {
+                        e.stopPropagation();
+                        handleFieldDragStart(e, fieldId);
+                      }}
+                      onDragEnd={handleFieldDragEnd}
+                          className="cursor-move"
                       style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                            width: '16px',
+                            height: '16px',
+                        flexShrink: 0,
+                            color: hoveredFieldChips[fieldId] ? 'var(--text-primary)' : 'var(--text-muted)',
+                            transition: 'color 100ms ease',
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Drag to reorder field"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 10.125C3 10.7463 3.50368 11.25 4.125 11.25C4.74632 11.25 5.25 10.7463 5.25 10.125C5.25 9.50368 4.74632 9 4.125 9C3.50368 9 3 9.50368 3 10.125Z" fill="currentColor"/>
+                            <path d="M6.75 10.125C6.75 10.7463 7.25368 11.25 7.875 11.25C8.49632 11.25 9 10.7463 9 10.125C9 9.50368 8.49632 9 7.875 9C7.25368 9 6.75 9.50368 6.75 10.125Z" fill="currentColor"/>
+                            <path d="M3 1.875C3 2.49632 3.50368 3 4.125 3C4.74632 3 5.25 2.49632 5.25 1.875C5.25 1.25368 4.74632 0.75 4.125 0.75C3.50368 0.75 3 1.25368 3 1.875Z" fill="currentColor"/>
+                            <path d="M6.75 1.875C6.75 2.49632 7.25368 3 7.875 3C8.49632 3 9 2.49632 9 1.875C9 1.25368 8.49632 0.75 7.875 0.75C7.25368 0.75 6.75 1.25368 6.75 1.875Z" fill="currentColor"/>
+                            <path d="M3 6C3 6.62132 3.50368 7.125 4.125 7.125C4.74632 7.125 5.25 6.62132 5.25 6C5.25 5.37868 4.74632 4.875 4.125 4.875C3.50368 4.875 3 5.37868 3 6Z" fill="currentColor"/>
+                            <path d="M6.75 6C6.75 6.62132 7.25368 7.125 7.875 7.125C8.49632 7.125 9 6.62132 9 6C9 5.37868 8.49632 4.875 7.875 4.875C7.25368 4.875 6.75 5.37868 6.75 6Z" fill="currentColor"/>
+                      </svg>
+                    </div>
+
+                        {/* Field label - data list style with name and path */}
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                          <div className="truncate" style={{
+                            color: 'var(--text-primary)',
+                            fontWeight: 400,
+                            fontSize: '14px',
+                            lineHeight: '20px',
+                            textAlign: 'left',
+                          }}>
+                            {pf.displayLabel}
+                          </div>
+                          <div className="truncate" style={{
+                            color: 'var(--text-muted)',
+                            fontWeight: 400,
+                            fontSize: '11px',
+                            lineHeight: '16px',
+                            textAlign: 'left',
+                            fontFamily: 'monospace',
+                          }}>
+                            {pf.object}.{pf.field}
+                          </div>
+                        </div>
+
+                        {/* Info icon on hover */}
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenDefinition(pf.object, pf.field);
+                          }}
+                          onMouseEnter={() => setHoveredInfoIcons(prev => ({ ...prev, [fieldId]: true }))}
+                          onMouseLeave={() => setHoveredInfoIcons(prev => ({ ...prev, [fieldId]: false }))}
+                          style={{
+                            flexShrink: 0,
+                            opacity: hoveredFieldRows[fieldId] ? 1 : 0,
+                            transition: 'opacity 100ms ease, color 100ms ease',
+                            cursor: 'pointer',
+                            color: hoveredInfoIcons[fieldId] ? 'var(--text-primary)' : 'var(--text-muted)',
+                          }}
+                        >
+                          <path fillRule="evenodd" clipRule="evenodd" d="M8.75 1.75H3.25C2.42157 1.75 1.75 2.42157 1.75 3.25V8.75C1.75 9.57843 2.42157 10.25 3.25 10.25H8.75C9.57843 10.25 10.25 9.57843 10.25 8.75V3.25C10.25 2.42157 9.57843 1.75 8.75 1.75ZM3.25 0.25C1.59315 0.25 0.25 1.59315 0.25 3.25V8.75C0.25 10.4069 1.59315 11.75 3.25 11.75H8.75C10.4069 11.75 11.75 10.4069 11.75 8.75V3.25C11.75 1.59315 10.4069 0.25 8.75 0.25H3.25Z" fill="currentColor"/>
+                          <path fillRule="evenodd" clipRule="evenodd" d="M4.48182 6.49998C4.48182 6.11338 4.79522 5.79998 5.18182 5.79998H6.27273C6.65933 5.79998 6.97273 6.11338 6.97273 6.49998V8.49998C6.97273 8.88658 6.65933 9.19998 6.27273 9.19998C5.88613 9.19998 5.57273 8.88658 5.57273 8.49998V7.19998H5.18182C4.79522 7.19998 4.48182 6.88658 4.48182 6.49998Z" fill="currentColor"/>
+                          <path d="M4.99994 3.99999C4.99994 3.44858 5.44854 2.99999 5.99994 2.99999C6.55134 2.99999 6.99994 3.44858 6.99994 3.99999C6.99994 4.55139 6.55134 4.99999 5.99994 4.99999C5.44854 4.99994 4.99994 4.55139 4.99994 3.99999Z" fill="currentColor"/>
+                        </svg>
+                      </button>
+
+                      {/* Filter button - outside the chip, show on hover or when active */}
+                      <FilterPopover
+                        field={schemaField}
+                        objectName={pf.object}
+                        currentFilter={activeFilter || undefined}
+                        onFilterChange={handleFilterChange}
+                        distinctValues={distinctValuesCache[fieldId]}
+                        hasActiveFilter={fieldFilters.length > 0}
+                        unstyled={true}
+                      trigger={
+                        <div
+                            className="hover-fast"
+                            style={{ 
+                              backgroundColor: fieldFilters.length > 0 ? '#3F4652' : 'transparent',
+                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              cursor: 'pointer',
+                              flexShrink: 0,
+                              opacity: fieldFilters.length > 0 || hoveredFieldRows[fieldId] ? 1 : 0,
+                              transition: 'opacity 100ms ease, background-color 100ms ease',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = fieldFilters.length > 0 ? '#3F4652' : 'var(--bg-surface)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = fieldFilters.length > 0 ? '#3F4652' : 'transparent'}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill={fieldFilters.length > 0 ? '#FFFFFF' : '#474E5A'}/>
+                              <rect x="3" y="7" width="10" height="1.5" rx="0.75" fill={fieldFilters.length > 0 ? '#FFFFFF' : '#474E5A'}/>
+                              <rect x="5" y="11" width="6" height="1.5" rx="0.75" fill={fieldFilters.length > 0 ? '#FFFFFF' : '#474E5A'}/>
+                            </svg>
+                          </div>
+                        }
+                      />
+
+                      {/* Column dropdown menu - matching DataList style */}
+                      {openFieldMenuId === fieldId && (
+                        <div
+                          ref={fieldMenuRef}
+                          className="absolute py-1 z-50"
+                          style={{
+                            top: '36px',
+                            left: '0px',
+                            marginTop: 0,
+                            borderRadius: '16px',
+                            minWidth: showFilterOptions ? '280px' : '180px',
+                            boxShadow: '0 5px 15px rgba(0, 0, 0, 0.16)',
+                            backgroundColor: 'var(--bg-elevated)'
+                          }}
+                        >
+                          {!showFilterOptions ? (
+                            <>
+                              {/* Sort Descending */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  dispatch(actions.setDataListSort(fieldId, 'desc'));
+                                  setOpenFieldMenuId(null);
+                                }}
+                                className="w-full text-left py-2 text-sm hover-fast flex items-center justify-between"
+                          style={{
+                                  paddingLeft: '16px',
+                                  paddingRight: '16px',
+                                  color: 'var(--text-primary)',
+                                  fontWeight: 400,
+                                  height: '32px',
+                                  cursor: 'pointer',
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              >
+                                <span>Sort descending</span>
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M7 3V11M7 11L4 8M7 11L10 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+
+                              {/* Sort Ascending */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  dispatch(actions.setDataListSort(fieldId, 'asc'));
+                                  setOpenFieldMenuId(null);
+                                }}
+                                className="w-full text-left py-2 text-sm hover-fast flex items-center justify-between"
+                                style={{
+                                  paddingLeft: '16px',
+                                  paddingRight: '16px',
+                            color: 'var(--text-primary)',
+                            fontWeight: 400,
+                                  height: '32px',
+                                  cursor: 'pointer',
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              >
+                                <span>Sort ascending</span>
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M7 11V3M7 3L4 6M7 3L10 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+
+                              {/* Add filter */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowFilterOptions(true);
+                                }}
+                                className="w-full text-left py-2 text-sm flex items-center justify-between hover-fast"
+                                style={{
+                                  paddingLeft: '16px',
+                                  paddingRight: '16px',
+                                  color: 'var(--text-primary)',
+                                  fontWeight: 400,
+                                  height: '32px',
+                                  cursor: 'pointer',
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              >
+                                <span>Add filter</span>
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="1" y="3" width="14" height="1.5" rx="0.75" fill="#474E5A"/>
+                                <rect x="3" y="7" width="10" height="1.5" rx="0.75" fill="#474E5A"/>
+                                <rect x="5" y="11" width="6" height="1.5" rx="0.75" fill="#474E5A"/>
+                              </svg>
+                              </button>
+
+                              {/* Divider */}
+                              <div style={{ height: '1px', backgroundColor: 'var(--bg-surface)', margin: '4px 0' }} />
+
+                              {/* Remove column */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  dispatch(actions.toggleField(pf.object, pf.field));
+                                  setOpenFieldMenuId(null);
+                                }}
+                                className="w-full text-left py-2 text-sm hover-fast"
+                                style={{
+                                  paddingLeft: '16px',
+                                  paddingRight: '16px',
+                                  color: '#E61947',
+                                  fontWeight: 400,
+                                  height: '32px',
+                                  cursor: 'pointer',
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              >
+                                <span>Remove column</span>
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              {/* Filter Options View */}
+                              <div style={{ padding: '12px' }}>
+                                <FieldFilter
+                                  field={schemaField}
+                                  objectName={pf.object}
+                                  currentFilter={activeFilter || undefined}
+                                  onFilterChange={(condition) => {
+                                    handleFilterChange(condition);
+                                    setShowFilterOptions(false);
+                                    setOpenFieldMenuId(null);
+                                  }}
+                                  onCancel={() => setShowFilterOptions(false)}
+                                  distinctValues={distinctValuesCache[fieldId]}
+                                />
+                            </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      onClick={handleFieldToggle}
+                      className="cursor-pointer"
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: '1px solid var(--border-default)',
+                        borderRadius: '8px',
+                        height: '36px',
+                        paddingLeft: '8px',
+                        paddingRight: '8px',
+                        paddingTop: '6px',
+                        paddingBottom: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        flex: 1,
+                        transition: 'background-color 100ms ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <div style={{
                         width: '16px',
                         height: '16px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexShrink: 0,
-                        color: 'var(--text-icon)',
-                        marginTop: '2px',
-                      }}
-                    >
-                      {isFieldSelected ? (
-                        <svg
-                          width="12" 
-                          height="12" 
-                          viewBox="0 0 12 12" 
-                          fill="none"
-                          style={{
-                            transform: isFieldExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                            transition: 'transform 0.15s ease',
-                          }}
-                        >
-                          <path
-                            d="M4.5 2.5L8 6L4.5 9.5"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      ) : (
+                        color: 'var(--text-muted)',
+                      }}>
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                           <circle cx="6" cy="6" r="5.25" stroke="currentColor" strokeWidth="1.5"/>
                           <path d="M6 3.5V8.5M3.5 6H8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                         </svg>
-                      )}
-                    </div>
-                    
-                    {/* Field label with source */}
-                    <div style={{
-                      color: 'var(--text-primary)',
-                      fontWeight: 400,
-                      fontSize: '14px',
-                      lineHeight: '20px',
-                    }}>
-                      {pf.displayLabel}
-                    </div>
-                    
-                    {/* Filter count badge - hidden for now, may bring back later */}
-                    {false && isFieldSelected && fieldFilters.length > 0 && (
-                      <span
-                        style={{
-                          backgroundColor: 'white',
-                          color: 'var(--data-chip-field-bg)',
-                          fontSize: '12px',
-                          fontWeight: 500,
-                          height: '16px',
-                          minWidth: '16px',
-                          borderRadius: '16px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '0 4px',
-                          marginLeft: '4px'
-                        }}
-                      >
-                        {fieldFilters.length}
-                      </span>
-                    )}
-                  </div>
-                  
-                  {/* Remove button on hover */}
-                  {isFieldSelected && hoveredFieldRows[fieldId] && (
-                    <button
+                      </div>
+                      <div style={{
+                        color: 'var(--text-secondary)',
+                        fontWeight: 400,
+                        fontSize: '14px',
+                        lineHeight: '20px',
+                        flex: 1,
+                        textAlign: 'left',
+                      }}>
+                        {pf.displayLabel}
+                      </div>
+
+                      {/* Info icon on hover */}
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
                       onClick={(e) => {
                         e.stopPropagation();
-                        dispatch(actions.toggleField(pf.object, pf.field));
+                          onOpenDefinition(pf.object, pf.field);
                       }}
                       style={{
-                        position: 'absolute',
-                        right: '-8px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-default)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                          flexShrink: 0,
+                          opacity: hoveredFieldRows[fieldId] ? 1 : 0,
+                          transition: 'opacity 100ms ease',
                         cursor: 'pointer',
                         color: 'var(--text-muted)',
-                        padding: 0,
                       }}
-                      title="Remove field"
                     >
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                        <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M8.75 1.75H3.25C2.42157 1.75 1.75 2.42157 1.75 3.25V8.75C1.75 9.57843 2.42157 10.25 3.25 10.25H8.75C9.57843 10.25 10.25 9.57843 10.25 8.75V3.25C10.25 2.42157 9.57843 1.75 8.75 1.75ZM3.25 0.25C1.59315 0.25 0.25 1.59315 0.25 3.25V8.75C0.25 10.4069 1.59315 11.75 3.25 11.75H8.75C10.4069 11.75 11.75 10.4069 11.75 8.75V3.25C11.75 1.59315 10.4069 0.25 8.75 0.25H3.25Z" fill="currentColor"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M4.48182 6.49998C4.48182 6.11338 4.79522 5.79998 5.18182 5.79998H6.27273C6.65933 5.79998 6.97273 6.11338 6.97273 6.49998V8.49998C6.97273 8.88658 6.65933 9.19998 6.27273 9.19998C5.88613 9.19998 5.57273 8.88658 5.57273 8.49998V7.19998H5.18182C4.79522 7.19998 4.48182 6.88658 4.48182 6.49998Z" fill="currentColor"/>
+                        <path d="M4.99994 3.99999C4.99994 3.44858 5.44854 2.99999 5.99994 2.99999C6.55134 2.99999 6.99994 3.44858 6.99994 3.99999C6.99994 4.55139 6.55134 4.99999 5.99994 4.99999C5.44854 4.99994 4.99994 4.55139 4.99994 3.99999Z" fill="currentColor"/>
                       </svg>
-                    </button>
+                    </div>
                   )}
                 </div>
-                
-                {/* Filter section - shown when field is expanded */}
-                {isFieldSelected && isFieldExpanded && schemaField && (
-                  <div style={{ marginLeft: '36px', marginTop: '12px' }}>
-                    {/* Filter chip row */}
-                    <div className="flex items-center gap-2">
-                      <div 
-                        onClick={() => onFilterExpandChange(filterId, !isFilterExpanded)}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                        }}
-                        className="cursor-pointer"
-                        style={{
-                          backgroundColor: 'var(--bg-surface)',
-                          borderRadius: '10px',
-                          height: '32px',
-                          paddingLeft: '6px',
-                          paddingRight: '12px',
-                          paddingTop: '6px',
-                          paddingBottom: '6px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          transition: 'background-color 100ms ease',
-                          width: 'fit-content'
-                        }}
-                        data-connection-id={activeFilter ? `filter-${fieldId}` : undefined}
-                      >
-                        {/* Filter icon */}
-                        <div style={{
-                          width: '16px',
-                          height: '16px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          color: 'var(--text-icon)'
-                        }}>
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <path d="M1.5 2.5H10.5M3 6H9M4.5 9.5H7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                          </svg>
-                        </div>
-                        
-                        <span style={{
-                          color: 'var(--text-primary)',
-                          fontWeight: 400,
-                          fontSize: '14px',
-                          lineHeight: '20px'
-                        }}>
-                          {getFilterDescription()}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Expanded filter UI */}
-                    {isFilterExpanded && schemaField && (
-                      <div style={{ marginTop: '12px' }}>
-                        <FieldFilter
-                          field={schemaField}
-                          objectName={pf.object}
-                          currentFilter={activeFilter || undefined}
-                          onFilterChange={handleFilterChange}
-                          onCancel={() => onFilterExpandChange(filterId, false)}
-                          distinctValues={distinctValuesCache[fieldId]}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             );
           })}
@@ -1396,19 +1683,11 @@ PackageCard.displayName = 'PackageCard';
 export function DataTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const { state, dispatch } = useApp();
-  const [cardPositions, setCardPositions] = useState<Record<string, DOMRect>>({});
-  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   
-  // Track which tables are expanded for connection line updates
+  // Track which tables are expanded
   const [expandedTables, setExpandedTables] = useState<Record<string, boolean>>({});
   
-  // Track which fields have their filter section visible
-  const [expandedFields, setExpandedFields] = useState<Record<string, boolean>>({});
-  
-  // Track which filters are expanded for connection line updates
-  const [expandedFilters, setExpandedFilters] = useState<Record<string, boolean>>({});
-  
-  // Track which tables have shown all fields (for connection line updates)
+  // Track which tables have shown all fields
   const [showAllFieldsMap, setShowAllFieldsMap] = useState<Record<string, boolean>>({});
   
   // Track whether to show tables with no enabled fields
@@ -1877,60 +2156,6 @@ export function DataTab() {
   const displayedObjects = showTablesWithNoFields || searchQuery 
     ? sortedObjects 
     : objectsWithEnabledFields;
-
-  // Update card positions when objects or selection changes
-  useEffect(() => {
-    const updatePositions = () => {
-      if (!containerRef.current) return;
-      
-      const container = containerRef.current;
-      const scrollTop = container.scrollTop;
-      const scrollLeft = container.scrollLeft;
-      const positions: Record<string, DOMRect> = {};
-      
-      Object.entries(cardRefs.current).forEach(([name, ref]) => {
-        if (ref) {
-          const rect = ref.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
-          
-          // Calculate positions relative to container including scroll offset
-          positions[name] = {
-            width: rect.width,
-            height: rect.height,
-            top: rect.top - containerRect.top + scrollTop,
-            bottom: rect.bottom - containerRect.top + scrollTop,
-            left: rect.left - containerRect.left + scrollLeft,
-            right: rect.right - containerRect.left + scrollLeft,
-            x: rect.left - containerRect.left + scrollLeft,
-            y: rect.top - containerRect.top + scrollTop,
-            toJSON: () => ({}),
-          } as DOMRect;
-        }
-      });
-      
-      setCardPositions(positions);
-    };
-
-    // Update positions after render
-    requestAnimationFrame(updatePositions);
-    
-    const container = containerRef.current;
-    
-    // Update on scroll
-    if (container) {
-      container.addEventListener('scroll', updatePositions);
-    }
-    
-    // Update on window resize
-    window.addEventListener('resize', updatePositions);
-    
-    return () => {
-      if (container) {
-        container.removeEventListener('scroll', updatePositions);
-      }
-      window.removeEventListener('resize', updatePositions);
-    };
-  }, [sortedObjects, state.selectedObjects]);
 
   // Chart configuration options with icons
   const chartTypes: { value: ChartType; label: string; icon: React.ReactNode }[] = [
@@ -2536,20 +2761,14 @@ export function DataTab() {
             </button>
           )}
           </div>
-          {/* Package description - only show when collapsed (since it appears with the package when expanded) */}
-          {!isDataExpanded && (
-            <p style={{ 
-              color: 'var(--text-muted)', 
-              fontSize: '13px', 
-              marginTop: '4px',
-              lineHeight: '1.4',
-            }}>
-              {state.activePackage 
-                ? getPackage(state.activePackage)?.description || ''
-                : 'Choose a dataset to start exploring'
-              }
-            </p>
-          )}
+          <p style={{ 
+            color: 'var(--text-muted)', 
+            fontSize: '13px', 
+            marginTop: '4px',
+            lineHeight: '1.4',
+          }}>
+            Choose the columns you want to include in the data table
+          </p>
         </div>
 
         <div
@@ -2605,20 +2824,9 @@ export function DataTab() {
       {/* Package view - when there's an active package and no search */}
       {state.activePackage && !searchQuery ? (
         <div ref={containerRef} className="relative" role="list" aria-label="Package fields">
-          {/* Connection lines overlay */}
-          <ConnectionLines containerRef={containerRef} expandedTables={expandedTables} expandedFields={expandedFields} expandedFilters={expandedFilters} showAllFieldsMap={showAllFieldsMap} searchQuery={searchQuery} packageId={state.activePackage} />
-          
           <PackageCard
             packageId={state.activePackage}
             searchQuery={searchQuery}
-            expandedFields={expandedFields}
-            onFieldExpandChange={(fieldId, isExpanded) => {
-              setExpandedFields(prev => ({ ...prev, [fieldId]: isExpanded }));
-            }}
-            expandedFilters={expandedFilters}
-            onFilterExpandChange={(filterId, isExpanded) => {
-              setExpandedFilters(prev => ({ ...prev, [filterId]: isExpanded }));
-            }}
             showAllFields={showAllFieldsMap['__package__'] ?? false}
             onShowAllFieldsChange={(showAll) => {
               setShowAllFieldsMap(prev => ({ ...prev, '__package__': showAll }));
@@ -2631,39 +2839,17 @@ export function DataTab() {
               });
               setIsDefinitionModalOpen(true);
             }}
-            ref={(el) => { cardRefs.current['__package__'] = el; }}
           />
         </div>
       ) : searchQuery ? (
         /* Search view - show package matches + schema matches */
         <div ref={containerRef} className="relative" role="list" aria-label="Search results">
-          {/* Connection lines overlay - use packageId for package section connections */}
-          <ConnectionLines containerRef={containerRef} expandedTables={expandedTables} expandedFields={expandedFields} expandedFilters={expandedFilters} showAllFieldsMap={showAllFieldsMap} searchQuery={searchQuery} packageId={state.activePackage} />
-          
           {/* Package section - if there's an active package */}
           {state.activePackage && (
             <>
-              <div style={{ 
-                fontSize: '12px', 
-                fontWeight: 500, 
-                color: 'var(--text-muted)', 
-                marginBottom: '8px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                In {getPackage(state.activePackage)?.label}
-              </div>
               <PackageCard
                 packageId={state.activePackage}
                 searchQuery={searchQuery}
-                expandedFields={expandedFields}
-                onFieldExpandChange={(fieldId, isExpanded) => {
-                  setExpandedFields(prev => ({ ...prev, [fieldId]: isExpanded }));
-                }}
-                expandedFilters={expandedFilters}
-                onFilterExpandChange={(filterId, isExpanded) => {
-                  setExpandedFilters(prev => ({ ...prev, [filterId]: isExpanded }));
-                }}
                 showAllFields={true}
                 onShowAllFieldsChange={() => {}}
                 onOpenDefinition={(tableName, fieldName) => {
@@ -2674,7 +2860,6 @@ export function DataTab() {
                   });
                   setIsDefinitionModalOpen(true);
                 }}
-                ref={(el) => { cardRefs.current['__package__'] = el; }}
               />
               
               {/* All schema section header */}
@@ -2705,14 +2890,6 @@ export function DataTab() {
                   onExpandChange={(objName, isExpanded) => {
                     setExpandedTables(prev => ({ ...prev, [objName]: isExpanded }));
                   }}
-                  expandedFields={expandedFields}
-                  onFieldExpandChange={(fieldId, isExpanded) => {
-                    setExpandedFields(prev => ({ ...prev, [fieldId]: isExpanded }));
-                  }}
-                  expandedFilters={expandedFilters}
-                  onFilterExpandChange={(filterId, isExpanded) => {
-                    setExpandedFilters(prev => ({ ...prev, [filterId]: isExpanded }));
-                  }}
                   showAllFieldsMap={showAllFieldsMap}
                   onShowAllFieldsChange={(objName, showAll) => {
                     setShowAllFieldsMap(prev => ({ ...prev, [objName]: showAll }));
@@ -2725,7 +2902,6 @@ export function DataTab() {
                     });
                     setIsDefinitionModalOpen(true);
                   }}
-                  ref={(el) => { cardRefs.current[obj.name] = el; }}
                 />
               ))}
             </>
@@ -2738,9 +2914,6 @@ export function DataTab() {
       ) : (
         /* Default view - no package, no search - show all tables */
         <div ref={containerRef} className="relative" role="list" aria-label="Data objects">
-          {/* Connection lines overlay */}
-          <ConnectionLines containerRef={containerRef} expandedTables={expandedTables} expandedFields={expandedFields} expandedFilters={expandedFilters} showAllFieldsMap={showAllFieldsMap} searchQuery={searchQuery} />
-          
           {sortedObjects.length > 0 ? (
             <>
               {displayedObjects.map((obj) => (
@@ -2752,14 +2925,6 @@ export function DataTab() {
                   expandedTables={expandedTables}
                   onExpandChange={(objName, isExpanded) => {
                     setExpandedTables(prev => ({ ...prev, [objName]: isExpanded }));
-                  }}
-                  expandedFields={expandedFields}
-                  onFieldExpandChange={(fieldId, isExpanded) => {
-                    setExpandedFields(prev => ({ ...prev, [fieldId]: isExpanded }));
-                  }}
-                  expandedFilters={expandedFilters}
-                  onFilterExpandChange={(filterId, isExpanded) => {
-                    setExpandedFilters(prev => ({ ...prev, [filterId]: isExpanded }));
                   }}
                   showAllFieldsMap={showAllFieldsMap}
                   onShowAllFieldsChange={(objName, showAll) => {
@@ -2773,7 +2938,6 @@ export function DataTab() {
                     });
                     setIsDefinitionModalOpen(true);
                   }}
-                  ref={(el) => { cardRefs.current[obj.name] = el; }}
                 />
               ))}
             </>
