@@ -1,21 +1,25 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useRouter, notFound } from 'next/navigation';
+import { useParams, useRouter, useSearchParams, notFound } from 'next/navigation';
 import { useApp, AppProvider, actions } from '@/state/app';
 import { ThemeProvider, useTheme } from '@/state/theme';
 import { WarehouseProvider, useWarehouseStore } from '@/lib/useWarehouse';
+import { MapViewProvider } from '@/state/mapView';
 import { fromSlug, ReportInfo } from '@/lib/slugs';
 import { applyPreset, PRESET_CONFIGS, PresetKey } from '@/lib/presets';
 import { convertReportToPreset } from '@/lib/reportToPreset';
+import { getActiveView } from '@/lib/mapSession';
 import { DataTab } from '@/components/DataTab';
 import { SQLTab } from '@/components/SQLTab';
 import { ReportViewer } from '@/components/ReportViewer';
+import { MapView } from '@/components/MapView';
 import { DevToolsMenu } from '@/components/DevToolsMenu';
 import { SavePopover } from '@/components/SavePopover';
 import { Toast } from '@/components/Toast';
 import TemplateReopenButton from '@/components/TemplateReopenButton';
 import { GuidedTourOverlay, type TourStep } from '@/components/GuidedTourOverlay';
+import { ViewSwitcher } from '@/components/ViewSwitcher';
 import { useReportHeuristics } from '@/hooks/useReportHeuristics';
 // getGroupValues import removed - users now manually select group values
 
@@ -28,6 +32,23 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
   const { store: warehouse } = useWarehouseStore();
   const { mode, setTheme } = useTheme();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Get current view from URL or restore from session
+  const viewFromUrl = searchParams.get('view') as 'table' | 'map' | null;
+  const [currentView, setCurrentView] = useState<'table' | 'map'>(() => {
+    // Priority: URL param > session storage > default (table)
+    if (viewFromUrl) return viewFromUrl;
+    const savedView = getActiveView(reportInfo.slug);
+    return savedView || 'table';
+  });
+  
+  // Update current view when URL changes
+  useEffect(() => {
+    if (viewFromUrl) {
+      setCurrentView(viewFromUrl);
+    }
+  }, [viewFromUrl]);
   
   const [sidebarWidth, setSidebarWidth] = useState(360);
   const [isResizing, setIsResizing] = useState(false);
@@ -262,6 +283,11 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
           <span style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: 600 }}>
             Edit report
           </span>
+
+          {/* View Switcher - TEMPORARILY HIDDEN */}
+          {/* <div style={{ marginLeft: '16px' }}>
+            <ViewSwitcher />
+          </div> */}
         </div>
 
         {/* Save/Duplicate button */}
@@ -303,22 +329,25 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
 
       {/* Main content with sidebar */}
       <main className="flex flex-1 overflow-hidden" role="main">
-        <aside 
-          ref={sidebarRef}
-          data-tour="config-panel"
-          className="flex flex-col relative"
-          style={{ 
-            width: `${sidebarWidth}px`, 
-            flexShrink: 0,
-            padding: '20px',
-            gap: '20px',
-            transition: 'width 400ms ease-in-out',
-            maxHeight: '100%',
-            overflow: 'visible',
-          }}
-          role="complementary" 
-          aria-label="Configuration sidebar"
-        >
+        {currentView === 'table' ? (
+          // Table View (existing layout)
+          <>
+            <aside 
+              ref={sidebarRef}
+              data-tour="config-panel"
+              className="flex flex-col relative"
+              style={{ 
+                width: `${sidebarWidth}px`, 
+                flexShrink: 0,
+                padding: '20px',
+                gap: '20px',
+                transition: 'width 400ms ease-in-out',
+                maxHeight: '100%',
+                overflow: 'visible',
+              }}
+              role="complementary" 
+              aria-label="Configuration sidebar"
+            >
           {/* Config Panel Section */}
           {activePanel === 'config' ? (
             /* Expanded config panel */
@@ -433,6 +462,13 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
         <div ref={reportPaneRef} data-tour="report-pane" className="flex-1 min-w-0 overflow-hidden">
           <ReportViewer showDataList={true} padding="32px" paddingLeft="20px" isEditor={true} />
         </div>
+      </>
+        ) : (
+          // Map View
+          <MapViewProvider>
+            <MapView />
+          </MapViewProvider>
+        )}
       </main>
 
       {/* Floating Dev Tools */}

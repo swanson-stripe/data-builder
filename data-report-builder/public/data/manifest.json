@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-05T00:29:53.984Z",
+  "generated": "2026-01-13T21:28:32.870Z",
   "entities": [
     "customers",
     "payment_methods",
@@ -17,17 +17,17 @@
   ],
   "counts": {
     "customers": 10000,
-    "payment_methods": 14964,
+    "payment_methods": 15127,
     "products": 25,
-    "prices": 74,
+    "prices": 71,
     "payments": 50000,
-    "refunds": 700,
-    "subscriptions": 8104,
-    "subscription_items": 16116,
-    "invoices": 28405,
+    "refunds": 758,
+    "subscriptions": 8055,
+    "subscription_items": 16051,
+    "invoices": 28206,
     "charges": 5000,
     "payouts": 71,
-    "balance_transactions": 6265,
+    "balance_transactions": 6452,
     "coupons": 20
   }
 }

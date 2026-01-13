@@ -67,9 +67,12 @@ export function buildDataListView(opts: {
   const { store, selectedObjects, selectedFields } = opts;
   const rows: RowView[] = [];
 
+  // Guard against undefined or empty inputs
+  if (!selectedObjects || !selectedFields || selectedObjects.length === 0 || selectedFields.length === 0) {
+    return rows;
+  }
+
   // First object is the primary object (the base table)
-  if (selectedObjects.length === 0) return rows;
-  
   const primaryObject = selectedObjects[0];
   
   // Get the primary table
