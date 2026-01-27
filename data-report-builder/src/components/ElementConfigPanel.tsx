@@ -1,7 +1,13 @@
 'use client';
 
 import { useMapView, mapActions } from '@/state/mapView';
-import type { ChartElementData, DataListElementData, FilterElementData } from '@/types/mapElements';
+import type {
+  ChartElementData,
+  DataListElementData,
+  FilterElementData,
+  MetricElementData,
+  SQLQueryElementData,
+} from '@/types/mapElements';
 import { useEffect, useRef } from 'react';
 
 /**
@@ -133,14 +139,15 @@ export function ElementConfigPanel() {
         );
       }
 
-      case 'metric':
+      case 'metric': {
+        const data = selectedElement.data as MetricElementData;
         return (
           <div>
             <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>
               Metric Configuration
             </h4>
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-              {selectedElement.data.metricBlocks?.length || 0} metrics
+              {data.metricBlocks?.length || 0} metrics
             </div>
             <button
               style={{
@@ -159,8 +166,10 @@ export function ElementConfigPanel() {
             </button>
           </div>
         );
+      }
 
-      case 'sqlQuery':
+      case 'sqlQuery': {
+        const data = selectedElement.data as SQLQueryElementData;
         return (
           <div>
             <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>
@@ -171,10 +180,10 @@ export function ElementConfigPanel() {
                 Mode
               </label>
               <select
-                value={selectedElement.data.mode || 'create'}
+                value={data.mode || 'create'}
                 onChange={(e) => {
                   dispatch(mapActions.updateElement(selectedElement.id, {
-                    data: { ...selectedElement.data, mode: e.target.value },
+                    data: { ...data, mode: e.target.value as SQLQueryElementData['mode'] },
                   }));
                 }}
                 style={{
@@ -208,6 +217,7 @@ export function ElementConfigPanel() {
             </button>
           </div>
         );
+      }
 
       default:
         return (
