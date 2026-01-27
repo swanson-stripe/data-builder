@@ -4,13 +4,15 @@ import { Handle, Position } from 'reactflow';
 import { useState, useCallback, useMemo } from 'react';
 import { FieldFilter } from '../FieldFilter';
 import { getObject } from '@/data/schema';
-import type { FilterElementData } from '@/types/mapElements';
+import type { FilterElementData, DataListElementData } from '@/types/mapElements';
 import type { FilterCondition } from '@/types';
 import { useMapView, mapActions } from '@/state/mapView';
 import { useApp } from '@/state/app';
+import { createDataListElement, generateConnectionId } from '@/lib/mapElementCreation';
+import { AddElementButton } from './AddElementButton';
 
 interface FilterNodeProps {
-  data: FilterElementData & { isSelected?: boolean };
+  data: FilterElementData & { isSelected?: boolean; onHoverChange?: (isHovered: boolean, elementId: string) => void };
   id: string;
 }
 
@@ -24,6 +26,8 @@ export function FilterNode({ data, id }: FilterNodeProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | 'new' | null>(null);
   const [selectedFieldForNew, setSelectedFieldForNew] = useState<{ object: string; field: string } | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [openMenuCount, setOpenMenuCount] = useState(0);
 
   // Get the parent DataList to determine available fields
   const parentDataList = useMemo(() => {
@@ -32,7 +36,7 @@ export function FilterNode({ data, id }: FilterNodeProps) {
   }, [data.parentDataListId, mapState.elements]);
 
   // Get available fields from parent DataList or fall back to appState
-  const availableFields = useMemo(() => {
+  const availableFields = useMemo((): { object: string; field: string }[] => {
     // Try parent DataList first
     if (parentDataList && parentDataList.type === 'dataList') {
       const parentData = parentDataList.data as any;
@@ -55,13 +59,13 @@ export function FilterNode({ data, id }: FilterNodeProps) {
     return obj?.fields.find(f => f.name === firstField.field);
   }, [availableFields]);
 
-  // Debug logs (after variables are defined)
-  console.log('[FilterNode] parentDataListId:', data.parentDataListId);
-  console.log('[FilterNode] availableFields:', availableFields);
-  console.log('[FilterNode] firstAvailableField:', firstAvailableField);
-  console.log('[FilterNode] editingIndex:', editingIndex);
-  console.log('[FilterNode] selectedFieldForNew:', selectedFieldForNew);
-  console.log('[FilterNode] data.isSelected:', data.isSelected);
+  // Debug logs (after variables are defined) - REMOVED TO REDUCE NOISE
+  // console.log('[FilterNode] parentDataListId:', data.parentDataListId);
+  // console.log('[FilterNode] availableFields:', availableFields);
+  // console.log('[FilterNode] firstAvailableField:', firstAvailableField);
+  // console.log('[FilterNode] editingIndex:', editingIndex);
+  // console.log('[FilterNode] selectedFieldForNew:', selectedFieldForNew);
+  // console.log('[FilterNode] data.isSelected:', data.isSelected);
 
   const handleFilterChange = useCallback((index: number | 'new', condition: FilterCondition | null) => {
     let newConditions = [...conditions];
@@ -73,41 +77,110 @@ export function FilterNode({ data, id }: FilterNodeProps) {
       }
     } else if (index === 'new') {
       // Add new condition
-      newConditions.push(condition);
+      const normalizedCondition = (condition as any).field
+        ? {
+            ...condition,
+            object: condition.field.object,
+            field: condition.field.field,
+          }
+        : condition;
+      newConditions.push(normalizedCondition);
     } else {
       // Update existing condition
-      newConditions[index as number] = condition;
+      const normalizedCondition = (condition as any).field
+        ? {
+            ...condition,
+            object: condition.field.object,
+            field: condition.field.field,
+          }
+        : condition;
+      newConditions[index as number] = normalizedCondition;
     }
 
-    // Update the element in mapState
-    dispatch(mapActions.updateElement({
-      id,
+    console.log('[FilterNode] Updating filter with conditions:', newConditions);
+
+    // Update the filter element with new conditions
+    dispatch(mapActions.updateElement(id, {
       data: {
-        ...data,
+        type: 'filter',
+        parentDataListId: data.parentDataListId,
         conditions: newConditions,
+        label: data.label,
       },
     }));
 
+    // Create a new filtered DataList element
+    if (parentDataList && parentDataList.type === 'dataList') {
+      const parentData = parentDataList.data as DataListElementData;
+      
+      // Position the new DataList to the right of this filter
+      const newDataList = createDataListElement(
+        mapState.elements,
+        parentData.selectedFields,
+        parentData.selectedObjects
+      );
+      
+      // Position it below this filter element
+      const filterElement = mapState.elements.find(el => el.id === id);
+      if (filterElement) {
+        newDataList.position = {
+          x: filterElement.position.x,
+          y: filterElement.position.y + 300, // Place below
+        };
+      }
+
+      // Add the new DataList element
+      dispatch(mapActions.addElement(newDataList));
+
+      // Create connection from this filter to the new DataList
+      dispatch(mapActions.addConnection({
+        id: generateConnectionId(id, newDataList.id),
+        source: id,
+        target: newDataList.id,
+      }));
+    }
+
     setEditingIndex(null);
     setSelectedFieldForNew(null);
-  }, [conditions, data, dispatch, id]);
+  }, [conditions, data, dispatch, id, mapState.elements, parentDataList]);
 
   return (
     <div
+      onMouseEnter={() => {
+        setIsHovered(true);
+        data.onHoverChange?.(true, id);
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        data.onHoverChange?.(false, id);
+      }}
       onClick={(e) => {
         // Stop propagation to prevent React Flow from capturing clicks
         e.stopPropagation();
       }}
       style={{
-        minWidth: '320px',
-        maxWidth: '400px',
-        backgroundColor: 'var(--bg-elevated)',
-        border: data.isSelected ? '2px solid #675DFF' : '1px solid var(--border-default)',
-        borderRadius: '12px',
-        overflow: 'visible',
         position: 'relative',
+        padding: '110px', // Extend hover area to include button + menu space
+        margin: '-110px', // Offset the padding so the element position stays the same
       }}
     >
+      <div
+        style={{
+          position: 'relative', // Add relative positioning for button placement
+          minWidth: '320px',
+          maxWidth: '400px',
+          backgroundColor: 'var(--bg-elevated)',
+          border: data.isSelected 
+            ? '1px solid #675DFF' 
+            : isHovered 
+            ? '1px solid #b8b3ff' 
+            : '1px solid var(--border-default)',
+          borderRadius: '12px',
+          overflow: 'visible',
+          transition: 'border 0.15s ease',
+          cursor: 'pointer',
+        }}
+      >
       <Handle
         type="target"
         position={Position.Left}
@@ -144,13 +217,16 @@ export function FilterNode({ data, id }: FilterNodeProps) {
           {conditions.length > 0 ? (
             <div style={{ padding: '12px' }}>
               {conditions.slice(0, isExpanded ? undefined : 3).map((condition: FilterCondition, idx: number) => {
-                const obj = getObject(condition.object);
-                const fieldDef = obj?.fields.find(f => f.name === condition.field);
+                const conditionObject = (condition as any).object ?? condition.field?.object;
+                const conditionField = (condition as any).field?.field ?? (condition as any).field;
+                const obj = conditionObject ? getObject(conditionObject) : undefined;
+                const fieldDef = conditionField ? obj?.fields.find(f => f.name === conditionField) : undefined;
 
                 return (
                   <div key={idx} style={{ position: 'relative', marginBottom: idx < conditions.length - 1 ? '8px' : '0' }}>
                     {editingIndex === idx && fieldDef ? (
                       <div
+                        className="nodrag nowheel"
                         style={{
                           backgroundColor: 'var(--bg-elevated)',
                           padding: '12px',
@@ -161,11 +237,11 @@ export function FilterNode({ data, id }: FilterNodeProps) {
                       >
                         <FieldFilter
                           field={fieldDef}
-                          objectName={condition.object}
+                          objectName={conditionObject}
                           currentFilter={condition}
                           onFilterChange={(newCondition) => handleFilterChange(idx, newCondition)}
                           onCancel={() => setEditingIndex(null)}
-                          distinctValues={[]}
+                          distinctValues={undefined}
                         />
                       </div>
                     ) : (
@@ -191,7 +267,7 @@ export function FilterNode({ data, id }: FilterNodeProps) {
                         }}
                       >
                         <div style={{ fontWeight: 500, marginBottom: '4px', fontFamily: 'monospace', fontSize: '11px' }}>
-                          {condition.qualifiedField || `${condition.object}.${condition.field}`}
+                          {condition.qualifiedField || (conditionObject && conditionField ? `${conditionObject}.${conditionField}` : 'Unknown field')}
                         </div>
                         <div style={{ display: 'flex', gap: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
                           <span style={{ fontWeight: 500 }}>{condition.operator || '='}</span>
@@ -228,8 +304,6 @@ export function FilterNode({ data, id }: FilterNodeProps) {
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  console.log('[FilterNode] Add filter clicked, firstAvailableField:', firstAvailableField);
-                  console.log('[FilterNode] Setting editingIndex to "new"');
                   setEditingIndex('new');
                 }}
                 style={{
@@ -270,6 +344,8 @@ export function FilterNode({ data, id }: FilterNodeProps) {
                         borderRadius: '8px',
                         border: '1px solid var(--border-default)',
                         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        maxHeight: '600px',
+                        overflowY: 'auto',
                       }}
                     >
                       {!selectedFieldForNew ? (
@@ -286,32 +362,28 @@ export function FilterNode({ data, id }: FilterNodeProps) {
                             </label>
                             <select
                               className="nodrag"
-                              value={selectedFieldForNew ? `${selectedFieldForNew.object}.${selectedFieldForNew.field}` : ''}
+                              value=""
                               onChange={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
                                 const value = e.target.value;
-                                console.log('[FilterNode] Select onChange, value:', value);
                                 if (!value) return;
                                 const parts = value.split('.');
                                 if (parts.length >= 2) {
                                   const object = parts[0];
                                   const field = parts.slice(1).join('.');
-                                  console.log('[FilterNode] Field selected:', { object, field });
+                                  console.log('[FilterNode] Setting selectedFieldForNew:', { object, field });
                                   setSelectedFieldForNew({ object, field });
                                 }
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                console.log('[FilterNode] Select clicked');
                               }}
                               onMouseDown={(e) => {
                                 e.stopPropagation();
-                                console.log('[FilterNode] Select mousedown');
                               }}
                               onFocus={(e) => {
                                 e.stopPropagation();
-                                console.log('[FilterNode] Select focused');
                               }}
                               style={{
                                 width: '100%',
@@ -352,19 +424,28 @@ export function FilterNode({ data, id }: FilterNodeProps) {
                         (() => {
                           const obj = getObject(selectedFieldForNew.object);
                           const fieldDef = obj?.fields.find(f => f.name === selectedFieldForNew.field);
+                          console.log('[FilterNode] Rendering FieldFilter with:', {
+                            object: selectedFieldForNew.object,
+                            field: selectedFieldForNew.field,
+                            fieldDef,
+                            fieldType: fieldDef?.type,
+                            fieldEnum: fieldDef?.enum,
+                          });
                           return fieldDef ? (
-                            <FieldFilter
-                              field={fieldDef}
-                              objectName={selectedFieldForNew.object}
-                              currentFilter={null}
-                              onFilterChange={(newCondition) => handleFilterChange('new', newCondition)}
-                              onCancel={() => {
-                                setEditingIndex(null);
-                                setSelectedFieldForNew(null);
-                              }}
-                              distinctValues={[]}
-                              isAddingNew={true}
-                            />
+                            <div style={{ width: '100%', minHeight: '200px' }}>
+                              <FieldFilter
+                                field={fieldDef}
+                                objectName={selectedFieldForNew.object}
+                                currentFilter={undefined}
+                                onFilterChange={(newCondition) => handleFilterChange('new', newCondition)}
+                                onCancel={() => {
+                                  setEditingIndex(null);
+                                  setSelectedFieldForNew(null);
+                                }}
+                                distinctValues={undefined}
+                                isAddingNew={true}
+                              />
+                            </div>
                           ) : null;
                         })()
                       )}
@@ -448,6 +529,8 @@ export function FilterNode({ data, id }: FilterNodeProps) {
                         borderRadius: '8px',
                         border: '1px solid var(--border-default)',
                         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        maxHeight: '600px',
+                        overflowY: 'auto',
                       }}
                     >
                       {!selectedFieldForNew ? (
@@ -464,32 +547,28 @@ export function FilterNode({ data, id }: FilterNodeProps) {
                             </label>
                             <select
                               className="nodrag"
-                              value={selectedFieldForNew ? `${selectedFieldForNew.object}.${selectedFieldForNew.field}` : ''}
+                              value=""
                               onChange={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
                                 const value = e.target.value;
-                                console.log('[FilterNode] Select onChange, value:', value);
                                 if (!value) return;
                                 const parts = value.split('.');
                                 if (parts.length >= 2) {
                                   const object = parts[0];
                                   const field = parts.slice(1).join('.');
-                                  console.log('[FilterNode] Field selected:', { object, field });
+                                  console.log('[FilterNode] Setting selectedFieldForNew:', { object, field });
                                   setSelectedFieldForNew({ object, field });
                                 }
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                console.log('[FilterNode] Select clicked');
                               }}
                               onMouseDown={(e) => {
                                 e.stopPropagation();
-                                console.log('[FilterNode] Select mousedown');
                               }}
                               onFocus={(e) => {
                                 e.stopPropagation();
-                                console.log('[FilterNode] Select focused');
                               }}
                               style={{
                                 width: '100%',
@@ -530,19 +609,28 @@ export function FilterNode({ data, id }: FilterNodeProps) {
                         (() => {
                           const obj = getObject(selectedFieldForNew.object);
                           const fieldDef = obj?.fields.find(f => f.name === selectedFieldForNew.field);
+                          console.log('[FilterNode] Rendering FieldFilter with:', {
+                            object: selectedFieldForNew.object,
+                            field: selectedFieldForNew.field,
+                            fieldDef,
+                            fieldType: fieldDef?.type,
+                            fieldEnum: fieldDef?.enum,
+                          });
                           return fieldDef ? (
-                            <FieldFilter
-                              field={fieldDef}
-                              objectName={selectedFieldForNew.object}
-                              currentFilter={null}
-                              onFilterChange={(newCondition) => handleFilterChange('new', newCondition)}
-                              onCancel={() => {
-                                setEditingIndex(null);
-                                setSelectedFieldForNew(null);
-                              }}
-                              distinctValues={[]}
-                              isAddingNew={true}
-                            />
+                            <div style={{ width: '100%', minHeight: '200px' }}>
+                              <FieldFilter
+                                field={fieldDef}
+                                objectName={selectedFieldForNew.object}
+                                currentFilter={undefined}
+                                onFilterChange={(newCondition) => handleFilterChange('new', newCondition)}
+                                onCancel={() => {
+                                  setEditingIndex(null);
+                                  setSelectedFieldForNew(null);
+                                }}
+                                distinctValues={undefined}
+                                isAddingNew={true}
+                              />
+                            </div>
                           ) : null;
                         })()
                       )}
@@ -593,6 +681,31 @@ export function FilterNode({ data, id }: FilterNodeProps) {
           border: '2px solid var(--bg-elevated)',
         }}
       />
+      
+        {/* Add Element Buttons - only show on hover, when selected, or when a menu is open */}
+        {(isHovered || data.isSelected || openMenuCount > 0) && (
+          <>
+            <AddElementButton 
+              parentElementId={id} 
+              position="left" 
+              onHoverChange={data.onHoverChange}
+              onMenuStateChange={(isOpen) => setOpenMenuCount(prev => isOpen ? prev + 1 : Math.max(0, prev - 1))}
+            />
+            <AddElementButton 
+              parentElementId={id} 
+              position="right" 
+              onHoverChange={data.onHoverChange}
+              onMenuStateChange={(isOpen) => setOpenMenuCount(prev => isOpen ? prev + 1 : Math.max(0, prev - 1))}
+            />
+            <AddElementButton 
+              parentElementId={id} 
+              position="bottom" 
+              onHoverChange={data.onHoverChange}
+              onMenuStateChange={(isOpen) => setOpenMenuCount(prev => isOpen ? prev + 1 : Math.max(0, prev - 1))}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -45,6 +45,7 @@ export type MapElementData =
  */
 export type DataListElementData = {
   type: 'dataList';
+  label?: string;
   selectedFields: { object: string; field: string }[];
   selectedObjects: string[];
 };
@@ -64,6 +65,7 @@ export type ChartElementData = {
  */
 export type FilterElementData = {
   type: 'filter';
+  label?: string;
   parentDataListId: string; // Required parent
   conditions: any[]; // FilterCondition[] from main types
 };
@@ -92,6 +94,7 @@ export type MetricElementData = {
  */
 export type SQLQueryElementData = {
   type: 'sqlQuery';
+  label?: string;
   parentDataListId?: string; // Optional parent
   query: string;
   mode: 'update' | 'create'; // Update parent or create new DataList

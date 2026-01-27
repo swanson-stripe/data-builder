@@ -9,7 +9,6 @@ import { loadMapState, saveMapState } from '@/lib/mapSession';
 import { generateMapFromAppState, shouldAutoGenerate } from '@/lib/mapAutoGeneration';
 import { MapCanvas } from './MapCanvas';
 import { MapConfigPanel } from './MapConfigPanel';
-import { ElementConfigPanel } from './ElementConfigPanel';
 
 /**
  * MapView - Canvas-based workflow visualizer
@@ -37,8 +36,8 @@ export function MapView() {
       selectedFields: appState.selectedFields,
       selectedObjects: appState.selectedObjects,
       filters: appState.filters,
-      metricBlocks: appState.metricBlocks,
-      showChart: appState.showChart,
+      metricBlocks: appState.metricFormula?.blocks || [],
+      chartType: appState.chart.type,
     });
 
     // Don't do anything if we already have elements
@@ -78,8 +77,8 @@ export function MapView() {
       appState.selectedFields.length > 0 || 
       appState.selectedObjects.length > 0 ||
       (appState.filters.conditions && appState.filters.conditions.length > 0) ||
-      appState.metricBlocks.length > 0 ||
-      appState.showChart;
+      (appState.metricFormula?.blocks && appState.metricFormula.blocks.length > 0) ||
+      appState.selectedFields.length > 0;
 
     console.log('[MapView] hasAppData:', hasAppData);
 
@@ -104,7 +103,13 @@ export function MapView() {
       
       hasInitialized.current = true;
     }
-  }, [reportSlug, appState.selectedFields.length, appState.selectedObjects.length]); // Only depend on data counts, not full arrays
+  }, [
+    reportSlug,
+    appState.selectedFields.length,
+    appState.selectedObjects.length,
+    appState.filters.conditions.length,
+    appState.metricFormula.blocks.length,
+  ]); // Only depend on data counts, not full arrays
 
   // Save map state when it changes
   useEffect(() => {
@@ -128,8 +133,7 @@ export function MapView() {
           <MapCanvas />
         </div>
 
-        {/* Element Config Panel (appears when element selected) */}
-        <ElementConfigPanel />
+        {/* Element Config Panel removed (redundant with floating panel) */}
       </div>
     </ReactFlowProvider>
   );

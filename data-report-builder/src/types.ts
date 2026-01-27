@@ -157,6 +157,7 @@ export type FilterOperator =
 
 export type FilterCondition = {
   field: { object: string; field: string };
+  qualifiedField?: string;
   operator: FilterOperator;
   value: string | number | boolean | string[] | [number, number];
 };

@@ -124,9 +124,21 @@ type ChartPanelProps = {
   actionButtons?: React.ReactNode;
   /** Whether this is shown in the editor (hides version history in MetricHeader) */
   isEditor?: boolean;
+  /** Hide filter/group chips (used in map view) */
+  hideControlChips?: boolean;
+  /** Compact layout styles for map nodes */
+  isCompact?: boolean;
+  /** Bucket selection callback (used for drilldown in map view) */
+  onBucketClick?: (bucket: { start: string; end: string; label: string }) => void;
 };
 
-export function ChartPanel({ actionButtons, isEditor = false }: ChartPanelProps = {}) {
+export function ChartPanel({
+  actionButtons,
+  isEditor = false,
+  hideControlChips = false,
+  isCompact = false,
+  onBucketClick,
+}: ChartPanelProps = {}) {
   const { state, dispatch } = useApp();
   const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
 
@@ -380,10 +392,8 @@ export function ChartPanel({ actionButtons, isEditor = false }: ChartPanelProps 
     };
   }, [metricResult, state.report, state.metric.name, useFormula, state.metricFormula.name]);
 
-  // Handle point click
-  const handlePointClick = useCallback((data: any) => {
-    // Extract date - Recharts passes it in payload.date when clicking dots/bars
-    let dateStr = (data.payload?.date || data.date || data) as string;
+  const selectBucket = useCallback((date: string) => {
+    let dateStr = date;
 
     // For "latest" or "first" metrics, override the clicked bucket to show the bucket
     // that actually contributes to the metric value (not the clicked bucket)
@@ -415,7 +425,15 @@ export function ChartPanel({ actionButtons, isEditor = false }: ChartPanelProps 
 
     const { start, end } = getBucketRange(bucketDate, state.granularity);
     dispatch(actions.setSelectedBucket(start, end, dateStr));
-  }, [useFormula, state.metric.type, state.granularity, metricResult.series, dispatch]);
+    onBucketClick?.({ start, end, label: dateStr });
+  }, [useFormula, state.metric.type, state.granularity, metricResult.series, dispatch, onBucketClick]);
+
+  // Handle point click
+  const handlePointClick = useCallback((data: any) => {
+    // Extract date - Recharts passes it in payload.date when clicking dots/bars
+    const dateStr = (data.payload?.date || data.date || data) as string;
+    selectBucket(dateStr);
+  }, [selectBucket]);
 
   // Generate comparison series based on comparison mode
   const comparisonSeries = useMemo(() => {
@@ -2270,11 +2288,12 @@ export function ChartPanel({ actionButtons, isEditor = false }: ChartPanelProps 
         </div>
 
         {/* Group By Control */}
-        <div
-          ref={groupByButtonRef}
-          className="relative inline-flex items-center flex-wrap gap-2"
-          style={{ minHeight: '32px' }}
-        >
+        {!hideControlChips && (
+          <div
+            ref={groupByButtonRef}
+            className="relative inline-flex items-center flex-wrap gap-2"
+            style={{ minHeight: '32px' }}
+          >
           {controlChips.map((chip) => (
           <button
               key={chip.key}
@@ -2527,7 +2546,8 @@ export function ChartPanel({ actionButtons, isEditor = false }: ChartPanelProps 
               )}
             </div>
           )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Warnings */}
@@ -2553,7 +2573,16 @@ export function ChartPanel({ actionButtons, isEditor = false }: ChartPanelProps 
           <>
             {/* Chart - hidden when display type is 'table' */}
             {state.chart.type !== 'table' && (
-            <div className="focus:outline-none" style={{ height: '280px', borderRadius: '8px', paddingTop: '8px', paddingLeft: '8px', backgroundColor: 'var(--bg-primary)' }}>
+            <div
+              className="focus:outline-none"
+              style={{
+                height: '280px',
+                borderRadius: '8px',
+                paddingTop: '8px',
+                paddingLeft: '8px',
+                backgroundColor: 'var(--bg-primary)',
+              }}
+            >
           <ResponsiveContainer width="100%" height="100%">
           {state.chart.type === 'line' && (
             <LineChart data={chartData} onMouseMove={(data: any) => {
@@ -2671,13 +2700,7 @@ export function ChartPanel({ actionButtons, isEditor = false }: ChartPanelProps 
                               e.stopPropagation();
                               // Apply both bucket and group filters
                               const dateStr = props.payload.date;
-                              const parts = dateStr.split('-');
-                              const bucketDate = parts.length === 2
-                                ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)
-                                : new Date(dateStr);
-                              
-                              const { start, end } = getBucketRange(bucketDate, state.granularity);
-                              dispatch(actions.setSelectedBucket(start, end, dateStr));
+                              selectBucket(dateStr);
                               
                               // Add filter for the group value
                               if (state.groupBy) {
@@ -2883,13 +2906,7 @@ export function ChartPanel({ actionButtons, isEditor = false }: ChartPanelProps 
                               e.stopPropagation();
                               // Apply both bucket and group filters
                               const dateStr = props.payload.date;
-                              const parts = dateStr.split('-');
-                              const bucketDate = parts.length === 2
-                                ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)
-                                : new Date(dateStr);
-                              
-                              const { start, end } = getBucketRange(bucketDate, state.granularity);
-                              dispatch(actions.setSelectedBucket(start, end, dateStr));
+                              selectBucket(dateStr);
                               
                               // Add filter for the group value
                               if (state.groupBy) {
@@ -3055,13 +3072,7 @@ export function ChartPanel({ actionButtons, isEditor = false }: ChartPanelProps 
                               e.stopPropagation();
                               // Apply both bucket and group filters
                               const dateStr = payload.date;
-                              const parts = dateStr.split('-');
-                              const bucketDate = parts.length === 2
-                                ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)
-                                : new Date(dateStr);
-                              
-                              const { start, end } = getBucketRange(bucketDate, state.granularity);
-                              dispatch(actions.setSelectedBucket(start, end, dateStr));
+                              selectBucket(dateStr);
                               
                               // Add filter for the group value
                               if (state.groupBy) {
@@ -3120,8 +3131,17 @@ export function ChartPanel({ actionButtons, isEditor = false }: ChartPanelProps 
             )}
 
             {/* Summary Table - Integrated ValueTable with full functionality */}
-            <div className="px-3" style={{ borderRadius: '8px', marginTop: state.chart.type !== 'table' ? '8px' : '0', backgroundColor: 'var(--bg-primary)' }}>
-              <ValueTable />
+            <div
+              className="px-3"
+              style={{
+                borderRadius: '8px',
+                marginTop: state.chart.type !== 'table' ? '8px' : '0',
+                backgroundColor: 'var(--bg-primary)',
+                maxHeight: isCompact ? '220px' : undefined,
+                overflowY: isCompact ? 'auto' : undefined,
+              }}
+            >
+              <ValueTable onBucketClick={onBucketClick} />
             </div>
           </>
         )}

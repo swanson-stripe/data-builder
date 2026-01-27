@@ -6,18 +6,31 @@ import { buildDataListView, sortRowsByField, type RowView } from '@/lib/views';
 import { getObject } from '@/data/schema';
 import type { DataListElementData } from '@/types/mapElements';
 import { useApp } from '@/state/app';
+import { useMapView } from '@/state/mapView';
+import { applyFilters } from '@/lib/filters';
+import type { FilterCondition, FilterGroup } from '@/types';
+import { TIMESTAMP_FIELD_BY_OBJECT, qualify } from '@/lib/fields';
+import { AddElementButton } from './AddElementButton';
 
 type SortDirection = 'asc' | 'desc' | null;
 type SortState = { column: string | null; direction: SortDirection };
 
 interface DataListNodeProps {
-  data: DataListElementData & { isSelected?: boolean };
+  data: DataListElementData & { 
+    isSelected?: boolean;
+    onHoverChange?: (isHovered: boolean, elementId: string) => void;
+  };
   id: string;
 }
 
 export const DataListNode = React.memo(({ data, id }: DataListNodeProps) => {
   const { state } = useApp();
+  const { state: mapState } = useMapView();
   const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
+  
+  // Hover state
+  const [isHovered, setIsHovered] = useState(false);
+  const [openMenuCount, setOpenMenuCount] = useState(0);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(0);
@@ -72,6 +85,32 @@ export const DataListNode = React.memo(({ data, id }: DataListNodeProps) => {
   );
   const hasWarehouseData = data.selectedObjects && warehouseKeys.length === data.selectedObjects.length;
 
+  const incomingFilterConditions = useMemo(() => {
+    const incomingFilters = mapState.connections
+      .filter((conn) => conn.target === id)
+      .map((conn) => mapState.elements.find((el) => el.id === conn.source))
+      .filter((el) => el?.type === 'filter');
+
+    const conditions = incomingFilters.flatMap((filterEl) => {
+      const rawConditions = ((filterEl?.data as any)?.conditions || []) as any[];
+      return rawConditions.map((condition) => {
+        if ((condition as any).field?.object && (condition as any).field?.field) {
+          return condition as FilterCondition;
+        }
+        if ((condition as any).object && (condition as any).field) {
+          return {
+            field: { object: (condition as any).object, field: (condition as any).field },
+            operator: (condition as any).operator,
+            value: (condition as any).value,
+          } as FilterCondition;
+        }
+        return null;
+      }).filter(Boolean) as FilterCondition[];
+    });
+
+    return conditions;
+  }, [mapState.connections, mapState.elements, id]);
+
   // Build rows
   const rows: RowView[] = useMemo(() => {
     if (!hasWarehouseData || !data.selectedFields || data.selectedFields.length === 0 || !data.selectedObjects) return [];
@@ -91,14 +130,48 @@ export const DataListNode = React.memo(({ data, id }: DataListNodeProps) => {
     hasWarehouseData,
     data.selectedFields,
     data.selectedObjects,
-    warehouse.version,
+    version,
   ]);
+
+  const filteredRows = useMemo(() => {
+    if (incomingFilterConditions.length === 0) return rows;
+
+    const augmentedRows = rows.map((row) => {
+      if (!row.ts) return row;
+
+      const nextDisplay = { ...row.display };
+      incomingFilterConditions.forEach((condition) => {
+        const fieldObj = condition.field?.object;
+        const fieldName = condition.field?.field;
+        if (!fieldObj || !fieldName) return;
+
+        const qualifiedKey = qualify(fieldObj, fieldName);
+        if (nextDisplay[qualifiedKey] !== undefined) return;
+
+        const objectKeyCandidates = [fieldObj, `${fieldObj}s`];
+        const matchesTimestamp = objectKeyCandidates.some((objKey) =>
+          (TIMESTAMP_FIELD_BY_OBJECT[objKey] || []).includes(fieldName)
+        );
+        if (matchesTimestamp) {
+          nextDisplay[qualifiedKey] = row.ts;
+        }
+      });
+
+      return { ...row, display: nextDisplay };
+    });
+
+    const filterGroup: FilterGroup = {
+      conditions: incomingFilterConditions,
+      logic: 'AND',
+    };
+    return applyFilters(augmentedRows, filterGroup);
+  }, [rows, incomingFilterConditions]);
 
   // Apply sorting
   const sortedRows = useMemo(() => {
-    if (!sortState.column || !sortState.direction) return rows;
-    return sortRowsByField(rows, sortState.column, sortState.direction);
-  }, [rows, sortState]);
+    if (!sortState.column || !sortState.direction) return filteredRows;
+    return sortRowsByField(filteredRows, sortState.column, sortState.direction);
+  }, [filteredRows, sortState]);
 
   // Paginate rows
   const paginatedRows = useMemo(() => {
@@ -181,17 +254,25 @@ export const DataListNode = React.memo(({ data, id }: DataListNodeProps) => {
   if (!hasWarehouseData) {
     return (
       <div
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         style={{
           minWidth: '600px',
           minHeight: '400px',
           backgroundColor: 'var(--bg-primary)',
-          border: data.isSelected ? '2px solid #675DFF' : '1px solid var(--border-default)',
+          border: data.isSelected 
+            ? '1px solid #675DFF' 
+            : isHovered 
+            ? '1px solid #b8b3ff' 
+            : '1px solid var(--border-default)',
           borderRadius: '12px',
           padding: '24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: 'var(--text-secondary)',
+          transition: 'border 0.15s ease',
+          cursor: 'pointer',
         }}
       >
         <Handle type="target" position={Position.Left} />
@@ -204,17 +285,25 @@ export const DataListNode = React.memo(({ data, id }: DataListNodeProps) => {
   if (rows.length === 0) {
     return (
       <div
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         style={{
           minWidth: '600px',
           minHeight: '400px',
           backgroundColor: 'var(--bg-primary)',
-          border: data.isSelected ? '2px solid #675DFF' : '1px solid var(--border-default)',
+          border: data.isSelected 
+            ? '1px solid #675DFF' 
+            : isHovered 
+            ? '1px solid #b8b3ff' 
+            : '1px solid var(--border-default)',
           borderRadius: '12px',
           padding: '24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: 'var(--text-secondary)',
+          transition: 'border 0.15s ease',
+          cursor: 'pointer',
         }}
       >
         <Handle type="target" position={Position.Left} />
@@ -226,27 +315,49 @@ export const DataListNode = React.memo(({ data, id }: DataListNodeProps) => {
 
   return (
     <div
+      onMouseEnter={() => {
+        setIsHovered(true);
+        data.onHoverChange?.(true, id);
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        data.onHoverChange?.(false, id);
+      }}
       style={{
-        minWidth: '800px',
-        backgroundColor: 'var(--bg-primary)',
-        border: data.isSelected ? '2px solid #675DFF' : '1px solid var(--border-default)',
-        borderRadius: '12px',
-        overflow: 'hidden',
+        position: 'relative',
+        padding: '110px', // Extend hover area to include button + menu space
+        margin: '-110px', // Offset the padding so the element position stays the same
       }}
     >
-      <Handle type="target" position={Position.Left} />
-      <Handle type="source" position={Position.Right} />
-
-      {/* Header */}
       <div
         style={{
-          padding: '16px 24px',
-          borderBottom: '1px solid var(--border-default)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          position: 'relative', // Add relative positioning for button placement
+          minWidth: '800px',
+          backgroundColor: 'var(--bg-primary)',
+          border: data.isSelected 
+            ? '1px solid #675DFF' 
+            : isHovered 
+            ? '1px solid #b8b3ff' 
+            : '1px solid var(--border-default)',
+          borderRadius: '12px',
+          overflow: 'visible',
+          transition: 'border 0.15s ease',
+          cursor: 'pointer',
         }}
       >
+        <Handle type="target" position={Position.Left} />
+        <Handle type="source" position={Position.Right} />
+
+        {/* Header */}
+        <div
+          style={{
+            padding: '16px 24px',
+            borderBottom: '1px solid var(--border-default)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <rect x="3" y="3" width="14" height="3" rx="1" fill="var(--text-secondary)" />
@@ -443,6 +554,31 @@ export const DataListNode = React.memo(({ data, id }: DataListNodeProps) => {
           </button>
         </div>
       )}
+      
+        {/* Add Element Buttons - only show on hover, when selected, or when a menu is open */}
+        {(isHovered || data.isSelected || openMenuCount > 0) && (
+          <>
+            <AddElementButton 
+              parentElementId={id} 
+              position="left" 
+            onHoverChange={data.onHoverChange}
+              onMenuStateChange={(isOpen) => setOpenMenuCount(prev => isOpen ? prev + 1 : Math.max(0, prev - 1))}
+            />
+            <AddElementButton 
+              parentElementId={id} 
+              position="right" 
+            onHoverChange={data.onHoverChange}
+              onMenuStateChange={(isOpen) => setOpenMenuCount(prev => isOpen ? prev + 1 : Math.max(0, prev - 1))}
+            />
+            <AddElementButton 
+              parentElementId={id} 
+              position="bottom" 
+            onHoverChange={data.onHoverChange}
+              onMenuStateChange={(isOpen) => setOpenMenuCount(prev => isOpen ? prev + 1 : Math.max(0, prev - 1))}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 });

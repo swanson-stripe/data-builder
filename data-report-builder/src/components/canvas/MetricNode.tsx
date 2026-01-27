@@ -1,9 +1,11 @@
 'use client';
 
 import { Handle, Position } from 'reactflow';
+import { useState } from 'react';
+import { AddElementButton } from './AddElementButton';
 
 interface MetricNodeProps {
-  data: any & { isSelected?: boolean };
+  data: any & { isSelected?: boolean; onHoverChange?: (isHovered: boolean, elementId: string) => void };
   id: string;
 }
 
@@ -12,32 +14,55 @@ interface MetricNodeProps {
  */
 export function MetricNode({ data, id }: MetricNodeProps) {
   const metricBlocks = data.metricBlocks || [];
+  const [isHovered, setIsHovered] = useState(false);
+  const [openMenuCount, setOpenMenuCount] = useState(0);
 
   return (
     <div
+      onMouseEnter={() => {
+        setIsHovered(true);
+        data.onHoverChange?.(true, id);
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        data.onHoverChange?.(false, id);
+      }}
       style={{
-        minWidth: '250px',
-        maxWidth: '350px',
-        backgroundColor: 'var(--bg-elevated)',
-        border: data.isSelected ? '2px solid #675DFF' : '1px solid var(--border-default)',
-        borderRadius: '12px',
-        transition: 'all 0.15s ease-in-out',
+        position: 'relative',
+        padding: '110px',
+        margin: '-110px',
       }}
     >
-      <Handle
-        type="target"
-        position={Position.Left}
+      <div
         style={{
-          background: 'var(--chart-line-primary)',
-          width: '8px',
-          height: '8px',
-          border: '2px solid var(--bg-elevated)',
+          position: 'relative', // Add relative positioning for button placement
+          minWidth: '250px',
+          maxWidth: '350px',
+          backgroundColor: 'var(--bg-elevated)',
+          border: data.isSelected 
+            ? '1px solid #675DFF' 
+            : isHovered 
+            ? '1px solid #b8b3ff' 
+            : '1px solid var(--border-default)',
+          borderRadius: '12px',
+          transition: 'all 0.15s ease-in-out',
+          cursor: 'pointer',
         }}
-      />
+      >
+        <Handle
+          type="target"
+          position={Position.Left}
+          style={{
+            background: 'var(--chart-line-primary)',
+            width: '8px',
+            height: '8px',
+            border: '2px solid var(--bg-elevated)',
+          }}
+        />
 
-      <div style={{ padding: '16px' }}>
-        {/* Header */}
-        <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ padding: '16px' }}>
+          {/* Header */}
+          <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '18px' }}>🔢</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>
@@ -95,18 +120,43 @@ export function MetricNode({ data, id }: MetricNodeProps) {
             </div>
           )}
         </div>
-      </div>
 
-      <Handle
-        type="source"
-        position={Position.Right}
-        style={{
-          background: 'var(--chart-line-primary)',
-          width: '8px',
-          height: '8px',
-          border: '2px solid var(--bg-elevated)',
-        }}
-      />
+        <Handle
+          type="source"
+          position={Position.Right}
+          style={{
+            background: 'var(--chart-line-primary)',
+            width: '8px',
+            height: '8px',
+            border: '2px solid var(--bg-elevated)',
+          }}
+        />
+        </div>
+        
+        {/* Add Element Buttons - only show on hover, when selected, or when a menu is open */}
+        {(isHovered || data.isSelected || openMenuCount > 0) && (
+          <>
+            <AddElementButton 
+              parentElementId={id} 
+              position="left" 
+              onHoverChange={data.onHoverChange}
+              onMenuStateChange={(isOpen) => setOpenMenuCount(prev => isOpen ? prev + 1 : Math.max(0, prev - 1))}
+            />
+            <AddElementButton 
+              parentElementId={id} 
+              position="right" 
+              onHoverChange={data.onHoverChange}
+              onMenuStateChange={(isOpen) => setOpenMenuCount(prev => isOpen ? prev + 1 : Math.max(0, prev - 1))}
+            />
+            <AddElementButton 
+              parentElementId={id} 
+              position="bottom" 
+              onHoverChange={data.onHoverChange}
+              onMenuStateChange={(isOpen) => setOpenMenuCount(prev => isOpen ? prev + 1 : Math.max(0, prev - 1))}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -1267,8 +1267,14 @@ type AppContextType = {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 // Provider
-export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+export function AppProvider({
+  children,
+  initialState: initialStateOverride,
+}: {
+  children: ReactNode;
+  initialState?: AppState;
+}) {
+  const [state, dispatch] = useReducer(appReducer, initialStateOverride ?? initialState);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

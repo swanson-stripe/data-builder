@@ -41,7 +41,7 @@ export function BaseNode({ data, selected }: { data: any; selected?: boolean }) 
         padding: '16px',
         borderRadius: '8px',
         backgroundColor: 'var(--bg-elevated)',
-        border: selected ? '2px solid var(--button-primary-bg)' : '1px solid var(--border-default)',
+        border: selected ? '1px solid var(--button-primary-bg)' : '1px solid var(--border-default)',
         boxShadow: selected ? '0 4px 12px rgba(0, 0, 0, 0.15)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
         minWidth: '200px',
         maxWidth: '400px',

@@ -88,7 +88,7 @@ export function generateMapFromAppState(appState: AppState): {
   }
 
   // 4. Create Chart element if chart is enabled
-  if (appState.showChart && appState.chartType) {
+  if (appState.selectedFields.length > 0) {
     const chartElement: MapElement = {
       id: generateElementId('chart'),
       type: 'chart',
@@ -96,7 +96,7 @@ export function generateMapFromAppState(appState: AppState): {
       data: {
         type: 'chart',
         parentDataListId: dataListElement.id,
-        chartType: appState.chartType,
+        chartType: appState.chart.type,
         showControls: true,
       },
     };
@@ -109,7 +109,7 @@ export function generateMapFromAppState(appState: AppState): {
   }
 
   // 5. Create Metric elements if metrics exist
-  if (appState.metricBlocks && appState.metricBlocks.length > 0) {
+  if (appState.metricFormula.blocks && appState.metricFormula.blocks.length > 0) {
     const metricElement: MapElement = {
       id: generateElementId('metric'),
       type: 'metric',
@@ -117,7 +117,7 @@ export function generateMapFromAppState(appState: AppState): {
       data: {
         type: 'metric',
         parentDataListId: dataListElement.id,
-        metricBlocks: appState.metricBlocks,
+        metricBlocks: appState.metricFormula.blocks,
       },
     };
     elements.push(metricElement);

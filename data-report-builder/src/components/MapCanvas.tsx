@@ -1,10 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
-  Controls,
-  MiniMap,
+  ConnectionLineType,
   MarkerType,
   Node,
   Edge,
@@ -27,15 +26,68 @@ import { FilterNode } from './canvas/FilterNode';
 import { MetricNode } from './canvas/MetricNode';
 import { SQLQueryNode } from './canvas/SQLQueryNode';
 import { FloatingConfigPanel } from './canvas/FloatingConfigPanel';
+import { useReactFlow } from 'reactflow';
 
 /**
  * MapCanvas - React Flow canvas for draggable elements
  */
 export function MapCanvas() {
   const { state, dispatch } = useMapView();
+  const reactFlowInstance = useReactFlow();
 
   // Local nodes state for React Flow to manage during drag
   const [localNodes, setLocalNodes] = useState<Node[]>([]);
+  
+  // Hover state for showing config panel
+  const [hoveredElementId, setHoveredElementId] = useState<string | null>(null);
+  const nodeHoverActiveRef = useRef(false);
+  const panelHoverActiveRef = useRef(false);
+  const hoverClearTimeoutRef = useRef<number | null>(null);
+
+  const handleNodeHoverChange = useCallback((isHovered: boolean, elementId: string) => {
+    if (isHovered) {
+      nodeHoverActiveRef.current = true;
+      if (hoverClearTimeoutRef.current) {
+        window.clearTimeout(hoverClearTimeoutRef.current);
+        hoverClearTimeoutRef.current = null;
+      }
+      setHoveredElementId(elementId);
+      return;
+    }
+
+    nodeHoverActiveRef.current = false;
+    if (hoverClearTimeoutRef.current) {
+      window.clearTimeout(hoverClearTimeoutRef.current);
+    }
+    hoverClearTimeoutRef.current = window.setTimeout(() => {
+      if (!panelHoverActiveRef.current) {
+        setHoveredElementId((prev) => (prev === elementId ? null : prev));
+      }
+      hoverClearTimeoutRef.current = null;
+    }, 100);
+  }, []);
+
+  const handlePanelHoverChange = useCallback((isHovered: boolean) => {
+    panelHoverActiveRef.current = isHovered;
+    if (isHovered && hoverClearTimeoutRef.current) {
+      window.clearTimeout(hoverClearTimeoutRef.current);
+      hoverClearTimeoutRef.current = null;
+    }
+    if (!isHovered && !nodeHoverActiveRef.current) {
+      setHoveredElementId(null);
+    }
+  }, []);
+
+  const handleWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    if (!event.metaKey) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    const viewport = reactFlowInstance.getViewport();
+    const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+    const nextZoom = Math.min(1.5, Math.max(0.5, viewport.zoom * zoomFactor));
+    reactFlowInstance.zoomTo(nextZoom);
+  }, [reactFlowInstance]);
 
   // Register custom node types
   const nodeTypes: NodeTypes = useMemo(
@@ -59,12 +111,13 @@ export function MapCanvas() {
       data: {
         ...element.data,
         isSelected: element.id === state.selectedElementId,
+        onHoverChange: handleNodeHoverChange,
       },
       selected: element.id === state.selectedElementId,
       draggable: true,
     }));
     setLocalNodes(newNodes);
-  }, [state.elements, state.selectedElementId]);
+  }, [state.elements, state.selectedElementId, handleNodeHoverChange]);
 
   // Convert MapConnections to React Flow edges
   const edges: Edge[] = useMemo(
@@ -73,7 +126,7 @@ export function MapCanvas() {
         id: connection.id,
         source: connection.source,
         target: connection.target,
-        type: 'smoothstep',
+        type: 'default',
         animated: false,
         style: {
           stroke: 'var(--chart-line-primary)',
@@ -158,6 +211,16 @@ export function MapCanvas() {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTextInput =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+
+      if (isTextInput) return;
+
       // Delete selected element
       if (
         (event.key === 'Backspace' || event.key === 'Delete') &&
@@ -169,14 +232,47 @@ export function MapCanvas() {
       else if (event.key === 'Escape' && state.selectedElementId) {
         dispatch(mapActions.deselectElement());
       }
+      // Cmd + / Cmd - zoom
+      else if (event.metaKey && (event.key === '=' || event.key === '-')) {
+        event.preventDefault();
+        const viewport = reactFlowInstance.getViewport();
+        const zoomFactor = event.key === '=' ? 1.1 : 0.9;
+        const nextZoom = Math.min(1.5, Math.max(0.5, viewport.zoom * zoomFactor));
+        reactFlowInstance.zoomTo(nextZoom);
+      }
+      // Opt-1: fit all elements
+      else if (event.altKey && event.code === 'Digit1') {
+        event.preventDefault();
+        reactFlowInstance.fitView({ padding: 0.2 });
+      }
+      // Opt-0: zoom to 100% (no pan)
+      else if (event.altKey && event.code === 'Digit0') {
+        event.preventDefault();
+        reactFlowInstance.setViewport({ x: 0, y: 0, zoom: 1 });
+      }
+      // Opt-2: zoom + center selected element
+      else if (event.altKey && event.code === 'Digit2') {
+        if (!state.selectedElementId) return;
+        event.preventDefault();
+        const node = reactFlowInstance.getNode(state.selectedElementId);
+        if (node) {
+          reactFlowInstance.fitView({ nodes: [node], padding: 0.3, maxZoom: 1.5 });
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [state.selectedElementId, dispatch]);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (hoverClearTimeoutRef.current) {
+        window.clearTimeout(hoverClearTimeoutRef.current);
+        hoverClearTimeoutRef.current = null;
+      }
+    };
+  }, [state.selectedElementId, dispatch, reactFlowInstance]);
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full" onWheel={handleWheel}>
       <ReactFlow
         nodes={localNodes}
         edges={edges}
@@ -192,12 +288,14 @@ export function MapCanvas() {
         minZoom={0.5}
         maxZoom={1.5}
         fitView={false}
+        panOnScroll
+        zoomOnScroll={false}
         selectNodesOnDrag={false}
         multiSelectionKeyCode={null}
         deleteKeyCode="Backspace"
         connectionLineStyle={{ stroke: 'var(--chart-line-primary)', strokeWidth: 2 }}
-        connectionLineType="smoothstep"
-        attributionPosition="bottom-left"
+        connectionLineType={ConnectionLineType.SmoothStep}
+        proOptions={{ hideAttribution: true }}
         style={{
           backgroundColor: 'var(--bg-primary)',
         }}
@@ -209,37 +307,22 @@ export function MapCanvas() {
           size={1}
           color="var(--border-subtle)"
         />
-
-        {/* Zoom controls */}
-        <Controls
-          style={{
-            backgroundColor: 'var(--bg-elevated)',
-            border: '1px solid var(--border-default)',
-            borderRadius: '8px',
-          }}
-        />
-
-        {/* Mini map */}
-        <MiniMap
-          style={{
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-default)',
-            borderRadius: '8px',
-          }}
-          maskColor="rgba(0, 0, 0, 0.1)"
-        />
       </ReactFlow>
 
-      {/* Floating config panel for selected element */}
-      {state.selectedElementId && (() => {
-        const selectedElement = state.elements.find((el) => el.id === state.selectedElementId);
-        if (selectedElement) {
-          return (
-            <FloatingConfigPanel
-              selectedElement={selectedElement}
-              nodePosition={selectedElement.position}
-            />
-          );
+      {/* Floating config panel for hovered or selected element */}
+      {(() => {
+        const configElementId = hoveredElementId || state.selectedElementId;
+        if (configElementId) {
+          const element = state.elements.find((el) => el.id === configElementId);
+          if (element) {
+            return (
+              <FloatingConfigPanel
+                selectedElement={element}
+                nodePosition={element.position}
+                onHoverChange={handlePanelHoverChange}
+              />
+            );
+          }
         }
         return null;
       })()}

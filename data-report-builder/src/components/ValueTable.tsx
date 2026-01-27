@@ -17,11 +17,17 @@ import { applyFilters } from '@/lib/filters';
 import { resolveFieldValue, createFilteredWarehouse, batchResolveFieldValues } from '@/lib/grouping';
 import { formatDisplayValue } from '@/lib/formatters';
 
-export function ValueTable() {
+type ValueTableProps = {
+  onBucketClick?: (bucket: { start: string; end: string; label: string }) => void;
+  tableBackground?: string;
+};
+
+export function ValueTable({ onBucketClick, tableBackground }: ValueTableProps = {}) {
   const { state, dispatch } = useApp();
   const { store: warehouse, version, loadEntity, has } = useWarehouseStore();
   const firstColumnRef = useRef<HTMLTableCellElement>(null);
   const [columnWidth, setColumnWidth] = useState(0);
+  const baseBackground = tableBackground ?? 'var(--bg-primary)';
 
   // Auto-load selected objects that aren't yet loaded
   useEffect(() => {
@@ -150,7 +156,8 @@ export function ValueTable() {
     
     const { start, end } = getBucketRange(bucketDate, state.granularity);
     dispatch(actions.setSelectedBucket(start, end, dateStr));
-  }, [state.metric.type, state.granularity, metricResult.series, dispatch]);
+    onBucketClick?.({ start, end, label: dateStr });
+  }, [state.metric.type, state.granularity, metricResult.series, dispatch, onBucketClick]);
 
   // Compute grouped metrics if grouping is active
   const groupedMetrics = useMemo(() => {
@@ -504,7 +511,7 @@ export function ValueTable() {
                   position: 'sticky',
                   left: 0,
                   zIndex: 20,
-                  backgroundColor: 'var(--bg-primary)'
+                  backgroundColor: baseBackground
                 }}
               >
                 Current period
@@ -513,7 +520,7 @@ export function ValueTable() {
                 <th
                   key={idx}
                   className="pt-2 pb-0 pl-3 pr-3 font-normal text-xs text-gray-500 whitespace-nowrap"
-                  style={{ textAlign: 'right', minWidth: '100px', backgroundColor: 'var(--bg-primary)' }}
+                  style={{ textAlign: 'right', minWidth: '100px', backgroundColor: baseBackground }}
                 >
                   {formatColumnHeader(point.date)}
                 </th>
@@ -550,7 +557,7 @@ export function ValueTable() {
                           position: 'sticky',
                           left: 0,
                           zIndex: 10,
-                          backgroundColor: 'var(--bg-primary)'
+                          backgroundColor: baseBackground
                         }}
                       >
                         <div className="flex items-center gap-2">
@@ -578,7 +585,7 @@ export function ValueTable() {
                               textAlign: 'right',
                               fontVariantNumeric: 'tabular-nums',
                               minWidth: '100px',
-                              backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : 'var(--bg-primary)'
+                              backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : baseBackground
                             }}
                             tabIndex={0}
                             onClick={() => {
@@ -638,7 +645,7 @@ export function ValueTable() {
                       position: 'sticky',
                       left: 0,
                       zIndex: 10,
-                      backgroundColor: 'var(--bg-primary)'
+                      backgroundColor: baseBackground
                     }}
                   >
                     <div className="flex items-center gap-2">
@@ -668,7 +675,7 @@ export function ValueTable() {
                           textAlign: 'right',
                           fontVariantNumeric: 'tabular-nums',
                           minWidth: '100px',
-                          backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : 'var(--bg-primary)'
+                          backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : baseBackground
                         }}
                         tabIndex={0}
                         onClick={() => handleBucketClick(point.date)}
@@ -700,7 +707,7 @@ export function ValueTable() {
                     position: 'sticky',
                     left: 0,
                     zIndex: 10,
-                    backgroundColor: 'var(--bg-primary)'
+                    backgroundColor: baseBackground
                   }}
                 >
                   <div className="flex items-center gap-2">
@@ -732,7 +739,7 @@ export function ValueTable() {
                         textAlign: 'right',
                         fontVariantNumeric: 'tabular-nums',
                         minWidth: '100px',
-                        backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : 'var(--bg-primary)'
+                        backgroundColor: isSelected ? 'var(--bg-selected)' : isHovered ? 'var(--bg-surface)' : baseBackground
                       }}
                       tabIndex={0}
                       onClick={() => handleBucketClick(point.date)}
@@ -766,7 +773,7 @@ export function ValueTable() {
                       position: 'sticky',
                       left: 0,
                       zIndex: 20,
-                      backgroundColor: 'var(--bg-primary)'
+                      backgroundColor: baseBackground
                     }}
                   >
                     Previous period
@@ -775,7 +782,7 @@ export function ValueTable() {
                     <th
                       key={idx}
                       className="pt-2 pb-0 pl-3 pr-3 font-normal text-xs text-gray-500 whitespace-nowrap"
-                      style={{ textAlign: 'right', minWidth: '100px', backgroundColor: 'var(--bg-primary)' }}
+                      style={{ textAlign: 'right', minWidth: '100px', backgroundColor: baseBackground }}
                     >
                       {formatColumnHeader(point.date)}
                     </th>
@@ -788,7 +795,7 @@ export function ValueTable() {
                       position: 'sticky',
                       left: 0,
                       zIndex: 10,
-                      backgroundColor: 'var(--bg-primary)'
+                      backgroundColor: baseBackground
                     }}
                   >
                     <div className="flex items-center gap-2">
@@ -830,7 +837,7 @@ export function ValueTable() {
                         textAlign: 'right',
                         fontVariantNumeric: 'tabular-nums',
                         minWidth: '100px',
-                        backgroundColor: 'var(--bg-primary)'
+                        backgroundColor: baseBackground
                       }}
                     >
                       <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
