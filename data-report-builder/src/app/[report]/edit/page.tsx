@@ -19,7 +19,6 @@ import { SavePopover } from '@/components/SavePopover';
 import { Toast } from '@/components/Toast';
 import TemplateReopenButton from '@/components/TemplateReopenButton';
 import { GuidedTourOverlay, type TourStep } from '@/components/GuidedTourOverlay';
-import { ViewSwitcher } from '@/components/ViewSwitcher';
 import { useReportHeuristics } from '@/hooks/useReportHeuristics';
 // getGroupValues import removed - users now manually select group values
 
@@ -284,10 +283,6 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
             Edit report
           </span>
 
-          {/* View Switcher - TEMPORARILY HIDDEN */}
-          {/* <div style={{ marginLeft: '16px' }}>
-            <ViewSwitcher />
-          </div> */}
         </div>
 
         {/* Save/Duplicate button */}
@@ -471,15 +466,17 @@ function EditPageContent({ reportInfo }: { reportInfo: ReportInfo }) {
         )}
       </main>
 
-      {/* Floating Dev Tools */}
-      <DevToolsMenu
-        loadingProgress={loadingProgress}
-        showNewButton={true}
-        onStartGuidedTour={() => {
-          setIsTourOpen(true);
-          setTourStepIndex(0);
-        }}
-      />
+      {/* Floating Dev Tools - hide in map view */}
+      {currentView === 'table' && (
+        <DevToolsMenu
+          loadingProgress={loadingProgress}
+          showNewButton={true}
+          onStartGuidedTour={() => {
+            setIsTourOpen(true);
+            setTourStepIndex(0);
+          }}
+        />
+      )}
 
       <GuidedTourOverlay
         isOpen={isTourOpen}

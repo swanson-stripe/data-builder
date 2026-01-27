@@ -1,6 +1,7 @@
 'use client';
 
 import { useMapView, mapActions } from '@/state/mapView';
+import type { DataListElementData } from '@/types/mapElements';
 import { useEffect, useRef } from 'react';
 
 /**
@@ -29,7 +30,8 @@ export function ElementConfigPanel() {
 
   const renderConfig = () => {
     switch (selectedElement.type) {
-      case 'dataList':
+      case 'dataList': {
+        const data = selectedElement.data as DataListElementData;
         return (
           <div>
             <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>
@@ -37,10 +39,10 @@ export function ElementConfigPanel() {
             </h4>
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
               <div style={{ marginBottom: '8px' }}>
-                <strong>{selectedElement.data.selectedFields?.length || 0}</strong> fields selected
+                <strong>{data.selectedFields?.length || 0}</strong> fields selected
               </div>
               <div>
-                <strong>{selectedElement.data.selectedObjects?.length || 0}</strong> objects selected
+                <strong>{data.selectedObjects?.length || 0}</strong> objects selected
               </div>
             </div>
             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
@@ -62,6 +64,7 @@ export function ElementConfigPanel() {
             </div>
           </div>
         );
+      }
 
       case 'chart':
         return (
@@ -269,9 +272,7 @@ export function ElementConfigPanel() {
       <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
         <button
           onClick={() => {
-            if (confirm('Delete this element?')) {
-              dispatch(mapActions.deleteElement(selectedElement.id));
-            }
+            dispatch(mapActions.deleteElement(selectedElement.id));
           }}
           style={{
             width: '100%',

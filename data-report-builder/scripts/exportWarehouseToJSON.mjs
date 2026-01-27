@@ -1,6 +1,6 @@
 /**
  * Export warehouse-data to JSON files for browser loading
- * This reads from warehouse-fresh.ts and exports to public/data/*.json
+ * This reads from warehouse-data.ts and exports to public/data/*.json
  */
 
 import { writeFileSync, mkdirSync } from 'fs';
@@ -18,7 +18,7 @@ console.log('📦 Exporting warehouse data to JSON files...\n');
 let warehouseData;
 try {
   // Use dynamic import to load the TypeScript/ESM module
-  const module = await import('../src/data/warehouse-fresh.ts');
+  const module = await import('../src/data/warehouse-data.ts');
   warehouseData = module.warehouseData;
 } catch (error) {
   console.error('❌ Failed to import warehouse data:', error.message);
