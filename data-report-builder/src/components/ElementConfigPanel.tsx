@@ -1,7 +1,7 @@
 'use client';
 
 import { useMapView, mapActions } from '@/state/mapView';
-import type { DataListElementData } from '@/types/mapElements';
+import type { ChartElementData, DataListElementData } from '@/types/mapElements';
 import { useEffect, useRef } from 'react';
 
 /**
@@ -66,7 +66,8 @@ export function ElementConfigPanel() {
         );
       }
 
-      case 'chart':
+      case 'chart': {
+        const data = selectedElement.data as ChartElementData;
         return (
           <div>
             <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>
@@ -77,10 +78,10 @@ export function ElementConfigPanel() {
                 Chart Type
               </label>
               <select
-                value={selectedElement.data.chartType || 'line'}
+                value={data.chartType || 'line'}
                 onChange={(e) => {
                   dispatch(mapActions.updateElement(selectedElement.id, {
-                    data: { ...selectedElement.data, chartType: e.target.value },
+                    data: { ...data, chartType: e.target.value },
                   }));
                 }}
                 style={{
@@ -101,6 +102,7 @@ export function ElementConfigPanel() {
             </div>
           </div>
         );
+      }
 
       case 'filter':
         return (
