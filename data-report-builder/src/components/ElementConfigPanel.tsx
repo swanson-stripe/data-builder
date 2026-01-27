@@ -81,7 +81,7 @@ export function ElementConfigPanel() {
                 value={data.chartType || 'line'}
                 onChange={(e) => {
                   dispatch(mapActions.updateElement(selectedElement.id, {
-                    data: { ...data, chartType: e.target.value },
+                    data: { ...data, chartType: e.target.value as ChartElementData['chartType'] },
                   }));
                 }}
                 style={{
