@@ -5,6 +5,7 @@ import ReactFlow, {
   Background,
   Controls,
   MiniMap,
+  MarkerType,
   Node,
   Edge,
   Connection,
@@ -79,7 +80,7 @@ export function MapCanvas() {
           strokeWidth: 2,
         },
         markerEnd: {
-          type: 'arrowclosed' as const,
+          type: MarkerType.ArrowClosed,
           color: 'var(--chart-line-primary)',
         },
       })),
