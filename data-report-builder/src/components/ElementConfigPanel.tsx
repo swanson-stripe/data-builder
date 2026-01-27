@@ -1,7 +1,7 @@
 'use client';
 
 import { useMapView, mapActions } from '@/state/mapView';
-import type { ChartElementData, DataListElementData } from '@/types/mapElements';
+import type { ChartElementData, DataListElementData, FilterElementData } from '@/types/mapElements';
 import { useEffect, useRef } from 'react';
 
 /**
@@ -104,14 +104,15 @@ export function ElementConfigPanel() {
         );
       }
 
-      case 'filter':
+      case 'filter': {
+        const data = selectedElement.data as FilterElementData;
         return (
           <div>
             <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>
               Filter Configuration
             </h4>
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-              {selectedElement.data.conditions?.length || 0} conditions
+              {data.conditions?.length || 0} conditions
             </div>
             <button
               style={{
@@ -130,6 +131,7 @@ export function ElementConfigPanel() {
             </button>
           </div>
         );
+      }
 
       case 'metric':
         return (
